@@ -106,6 +106,15 @@ for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_fr
     print(f'{dst}: {width}×{round(im.height * s)}')
     if dst.startswith('bar_ice_'): ice.append(round(im.height / im.width, 4))  # 얼음 그림 세로/가로 (drinkart 가 층으로 쌓는다)
 
+# 역광 테두리 마스크 (2026-11-05 시험): 잔 실루엣의 바깥 가장자리 띠 (흰색, 알파 = 띠) → public/art/bar_glass_<잔 id>_rim.webp. 색 · 한쪽 쏠림은 drinkart 가 장면마다
+from PIL import ImageFilter as _IF
+for gid in GEOM:
+    im = Image.open(f'public/art/bar_glass_{gid}.webp').convert('RGBA'); a = im.split()[3].point(lambda v: 255 if v > 40 else 0)
+    r = max(3, round(im.width * 0.022)) | 1
+    inner = a.filter(_IF.MinFilter(r)); edge = Image.fromarray(np.clip(np.asarray(a, np.int16) - np.asarray(inner, np.int16), 0, 255).astype(np.uint8)).filter(_IF.GaussianBlur(1.2))
+    rim = Image.new('RGBA', im.size, (255, 255, 255, 0)); rim.putalpha(edge); rim.save(f'public/art/bar_glass_{gid}_rim.webp', 'WEBP', quality=86, method=6)
+print('역광 테두리', list(GEOM))
+
 # 잔 위 가니쉬 (bar_ong_<가니쉬 id>) · 카운터 소품 (bar_prop_<종류>): 고른 원본 art/picked/<키>.webp → public/art/<키>.webp (긴 변 320px), 세로/가로 비를 gen 으로
 picked = json.load(open('art/bar_items_pick.json'))
 props_ar = {}

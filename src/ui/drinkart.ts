@@ -48,6 +48,17 @@ export const FOAM_FX = {
   ring: { on: false, op: 0.9, pops: 4 },
   bumpy: { on: false, amp: 0.9 },
 };
+/** 잔 조명 (2026-11-05 시험, 꺼 둠): 장면마다 역광 색 · 방향. glow = 투과광 (음료가 역광을 머금어 빛남 — 맑을수록 세게), rim = 빛 오는 쪽 실루엣 가장자리 빛 (public/art/bar_glass_<잔 id>_rim.webp),
+ *  amb = 환경광 (장면 색을 soft-light 로 옅게 + 반대쪽에 차가운 보조색), caustic = 역광이 음료를 지나 테이블에 남기는 색 그림자 */
+export const GLASS_LIGHT = { on: false, scene: 'prep' as 'prep' | 'day' | 'night', glow: true, rim: true, amb: true, caustic: false };
+export const LIGHTS = {
+  // 제조대: 벽 아래쪽 호박색 백라이트 줄이 잔 뒤를 지난다 (band = 48 × 72 상자 y · 반폭)
+  prep: { back: '#ffb24a', band: [45, 6] as [number, number] | null, glow: 0.6, rim: 'up' as 'up' | 'left' | 'right', rimOp: 0.9, amb: '#ffcf8a', ambOp: 0.22, cool: '#6f8fc0', coolOp: 0.22 },
+  // 카운터 낮: 뒤 선반의 따뜻한 흰빛 · 왼쪽 위
+  day: { back: '#fff0cf', band: null, glow: 0.35, rim: 'left' as const, rimOp: 0.75, amb: '#ffe2ae', ambOp: 0.18, cool: '#7f9cc6', coolOp: 0.2 },
+  // 카운터 밤: 창밖 푸른빛 · 오른쪽
+  night: { back: '#a6c4ff', band: null, glow: 0.3, rim: 'right' as const, rimOp: 0.8, amb: '#93b2ea', ambOp: 0.2, cool: '#2f3d5c', coolOp: 0.28 },
+};
 /** 움직임 줄이기면 기포가 멈춰 있다 */
 const stillFx = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let uid = 0;
@@ -208,7 +219,18 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         : foam
         ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed(pat(`${id}h`, FOAM_FX.head), headD, FOAM_FX.head.op, FOAM_FX.head.blend) : ''}`
         : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
-      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
+      // 투과광: 역광이 음료를 지나며 빛난다 — 맑을수록 (재료 불투명도가 낮을수록) 세게, screen
+      let glowFx = '';
+      if (GLASS_LIGHT.on && GLASS_LIGHT.glow) {
+        const L = LIGHTS[GLASS_LIGHT.scene], trans = 1 - d.fill.reduce((t, x) => t + alphaOf(x), 0) / Math.max(1, d.fill.length), op = L.glow * (0.3 + trans);
+        const g0 = L.band ? L.band[0] - L.band[1] * 2 : yTop, g1 = L.band ? L.band[0] + L.band[1] * 2 : s.bot;
+        parts.push(L.band
+          ? `<linearGradient id="${id}gl" gradientUnits="userSpaceOnUse" x1="0" y1="${g0}" x2="0" y2="${g1}"><stop offset="0" stop-color="${L.back}" stop-opacity="0"/><stop offset=".5" stop-color="${L.back}" stop-opacity="1"/><stop offset="1" stop-color="${L.back}" stop-opacity="0"/></linearGradient>`
+          : `<linearGradient id="${id}gl" gradientUnits="userSpaceOnUse" x1="0" y1="${g0.toFixed(2)}" x2="0" y2="${g1.toFixed(2)}"><stop offset="0" stop-color="${L.back}" stop-opacity="1"/><stop offset="1" stop-color="${L.back}" stop-opacity=".15"/></linearGradient>`);
+        glowFx = `<rect x="-2" y="${(L.band ? g0 : yTop - 2).toFixed(2)}" width="52" height="${(L.band ? g1 - g0 : s.bot - yTop + 4).toFixed(2)}" fill="url(#${id}gl)" opacity="${op.toFixed(2)}" style="mix-blend-mode:screen"/>`;
+        if (GLASS_LIGHT.amb) glowFx += `<rect x="-2" y="-10" width="52" height="90" fill="${L.amb}" opacity="${(L.ambOp * 0.6).toFixed(2)}" style="mix-blend-mode:soft-light"/>`;
+      }
+      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${glowFx}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
     } else {
       body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
       // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
@@ -301,7 +323,25 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
     // 섞는 잔: 음료 · 잔 그림 · 테두리 가니쉬를 세 겹으로 (잔 그림 겹만 배경과 섞인다 — 묶음 .dk 는 고립 묶음을 만들지 않아야 한다: filter · transform · z-index 금지, 그림자는 음료 겹에)
     parts.push(`<filter id="${id}s" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation=".8"/></filter>`);
     const shadow = `<ellipse cx="24" cy="69.4" rx="${(w * 0.42).toFixed(2)}" ry="1.3" fill="#000000" fill-opacity=".45" filter="url(#${id}s)"/>`;
-    return `<span class="${cls} art dk" aria-hidden="true"><svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb}>${img}</svg>${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
+    // 잔 조명 (GLASS_LIGHT): 테이블 색 그림자 · 역광 테두리 · 환경광 — 겹마다 제 혼합 모드로 (svg 한 장 = 한 혼합 모드)
+    let caustic = '', lightSvg = '';
+    if (GLASS_LIGHT.on) {
+      const L = LIGHTS[GLASS_LIGHT.scene], gid = d.glass in GLASS_ART ? d.glass : 'rock';
+      if (GLASS_LIGHT.caustic && lv > 0.05 && segs.length) {
+        parts.push(`<filter id="${id}cs" x="-30%" y="-300%" width="160%" height="700%"><feGaussianBlur stdDeviation="1.1"/></filter>`);
+        const c = tint(mix(d.fill.map(colorOf)), 0.25);
+        caustic = `<ellipse cx="${(24 + (L.rim === 'left' ? 3 : L.rim === 'right' ? -3 : 0)).toFixed(2)}" cy="70.6" rx="${(w * 0.48).toFixed(2)}" ry="1.4" fill="${c}" opacity=".55" filter="url(#${id}cs)" style="mix-blend-mode:screen"/>`;
+      }
+      if (GLASS_LIGHT.rim) {
+        const dir = L.rim === 'up' ? 'x1="0" y1="1" x2="0" y2="0"' : L.rim === 'left' ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="1" y1="0" x2="0" y2="0"';
+        lightSvg += `<svg class="dk-rim" ${vb} style="mix-blend-mode:screen"><defs><mask id="${id}rm" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="72"><image href="${artURL(`bar_glass_${gid}_rim.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/></mask><linearGradient id="${id}rg" ${dir}><stop offset="0" stop-color="${L.back}" stop-opacity="${L.rimOp}"/><stop offset=".55" stop-color="${L.back}" stop-opacity="${(L.rimOp * 0.35).toFixed(2)}"/><stop offset="1" stop-color="${L.back}" stop-opacity="0"/></linearGradient></defs><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${id}rg)" mask="url(#${id}rm)"/></svg>`;
+      }
+      if (GLASS_LIGHT.amb) {
+        const cdir = L.rim === 'left' ? 'x1="1" y1="0" x2="0" y2="0"' : L.rim === 'right' ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="0" y1="0" x2="0" y2="1"';
+        lightSvg += `<svg class="dk-amb" ${vb} style="mix-blend-mode:soft-light"><defs><mask id="${id}am" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="72">${img}</mask><linearGradient id="${id}cg" ${cdir}><stop offset="0" stop-color="${L.cool}" stop-opacity="${L.coolOp}"/><stop offset=".6" stop-color="${L.cool}" stop-opacity="0"/></linearGradient></defs><g mask="url(#${id}am)"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${L.amb}" opacity="${L.ambOp}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${id}cg)"/></g></svg>`;
+      }
+    }
+    return `<span class="${cls} art dk" aria-hidden="true"><svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}${caustic}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb}>${img}</svg>${lightSvg}${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
   }
   const glass = `<path d="${s.out}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>${s.stem ? `<path d="${s.stem}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>` : ''}`;
   const back = `<path d="${s.liq}" fill="currentColor" fill-opacity=".07"/>`;
