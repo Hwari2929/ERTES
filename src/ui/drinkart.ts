@@ -122,11 +122,15 @@ const deep = (c: string, ks = 1.35, kl = 0.58) => {
  *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층, 시안 0.5), blur = 음료 뒤 배경 흐림 (backdrop-filter, --dk-blur) */
 /** 재료 고유 연출 (2026-11-05 사용자: 일단 적용해 보고 시안으로 정한다). 섞은 잔은 그 재료가 든 칸 비율만큼 잔 전체에
  *  glow = 네코 마츠리 네온: 층이 스스로 빛난다 (안쪽 흐린 빛 + 잔 밖으로 번지는 빛, screen) · sparkle = 크리스탈블룸: 수정 조각처럼 반짝이는 점 (반짝임은 천천히 켜졌다 꺼진다)
- *  dust = 졸리 밀키웨이: 별가루 점 · louche = 아비스: 맑은 탄산수 · 토닉과 닿은 경계가 뿌옇게 흐려진다 (압생트에 물을 타면 흐려지는 성질) */
+ *  dust = 졸리 밀키웨이: 별가루 점 · louche = 아비스: 맑은 탄산수 · 토닉과 닿은 경계가 뿌옇게 흐려진다 (압생트에 물을 타면 흐려지는 성질)
+ *  별무리 (sparkle · dust, 같은 날 사용자): 살짝 흐리게 구운 별 그림 (public/art/bar_star.webp, scripts/bar_star_build.py) · 크기는 처음의 40% · 반짝반짝 점멸 (blink 초 범위, 두 번 깜빡이고 쉼)
+ *  · 탄산 큰 방울과 같은 방식으로 떠오르는 별 (starRise: 평소 n 개, 갓 따르면 n × burst 개가 fade 초에 걸쳐 차례로 그친다) — size = 별 그림 한 변 (48 × 72 상자 단위) */
 export const ING_FX = {
   glow: { on: true, ids: ['neon'], inner: 0.55, halo: 0.5, haloBlur: 2.4 },
-  sparkle: { on: true, ids: ['crystalbloom'], n: 10, size: 1.15 },
-  dust: { on: true, ids: ['milkyway'], n: 30 },
+  sparkle: { on: true, ids: ['crystalbloom'], n: 10, size: 1.05 },
+  dust: { on: true, ids: ['milkyway'], n: 30, size: 0.8 },
+  starRise: { n: 3, burst: 6, speed: 3.2, fade: 6 },
+  blink: [1.4, 2.8] as [number, number],
   louche: { on: true, ids: ['abyss'], with: ['soda', 'tonic'], op: 0.6 },
 };
 /** 잔 그림 겹 (color-dodge) 진하기 — 2026-11-05 사용자: 록 글라스만 벽이 불투명한 굵은 선이라 혼자 밝다 → 나머지 잔은 0.6 → 0.9 (시안 A, 파인트 0.8 · 고블릿 0.7), 록 글라스는 0.6 의 90% */
@@ -281,23 +285,32 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
             ingFx += `<path d="${below(ga, yb - h, true)} ${below(ga, yb + h, true)}" fill-rule="evenodd" fill="${tint(colorOf(ab), 0.62)}" opacity="${L.op}" filter="url(#${id}lo${i})"/>`;
           }
         }
-        const SP = ING_FX.sparkle;
-        if (SP.on) for (const [zi, z] of zones(SP.ids).entries()) {
-          const nn = Math.max(2, Math.round(SP.n * (z.b - z.a) * (mixed ? z.k * 1.6 : 1) * (n / 4)));
-          for (const [j, [x, y]] of spots(z, nn, 31 + zi * 17).entries()) {
-            const r = SP.size * (0.55 + rnd(j * 5.7 + 3) * 0.6), q = r * 0.22, dur = 2.4 + rnd(j + 9) * 2.4;
-            const star = `M${x.toFixed(2)} ${(y - r).toFixed(2)} L${(x + q).toFixed(2)} ${(y - q).toFixed(2)} L${(x + r).toFixed(2)} ${y.toFixed(2)} L${(x + q).toFixed(2)} ${(y + q).toFixed(2)} L${x.toFixed(2)} ${(y + r).toFixed(2)} L${(x - q).toFixed(2)} ${(y + q).toFixed(2)} L${(x - r).toFixed(2)} ${y.toFixed(2)} L${(x - q).toFixed(2)} ${(y - q).toFixed(2)} Z`;
-            ingFx += still
-              ? `<path d="${star}" fill="#ffffff" opacity="${(0.35 + rnd(j + 2) * 0.55).toFixed(2)}" style="mix-blend-mode:plus-lighter"/>`
-              : `<path d="${star}" fill="#ffffff" opacity="0" style="mix-blend-mode:plus-lighter"><animate attributeName="opacity" values="0; .95; 0" keyTimes="0; .5; 1" dur="${dur.toFixed(2)}s" begin="${(-((now + (j + 40) * 1.37) % dur)).toFixed(2)}s" repeatCount="indefinite"/></path>`;
-          }
-        }
-        const DU = ING_FX.dust;
-        if (DU.on) for (const [zi, z] of zones(DU.ids).entries()) {
-          const nn = Math.max(4, Math.round(DU.n * (z.b - z.a) * (mixed ? z.k * 1.4 : 1) * (n / 4)));
-          for (const [j, [x, y]] of spots(z, nn, 71 + zi * 13, 0.5).entries()) {
-            const big = rnd(j * 2.9 + 1) > 0.86;
-            ingFx += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(big ? 0.32 : 0.1 + rnd(j + 4) * 0.14).toFixed(2)}" fill="${rnd(j + 8) > 0.5 ? '#ffffff' : '#e9e2ff'}" opacity="${(0.35 + rnd(j + 6) * 0.55).toFixed(2)}" style="mix-blend-mode:plus-lighter"/>`;
+        // 별무리 (크리스탈블룸 · 밀키웨이): 층 안에 흩어져 반짝반짝 점멸하는 별 + 탄산처럼 떠오르는 별
+        const ST = ING_FX.starRise, BL = ING_FX.blink, tex = artURL('bar_star.webp'), since = fresh ? (Date.now() - fresh) / 1000 : Infinity;
+        const blinkA = (op: number, salt: number) => { const dur = BL[0] + rnd(salt) * (BL[1] - BL[0]), lo = (op * 0.18).toFixed(2); return `<animate attributeName="opacity" values="${lo}; ${op}; ${lo}; ${(op * 0.85).toFixed(2)}; ${lo}; ${lo}" keyTimes="0; .08; .18; .26; .4; 1" dur="${dur.toFixed(2)}s" begin="${(-((now + salt * 1.37) % dur)).toFixed(2)}s" repeatCount="indefinite"/>`; };
+        const starAt = (x: number, y: number, dd: number, op: number, salt: number) => `<image href="${tex}" x="${(x - dd / 2).toFixed(2)}" y="${(y - dd / 2).toFixed(2)}" width="${dd.toFixed(2)}" height="${dd.toFixed(2)}" opacity="${still ? op : (op * 0.18).toFixed(2)}" style="mix-blend-mode:plus-lighter">${still ? '' : blinkA(op, salt)}</image>`;
+        for (const [fx, base] of [[ING_FX.sparkle, 31], [ING_FX.dust, 71]] as const) {
+          if (!fx.on) continue;
+          for (const [zi, z] of zones(fx.ids).entries()) {
+            const nn = Math.max(2, Math.round(fx.n * (z.b - z.a) * (mixed ? z.k * 1.6 : 1) * (n / 4)));
+            for (const [j, [x, y]] of spots(z, nn, base + zi * 17, 0.5).entries()) ingFx += starAt(x, y, fx.size * (0.55 + rnd(j * 5.7 + base) * 0.6), +(0.45 + rnd(j + base) * 0.5).toFixed(2), j + base + zi * 50);
+            if (still) continue;
+            const yb = Math.min(s.bot - 0.6, yAt(z.a) - 0.3), ye = Math.max(yTop + 0.6, yAt(z.b) + 0.3);
+            if (yb - ye < 2) continue;
+            const total = since < ST.fade ? ST.n * ST.burst : ST.n;
+            for (let k = 0; k < total; k++) {
+              const [w0, w1] = wallsAt(ga, yb - 0.5), x = w0 + 0.8 + (w1 - w0 - 1.6) * rnd(k * 3.3 + base + zi), sw = (rnd(k + 13 + base) - 0.5) * 2;
+              let dur = Math.max(1.4, (yb - ye) / (ST.speed * (0.8 + rnd(k + 5 + base) * 0.5))), begin = `${(-((now + k * 1.37 + base) % dur)).toFixed(2)}s`, fadeOut = '';
+              if (k >= ST.n) { // 갓 따름: 넘는 별은 따른 직후 엇갈려 생겨 1.6배 빨리 오르고, 1.5초 ~ fade 초 사이에 하나씩 그친다
+                const jj = k - ST.n, E = total - ST.n, stopAt = 1.5 + (ST.fade - 1.5) * (jj + 1) / E;
+                if (since >= stopAt) continue;
+                dur /= 1.6; begin = `${(-since + (jj % 8) * 0.22).toFixed(2)}s`;
+                fadeOut = `<animate attributeName="opacity" values="1; 1; 0" keyTimes="0; ${((stopAt - 1) / stopAt).toFixed(3)}; 1" dur="${stopAt.toFixed(2)}s" begin="${(-since).toFixed(2)}s" fill="freeze"/>`;
+              }
+              const dd = fx.size * (0.6 + rnd(k * 2.1 + base) * 0.5), t = `dur="${dur.toFixed(2)}s" begin="${begin}" repeatCount="indefinite"`;
+              const one = `<g opacity="0"><animate attributeName="opacity" values="0; 1; 1; 0" keyTimes="0; .12; .85; 1" ${t}/><g transform="translate(-50 0)"><animateTransform attributeName="transform" type="translate" values="${x.toFixed(2)} ${yb.toFixed(2)}; ${(x + sw).toFixed(2)} ${((yb + ye) / 2).toFixed(2)}; ${(x - sw * 0.4).toFixed(2)} ${ye.toFixed(2)}" ${t}/>${starAt(0, 0, dd, 0.9, k + base + 300)}</g></g>`;
+              ingFx += fadeOut ? `<g class="burst">${fadeOut}${one}</g>` : one;
+            }
           }
         }
       }
