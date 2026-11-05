@@ -39,6 +39,8 @@ export const FOAM_FX = {
     { tex: 'bar_foam_3', tile: 27, op: 0.18, dur: 10, sway: 0.8, x: 9 },
     { tex: 'bar_foam_8', tile: 40, op: 0.4, dur: 13, sway: 1.6, x: 5 },
   ],
+  /** 기포 무늬 진하기 배율 (2026-11-05 사용자): 평소 fizz op 의 base 배, 갓 따르면 fresh 배에서 시작해 rise.fade 초에 걸쳐 base 배로 */
+  fizzK: { base: 0.5, fresh: 0.75 },
   head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'screen' },
   /** rise = 바닥에서 생겨 커지며 떠오르는 큰 방울 (켬, tex 가 비면 선 그림 방울). 시험 (2026-11-05, 꺼 둠): ring = 탄산 수면 가장자리 기포 고리 + 톡 터지는 방울, bumpy = 맥주 거품 윗면을 몽글몽글하게 + 위는 희고 아래는 누런 거품 띠 */
   // 큰 방울 그림 = 시안 1번 (2026-11-05 사용자). size = 그림 한 변 (처음 2.6 의 40%, 사용자). 갓 따랐을 때 (drinkSvg fresh) 는 n × burst 개로 생기다가 fade 초에 걸쳐 n 개로 줄어든다
@@ -146,7 +148,12 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         segs.forEach((sg) => {
           if (!ING_BY_ID[sg.ing]?.fizz) return;
           const d = `${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}`;
-          fizzFx += FOAM_FX.fizz.map((t, i) => texed(urls[i], d, t.op, FOAM_FX.blend)).join('');
+          fizzFx += FOAM_FX.fizz.map((t, i) => {
+            const k = FOAM_FX.fizzK, lo = +(t.op * k.base).toFixed(3), since = fresh ? (Date.now() - fresh) / 1000 : Infinity, fade = FOAM_FX.rise.fade;
+            if (since >= fade || still) return texed(urls[i], d, lo, FOAM_FX.blend);
+            const hi = +(t.op * k.fresh).toFixed(3); // 갓 따름: 진하게 시작해 fade 초에 걸쳐 평소로
+            return texed(urls[i], d, lo, FOAM_FX.blend).replace('/>', `><animate attributeName="opacity" values="${hi}; ${lo}" dur="${fade}s" begin="${(-since).toFixed(2)}s" fill="freeze"/></path>`);
+          }).join('');
         });
       }
       // 시험 효과 (FOAM_FX.rise · ring · bumpy)
