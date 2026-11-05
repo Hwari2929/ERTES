@@ -54,6 +54,9 @@ export const FOAM_FX = {
  *  caustic = 역광이 음료를 지나 테이블에 은은하게 퍼진 색, shadow = 빛 반대쪽으로 지는 그림자 */
 export type LightScene = 'prep' | 'day' | 'night';
 export const GLASS_LIGHT = { on: true, glow: true, rim: true, amb: true, caustic: true, shadow: true };
+/** 역광을 잔 전체에 덮는 레이어로 (2026-11-05 사용자: 실루엣 가장자리 띠 = inner glow 같아 어색 → 레이어로 덮는 느낌). 잔 그림 + 안쪽 영역을 마스크로,
+ *  빛 오는 쪽에서 반대쪽으로 옅어지는 그라데이션을 blend 로 얹는다. op = 장면 rimOp 배율. 가장자리 띠 그림 (bar_glass_<잔>_rim.webp) 을 따로 받지 않아 처음에 빛이 늦게 붙지 않는다 */
+export const RIM_LAYER = { on: true, blend: 'overlay', op: 1 };
 /** 수면 표현 (2026-11-05 시험): flat = 지금 (흰색 35% 섞은 한 색), deep = 음료 색 그대로 조금 짙게 (위에서 내려다보면 깊이만큼 진하다) + 메니스커스 (잔 벽에 닿는 가장자리의 얇은 밝은 고리, 빛 쪽이 밝음),
  *  reflect = deep + 장면 빛의 가로 반사띠 (수면 뒤쪽, 빛 방향으로 치우침), full = reflect + 앞쪽 가장자리 굴절 어둠 + 작은 반짝임 */
 export const SURFACE = { mode: 'flat' as 'flat' | 'deep' | 'reflect' | 'full' };
@@ -502,7 +505,10 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       }
       if (GLASS_LIGHT.rim) {
         const dir = L.rim === 'up' ? 'x1="0" y1="1" x2="0" y2="0"' : L.rim === 'left' ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="1" y1="0" x2="0" y2="0"';
-        lightSvg += `<svg class="dk-rim" ${vb} style="mix-blend-mode:screen"><defs><mask id="${id}rm" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="72"><image href="${artURL(`bar_glass_${gid}_rim.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/></mask><linearGradient id="${id}rg" ${dir}><stop offset="0" stop-color="${L.back}" stop-opacity="${L.rimOp}"/><stop offset=".55" stop-color="${L.back}" stop-opacity="${(L.rimOp * 0.35).toFixed(2)}"/><stop offset="1" stop-color="${L.back}" stop-opacity="0"/></linearGradient></defs><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${id}rg)" mask="url(#${id}rm)"/></svg>`;
+        if (RIM_LAYER.on) { // 잔 전체를 덮는 역광 레이어: 마스크 = 잔 그림 + 안쪽 영역 (흰색)
+          const o = L.rimOp * RIM_LAYER.op;
+          lightSvg += `<svg class="dk-rim" ${vb} style="mix-blend-mode:${RIM_LAYER.blend}"><defs><mask id="${id}rm" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="72">${img}<path d="${inner(ga!)}" fill="#ffffff"/></mask><linearGradient id="${id}rg" ${dir}><stop offset="0" stop-color="${L.back}" stop-opacity="${o.toFixed(2)}"/><stop offset=".6" stop-color="${L.back}" stop-opacity="${(o * 0.45).toFixed(2)}"/><stop offset="1" stop-color="${L.back}" stop-opacity="${(o * 0.12).toFixed(2)}"/></linearGradient></defs><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${id}rg)" mask="url(#${id}rm)"/></svg>`;
+        } else lightSvg += `<svg class="dk-rim" ${vb} style="mix-blend-mode:screen"><defs><mask id="${id}rm" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="72"><image href="${artURL(`bar_glass_${gid}_rim.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/></mask><linearGradient id="${id}rg" ${dir}><stop offset="0" stop-color="${L.back}" stop-opacity="${L.rimOp}"/><stop offset=".55" stop-color="${L.back}" stop-opacity="${(L.rimOp * 0.35).toFixed(2)}"/><stop offset="1" stop-color="${L.back}" stop-opacity="0"/></linearGradient></defs><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${id}rg)" mask="url(#${id}rm)"/></svg>`;
       }
       if (GLASS_LIGHT.amb) {
         const cdir = L.rim === 'left' ? 'x1="1" y1="0" x2="0" y2="0"' : L.rim === 'right' ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="0" y1="0" x2="0" y2="1"';

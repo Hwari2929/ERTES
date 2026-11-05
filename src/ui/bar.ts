@@ -284,6 +284,8 @@ const S = {
 /** 다음 방문은 밤에서 시작 (런을 마치고 돌아올 때) */
 let nightNext = false;
 const BAR_SEL = 'main.bar';
+// 잔 그림을 다 받기 전엔 잔을 숨긴다 (barEnter) — 어떤 길로 들어와도 영영 숨지 않게 4초 뒤엔 보인다
+if (typeof window !== 'undefined' && typeof document !== 'undefined') window.setTimeout(() => document.documentElement.classList.add('dk-ready'), 4000);
 /** 바 안에 늘 있는 사람: 기다리지 않고 바로 나온다 (에이든은 카운터 뒤에서 — 낮에만, 손님은 문가에서) */
 const BAR_FOLK = new Set(['aiden', 'guest']);
 /** 정규 에란테스 단원 (lore/_틀/틀-에란테스.md, 레이첼 제외): 바에 들어올 가중치가 크고 오래 머문다 */
@@ -1380,7 +1382,11 @@ function barNext() { if (!advKey()) { stop(); tick(); } }
 /** 바에 들어올 때: 자리를 새로 채운다 (런을 마치고 돌아오면 밤, 아니면 낮) */
 export function barEnter() {
   void loadGuestPacks(); // 낯선 손님 스탠딩 묶음을 뒤에서 받는다 (받기 전에는 그 손님들이 오지 않는다)
-  if (typeof Image !== 'undefined') for (const f of [...ICE_ART.map((_, i) => `bar_ice_${i}`), ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`), 'bar_star']) void loadArt(artURL(`${f}.webp`)); // 카운터 위 잔 · 얼음 그림 미리 받기 (화면에서만 — barSimulate 검사는 node)
+  if (typeof Image !== 'undefined') { // 카운터 위 잔 · 얼음 그림 미리 받기 (화면에서만 — barSimulate 검사는 node). 다 받기 전에는 잔을 숨긴다 (그림 · 조명이 늦게 붙는 모습이 보이지 않게, 늦어도 2.5초 뒤엔 보인다)
+    const all = [...ICE_ART.map((_, i) => `bar_ice_${i}`), ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`), 'bar_star'].map((f) => loadArt(artURL(`${f}.webp`)));
+    const ready = () => document.documentElement.classList.add('dk-ready');
+    void Promise.race([Promise.all(all), new Promise((r) => window.setTimeout(r, 2500))]).then(ready);
+  }
   for (const s of S.stage) if (s.pay) metaBarCoins(s.pay); // 남겨 둔 동전은 다음 방문 전에 거둔다
   S.prep = null; S.focus = ''; S.memo = false; S.memoOpen = false; S.tipCoin = '';
   stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.wantH = -1; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
