@@ -56,7 +56,7 @@ export type LightScene = 'prep' | 'day' | 'night';
 export const GLASS_LIGHT = { on: true, glow: true, rim: true, amb: true, caustic: true, shadow: true };
 /** 역광을 잔 전체에 덮는 레이어로 (2026-11-05 사용자: 실루엣 가장자리 띠 = inner glow 같아 어색 → 레이어로 덮는 느낌). 잔 그림 + 안쪽 영역을 마스크로,
  *  빛 오는 쪽에서 반대쪽으로 옅어지는 그라데이션을 blend 로 얹는다. op = 장면 rimOp 배율. 가장자리 띠 그림 (bar_glass_<잔>_rim.webp) 을 따로 받지 않아 처음에 빛이 늦게 붙지 않는다 */
-export const RIM_LAYER = { on: true, blend: 'overlay', op: 1 };
+export const RIM_LAYER = { on: true, blend: 'overlay', op: 0.8 }; // 2026-11-05 사용자: overlay ×0.8
 /** 수면 표현 (2026-11-05 시험): flat = 지금 (흰색 35% 섞은 한 색), deep = 음료 색 그대로 조금 짙게 (위에서 내려다보면 깊이만큼 진하다) + 메니스커스 (잔 벽에 닿는 가장자리의 얇은 밝은 고리, 빛 쪽이 밝음),
  *  reflect = deep + 장면 빛의 가로 반사띠 (수면 뒤쪽, 빛 방향으로 치우침), full = reflect + 앞쪽 가장자리 굴절 어둠 + 작은 반짝임 */
 export const SURFACE = { mode: 'flat' as 'flat' | 'deep' | 'reflect' | 'full' };
@@ -129,12 +129,12 @@ const deep = (c: string, ks = 1.35, kl = 0.58) => {
  *  별무리 (sparkle · dust, 같은 날 사용자): 살짝 흐리게 구운 별 그림 (public/art/bar_star.webp, scripts/bar_star_build.py) · 크기는 처음의 40% · 반짝반짝 점멸 (blink 초 범위, 두 번 깜빡이고 쉼)
  *  · 탄산 큰 방울과 같은 방식으로 떠오르는 별 (starRise: 평소 n 개, 갓 따르면 n × burst 개가 fade 초에 걸쳐 차례로 그친다) — size = 별 그림 한 변 (48 × 72 상자 단위) */
 export const ING_FX = {
-  glow: { on: true, ids: ['neon'], inner: 0.55, halo: 0.5, haloBlur: 2.4 },
+  glow: { on: true, ids: ['neon'], inner: 0.28, halo: 0.25, haloBlur: 2.4 }, // 같은 날 사용자: 처음의 절반
   sparkle: { on: true, ids: ['crystalbloom'], n: 10, size: 1.05 },
   dust: { on: true, ids: ['milkyway'], n: 30, size: 0.8 },
   starRise: { n: 3, burst: 6, speed: 3.2, fade: 6 },
   blink: [1.4, 2.8] as [number, number],
-  louche: { on: true, ids: ['abyss'], with: ['soda', 'tonic'], op: 0.6 },
+  louche: { on: true, ids: ['abyss'], with: ['soda', 'tonic'], op: 0.3 }, // 같은 날 사용자: 처음의 절반
 };
 /** 잔 그림 겹 (color-dodge) 진하기 — 2026-11-05 사용자: 록 글라스만 벽이 불투명한 굵은 선이라 혼자 밝다 → 나머지 잔은 0.6 → 0.9 (시안 A, 파인트 0.8 · 고블릿 0.7), 록 글라스는 0.6 의 90% */
 export const GLASS_OPACITY: Record<string, number> = { rock: 0.54, highball: 0.9, pint: 0.8, coupe: 0.9, wine: 0.9, goblet: 0.7 };
