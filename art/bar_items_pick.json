@@ -38,5 +38,12 @@
  "bar_foam_3": "3639109621 (흰 방울 테두리만: 알파 = smoothstep(0.87, 0.99, 최소 채널) × 원본 알파 1.4배, 가장자리 24px 자름)",
  "bar_foam_7": "815124339 (기공만 투명: 알파 = smoothstep(0.80, 0.93, 밝기))",
  "bar_foam_8": "841624744 (반짝임 알파 2.2배)",
- "bar_bubble": "3886645937"
+ "bar_bubble": "3886645937",
+ "bar_ing_abyss": "2225314857",
+ "bar_ing_pythia": "1473983118",
+ "bar_ing_skycaldo": "116690017",
+ "bar_ing_neon": "1286877898",
+ "bar_ing_jmidnight": "3439957224",
+ "bar_ing_milkyway": "4141005165_glass",
+ "bar_ing_crystalbloom": "1472205396"
 }
