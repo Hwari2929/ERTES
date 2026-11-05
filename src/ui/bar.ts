@@ -38,7 +38,7 @@ import { UNIT_BY_ID, UNITS } from '../data/units';
 import { advKey, closeAdv, playAdv } from './adv';
 import { barShowcaseHtml } from './achieve';
 import { EMOTE_PAIRS, emoteSvg, soloWeights, type EmoteId } from './baremote';
-import { drinkSvg } from './drinkart';
+import { drinkSvg, placeGlowBand } from './drinkart';
 import { PETS, propSvg } from './barprops';
 import { barOpsNew, barTutSeen, loadMeta, metaBar, metaBarBond, metaBarCoins, metaBarCoinShown, metaBarGuest, metaBarServed, metaBarTut } from './meta';
 import { counterMemoHtml, newPrep, prepAct, prepDrink, prepHtml, type Prep } from './barprep';
@@ -905,10 +905,11 @@ function syncCups(root: HTMLElement) {
     const l = cupLeft(s.cup, now);
     if (l === null) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; delete el.dataset.l; } continue; }
     const prevL = el.dataset.l === undefined ? null : +el.dataset.l;
-    if (prevL !== null && Math.abs(prevL - l) < 0.04 && !(l === 0 && prevL > 0) && el.dataset.d === s.cup!.d.glass + s.cup!.name) continue;
+    if (prevL !== null && Math.abs(prevL - l) < 0.04 && !(l === 0 && prevL > 0) && el.dataset.d === s.cup!.d.glass + s.cup!.name && el.dataset.n === String(S.night)) continue; // 낮 · 밤이 바뀌면 조명을 다시
     const dk = s.cup!.d.glass + s.cup!.name;
     if (el.hidden || el.dataset.d !== dk) el.dataset.fresh = String(Date.now()); // 새 잔이 놓였다: 갓 따른 잔 (탄산이면 큰 방울이 잔뜩 생겼다가 줄어든다)
-    el.innerHTML = drinkSvg(s.cup!.d, l, 'drink', true, Number(el.dataset.fresh) || 0);
+    el.innerHTML = drinkSvg(s.cup!.d, l, 'drink', true, Number(el.dataset.fresh) || 0, S.night ? 'night' : 'day');
+    el.dataset.n = String(S.night);
     el.dataset.l = l.toFixed(3);
     el.dataset.d = dk;
     if (el.hidden) { el.hidden = false; el.classList.remove('put'); void el.offsetWidth; el.classList.add('put'); }
@@ -1697,6 +1698,8 @@ function openPrep(k: string) {
   root.classList.add('prep-on');
 }
 /** 단골 장부 줄 이름: 낯선 손님은 이름을 밝혔을 때만 (밝히기 전이면 '' = 그 줄을 숨긴다) */
+/** 제조대 벽 백라이트 줄의 화면 높이 (px): .bp-belt 배경이 줄을 .bp-view 높이의 68% 에 둔다 (25-barprep.css) */
+const prepStripY = (view: HTMLElement) => { const r = view.getBoundingClientRect(); return r.top + r.height * 0.68; };
 const ledgerName = (id: string) => (GUEST_BY_ID[id] ? (guestNamed(id) ? GUEST_BY_ID[id].name : '') : nameOf(id));
 /** 제조대 다시 그리기. 단계가 바뀌었으면 앞 단계 자리에서 그려 놓고 다음 프레임에 옮긴다 (카메라가 작업대를 따라 움직이고 영수증이 오른쪽 위로 옮겨 꽂힌다, docs/UI.md 27 · 32) */
 function drawPrep(root: HTMLElement) {
@@ -1711,6 +1714,7 @@ function drawPrep(root: HTMLElement) {
   const view = sec.querySelector<HTMLElement>('.bp-view'), rail = sec.querySelector<HTMLElement>('.bp-rail');
   const rc = rail?.querySelector<HTMLElement>('.bp-rc');
   if (view && rc) view.style.setProperty('--rch', `${rc.offsetHeight}px`); // 맛 막대 = 꽂힌 영수증 바로 아래
+  if (view) placeGlowBand(sec, prepStripY(view)); // 잔 투과광 띠 = 벽 백라이트 줄 높이
   if (view && rail && was !== p.step && !reduced()) {
     view.style.setProperty('--st', String(was)); rail.classList.toggle('pin', was > 0); view.classList.add('still');
     void view.offsetWidth;
@@ -1789,7 +1793,9 @@ function serveCut() {
   const d = prepDrink(p);
   const name = recipeName(d) || `레이첼의 ${GLASS_BY_ID[d.glass]?.name || '잔'}`;
   window.clearTimeout(prepAutoT);
-  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup', true, p.poured || 0)}<span class="bp-done-name">${esc(name)}</span></button>`);
+  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup', true, p.poured || 0, 'prep')}<span class="bp-done-name">${esc(name)}</span></button>`);
+  const view = sec.querySelector<HTMLElement>('.bp-view'); const done = sec.querySelector('.bp-done');
+  if (view && done) placeGlowBand(done, prepStripY(view));
   doneT = window.setTimeout(serveNow, 1300);
 }
 function serveNow() {

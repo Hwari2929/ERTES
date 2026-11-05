@@ -48,17 +48,33 @@ export const FOAM_FX = {
   ring: { on: false, op: 0.9, pops: 4 },
   bumpy: { on: false, amp: 0.9 },
 };
-/** 잔 조명 (2026-11-05 시험, 꺼 둠): 장면마다 역광 색 · 방향. glow = 투과광 (음료가 역광을 머금어 빛남 — 맑을수록 세게), rim = 빛 오는 쪽 실루엣 가장자리 빛 (public/art/bar_glass_<잔 id>_rim.webp),
- *  amb = 환경광 (장면 색을 soft-light 로 옅게 + 반대쪽에 차가운 보조색), caustic = 역광이 음료를 지나 테이블에 남기는 색 그림자 */
-export const GLASS_LIGHT = { on: false, scene: 'prep' as 'prep' | 'day' | 'night', glow: true, rim: true, amb: true, caustic: false };
+/** 잔 조명 (2026-11-05 사용자: 4단계 모두 켬): 장면 (drinkSvg scene — 제조대 prep · 카운터 낮 day · 밤 night) 마다 역광 색 · 방향.
+ *  glow = 투과광 (음료가 역광을 머금어 빛남 — 맑을수록 세게, 제조대는 벽 백라이트 줄 높이의 띠 — placeGlowBand 가 화면 배치로 맞춘다),
+ *  rim = 빛 오는 쪽 실루엣 가장자리 빛 (public/art/bar_glass_<잔 id>_rim.webp), amb = 환경광 (장면 색 soft-light + 반대쪽 차가운 보조색),
+ *  caustic = 역광이 음료를 지나 테이블에 은은하게 퍼진 색, shadow = 빛 반대쪽으로 지는 그림자 */
+export type LightScene = 'prep' | 'day' | 'night';
+export const GLASS_LIGHT = { on: true, glow: true, rim: true, amb: true, caustic: true, shadow: true };
 export const LIGHTS = {
   // 제조대: 벽 아래쪽 호박색 백라이트 줄이 잔 뒤를 지난다 (band = 48 × 72 상자 y · 반폭)
-  prep: { back: '#ffb24a', band: [45, 6] as [number, number] | null, glow: 0.6, rim: 'up' as 'up' | 'left' | 'right', rimOp: 0.9, amb: '#ffcf8a', ambOp: 0.22, cool: '#6f8fc0', coolOp: 0.22 },
+  // sh = 그림자 [옆 (잔 폭 배), 앞 (상자 단위), 길이 (잔 폭 배), 두께, 진하기] — 빛 반대쪽으로 진다 (제조대: 뒤에서 오는 빛 → 앞 = 화면 아래로)
+  prep: { back: '#ffb24a', band: [45, 6] as [number, number] | null, glow: 0.6, rim: 'up' as 'up' | 'left' | 'right', rimOp: 0.9, amb: '#ffcf8a', ambOp: 0.22, cool: '#6f8fc0', coolOp: 0.22, sh: [0, 1.5, 0.72, 2.0, 0.55] },
   // 카운터 낮: 뒤 선반의 따뜻한 흰빛 · 왼쪽 위
-  day: { back: '#fff0cf', band: null, glow: 0.35, rim: 'left' as const, rimOp: 0.75, amb: '#ffe2ae', ambOp: 0.18, cool: '#7f9cc6', coolOp: 0.2 },
+  day: { back: '#fff0cf', band: null, glow: 0.35, rim: 'left' as const, rimOp: 0.75, amb: '#ffe2ae', ambOp: 0.18, cool: '#7f9cc6', coolOp: 0.2, sh: [0.5, 0.3, 0.95, 1.4, 0.5] },
   // 카운터 밤: 창밖 푸른빛 · 오른쪽
-  night: { back: '#a6c4ff', band: null, glow: 0.3, rim: 'right' as const, rimOp: 0.8, amb: '#93b2ea', ambOp: 0.2, cool: '#2f3d5c', coolOp: 0.28 },
+  night: { back: '#a6c4ff', band: null, glow: 0.3, rim: 'right' as const, rimOp: 0.8, amb: '#93b2ea', ambOp: 0.2, cool: '#2f3d5c', coolOp: 0.28, sh: [-0.5, 0.3, 0.95, 1.4, 0.55] },
 };
+/** 제조대 투과광 띠를 화면의 백라이트 줄 높이 (screenY, px) 에 맞춘다 — root 안 잔 SVG 마다 (그린 뒤 부른다) */
+export function placeGlowBand(root: ParentNode, screenY: number) {
+  root.querySelectorAll<SVGRectElement>('rect.glow-band').forEach((r) => {
+    const svg = r.ownerSVGElement, m = svg?.getScreenCTM();
+    if (!svg || !m) return;
+    const pt = svg.createSVGPoint(); pt.x = 0; pt.y = screenY;
+    const y = pt.matrixTransform(m.inverse()).y, hw = Number(r.dataset.hw) || 6;
+    r.setAttribute('y', (y - hw * 2).toFixed(2)); r.setAttribute('height', (hw * 4).toFixed(2));
+    const g = svg.querySelector(`#${r.dataset.g}`);
+    if (g) { g.setAttribute('y1', (y - hw * 2).toFixed(2)); g.setAttribute('y2', (y + hw * 2).toFixed(2)); }
+  });
+}
 /** 움직임 줄이기면 기포가 멈춰 있다 */
 const stillFx = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let uid = 0;
@@ -96,8 +112,9 @@ const below = (ga: Art, y: number, front: boolean) => `M-2 ${y.toFixed(2)} L${ar
 const inner = (ga: Art) => { const r0 = ga.rows[0], ty = Math.min(ga.rim[2], r0[0] - 1.5); return `M${r0[1]} ${ty} L${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} L${r0[2]} ${ty} Z`; };
 
 /** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트: true = 잔 그림을 따로 한 겹으로 배경과 섞는다 (color-dodge 0.6, 어두운 바탕 — 제조대 · 완성 장면 · 카운터 · 잔 진열), 'plain' = 섞지 않는다 (종이 위 — 영수증 사진 · 레시피북).
- *  fresh = 갓 따른 시각 (Date.now() ms, 0 = 아님) — 탄산 잔이면 큰 방울이 잔뜩 생겼다가 줄어든다 */
-export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false, fresh = 0): string {
+ *  fresh = 갓 따른 시각 (Date.now() ms, 0 = 아님) — 탄산 잔이면 큰 방울이 잔뜩 생겼다가 줄어든다. scene = 잔 조명 장면 (없으면 조명 없음, GLASS_LIGHT) */
+export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false, fresh = 0, scene?: LightScene): string {
+  const lsc = GLASS_LIGHT.on && art === true ? scene : undefined;
   const g: Glass | undefined = GLASS_BY_ID[d.glass];
   const ga = art ? GLASS_ART[d.glass] || GLASS_ART.rock : undefined;
   const s: Shape = ga || SHAPES[d.glass] || SHAPES.rock;
@@ -221,13 +238,13 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
       // 투과광: 역광이 음료를 지나며 빛난다 — 맑을수록 (재료 불투명도가 낮을수록) 세게, screen
       let glowFx = '';
-      if (GLASS_LIGHT.on && GLASS_LIGHT.glow) {
-        const L = LIGHTS[GLASS_LIGHT.scene], trans = 1 - d.fill.reduce((t, x) => t + alphaOf(x), 0) / Math.max(1, d.fill.length), op = L.glow * (0.3 + trans);
+      if (lsc && GLASS_LIGHT.glow) {
+        const L = LIGHTS[lsc], trans = 1 - d.fill.reduce((t, x) => t + alphaOf(x), 0) / Math.max(1, d.fill.length), op = L.glow * (0.3 + trans);
         const g0 = L.band ? L.band[0] - L.band[1] * 2 : yTop, g1 = L.band ? L.band[0] + L.band[1] * 2 : s.bot;
         parts.push(L.band
           ? `<linearGradient id="${id}gl" gradientUnits="userSpaceOnUse" x1="0" y1="${g0}" x2="0" y2="${g1}"><stop offset="0" stop-color="${L.back}" stop-opacity="0"/><stop offset=".5" stop-color="${L.back}" stop-opacity="1"/><stop offset="1" stop-color="${L.back}" stop-opacity="0"/></linearGradient>`
           : `<linearGradient id="${id}gl" gradientUnits="userSpaceOnUse" x1="0" y1="${g0.toFixed(2)}" x2="0" y2="${g1.toFixed(2)}"><stop offset="0" stop-color="${L.back}" stop-opacity="1"/><stop offset="1" stop-color="${L.back}" stop-opacity=".15"/></linearGradient>`);
-        glowFx = `<rect x="-2" y="${(L.band ? g0 : yTop - 2).toFixed(2)}" width="52" height="${(L.band ? g1 - g0 : s.bot - yTop + 4).toFixed(2)}" fill="url(#${id}gl)" opacity="${op.toFixed(2)}" style="mix-blend-mode:screen"/>`;
+        glowFx = `<rect${L.band ? ` class="glow-band" data-g="${id}gl" data-hw="${L.band[1]}"` : ''} x="-2" y="${(L.band ? g0 : yTop - 2).toFixed(2)}" width="52" height="${(L.band ? g1 - g0 : s.bot - yTop + 4).toFixed(2)}" fill="url(#${id}gl)" opacity="${op.toFixed(2)}" style="mix-blend-mode:screen"/>`;
         if (GLASS_LIGHT.amb) glowFx += `<rect x="-2" y="-10" width="52" height="90" fill="${L.amb}" opacity="${(L.ambOp * 0.6).toFixed(2)}" style="mix-blend-mode:soft-light"/>`;
       }
       body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${glowFx}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
@@ -325,12 +342,18 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
     const shadow = `<ellipse cx="24" cy="69.4" rx="${(w * 0.42).toFixed(2)}" ry="1.3" fill="#000000" fill-opacity=".45" filter="url(#${id}s)"/>`;
     // 잔 조명 (GLASS_LIGHT): 테이블 색 그림자 · 역광 테두리 · 환경광 — 겹마다 제 혼합 모드로 (svg 한 장 = 한 혼합 모드)
     let caustic = '', lightSvg = '';
-    if (GLASS_LIGHT.on) {
-      const L = LIGHTS[GLASS_LIGHT.scene], gid = d.glass in GLASS_ART ? d.glass : 'rock';
+    if (lsc) {
+      const L = LIGHTS[lsc], gid = d.glass in GLASS_ART ? d.glass : 'rock', [sx, sy, sl, sth, sop] = L.sh;
+      const scx = 24 + sx * w, scy = 69.6 + sy; // 그림자 가운데 (잔 밑에서 빛 반대쪽으로)
+      if (GLASS_LIGHT.shadow) {
+        parts.push(`<filter id="${id}sh" x="-40%" y="-400%" width="180%" height="900%"><feGaussianBlur stdDeviation="1"/></filter>`);
+        caustic += `<ellipse cx="${scx.toFixed(2)}" cy="${scy.toFixed(2)}" rx="${(w * sl / 2 + 2).toFixed(2)}" ry="${sth.toFixed(2)}" fill="#000000" opacity="${sop}" filter="url(#${id}sh)"/>`;
+      }
+      // 색 그림자: 음료 색이 그림자 안쪽 끝에 은은하게 넓게 퍼진다 (2026-11-05 사용자: 너무 밝음 → 옅고 넓게)
       if (GLASS_LIGHT.caustic && lv > 0.05 && segs.length) {
-        parts.push(`<filter id="${id}cs" x="-30%" y="-300%" width="160%" height="700%"><feGaussianBlur stdDeviation="1.1"/></filter>`);
-        const c = tint(mix(d.fill.map(colorOf)), 0.25);
-        caustic = `<ellipse cx="${(24 + (L.rim === 'left' ? 3 : L.rim === 'right' ? -3 : 0)).toFixed(2)}" cy="70.6" rx="${(w * 0.48).toFixed(2)}" ry="1.4" fill="${c}" opacity=".55" filter="url(#${id}cs)" style="mix-blend-mode:screen"/>`;
+        parts.push(`<filter id="${id}cs" x="-60%" y="-600%" width="220%" height="1300%"><feGaussianBlur stdDeviation="2.6"/></filter>`);
+        const c = tint(mix(d.fill.map(colorOf)), 0.15), trans = 1 - d.fill.reduce((t, x) => t + alphaOf(x), 0) / Math.max(1, d.fill.length);
+        caustic += `<ellipse cx="${(24 + sx * w * 1.25).toFixed(2)}" cy="${(69.6 + sy * 1.25).toFixed(2)}" rx="${(w * 0.62).toFixed(2)}" ry="2.6" fill="${c}" opacity="${(0.12 + trans * 0.22).toFixed(2)}" filter="url(#${id}cs)" style="mix-blend-mode:screen"/>`;
       }
       if (GLASS_LIGHT.rim) {
         const dir = L.rim === 'up' ? 'x1="0" y1="1" x2="0" y2="0"' : L.rim === 'left' ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="1" y1="0" x2="0" y2="0"';

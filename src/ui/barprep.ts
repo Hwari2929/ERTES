@@ -131,7 +131,7 @@ function receiptHtml(p: Prep) {
 /** 큰 잔 (붓는 대로 아래부터 층) — 잔을 고르기 전엔 빈 자리 */
 const cupHtml = (p: Prep, cls = '') => {
   const n = slotsOf(p);
-  return p.glass ? `<div class="bp-cup${cls}">${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big', true, p.poured || 0)}</div>` : `<div class="bp-cup bp-cup-empty${cls}" aria-hidden="true"></div>`;
+  return p.glass ? `<div class="bp-cup${cls}">${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big', true, p.poured || 0, 'prep')}</div>` : `<div class="bp-cup bp-cup-empty${cls}" aria-hidden="true"></div>`;
 };
 
 /** 1 잔 · 얼음: 잔 선반 (텀블러 3 · 스템 잔 3, 잔 아래 칸 수 점) · 고른 잔 · 얼음 3 */
