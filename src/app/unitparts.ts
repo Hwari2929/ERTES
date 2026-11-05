@@ -344,7 +344,7 @@ export function pickCard(d: UnitDef, o: PickOpts) {
     <span class="mt-pass" aria-hidden="true"><b>BOARDING PASS</b><i></i><span class="mt-pass-stub"><i class="mt-code"></i><b>METRO</b><em>${String((o.i ?? 0) + 1).padStart(2, '0')}</em></span></span>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     <button class="btn pc-full" data-a="card-max" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''} title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>
-    ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
+    ${on ? `<span class="pc-check"><b class="pc-ck">✓</b>${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
     <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => synToken(id, o.synCount ? o.synCount(id) : 0)).join('')}</div>
     <div class="pc-panel">
       <div class="pc-top"><div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${unitBlurb(d) ? `<span class="pc-blurb">${esc(unitBlurb(d))}</span>` : ''}${o.extra || ''}

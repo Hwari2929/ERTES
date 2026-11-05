@@ -220,7 +220,11 @@
 [data-ui-theme="metro"] .pcard .pc-top { padding-inline: 16px; }
 [data-ui-theme="metro"] .pcard .pc-syn { top: 38px; left: 18px; }
 [data-ui-theme="metro"] .pcard .pc-full { top: 36px; right: 16px; }
-[data-ui-theme="metro"] .pcard .pc-full ~ .pc-check { top: 40px; right: 62px; }
+/* 고른 표시 = 머리 줄 우상단 모서리 칩 (사진 창을 가리지 않는다): 모서리 둥글기 = 카드, 안쪽 모서리 = --r-md, 체크는 굵은 선 그림 */
+[data-ui-theme="metro"] .pcard .pc-check, [data-ui-theme="metro"] .pcard .pc-full ~ .pc-check { top: 0; right: 0; z-index: var(--z-sticky); display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 11px 0 9px;
+  border-radius: 0 var(--mt-r) 0 var(--r-md); background: var(--c-select); color: var(--c-select-ink); font: 700 var(--fs-sm)/1 var(--f-mono); }
+[data-ui-theme="metro"] .pcard .pc-ck { flex: none; width: 14px; height: 14px; font-size: 0; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.6 8.6 6.3 12.2 13.4 3.8'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.6 8.6 6.3 12.2 13.4 3.8'/%3E%3C/svg%3E") center / contain no-repeat; }
+[data-ui-theme="metro"] .pcard[data-key]::before { content: none; } /* 단축키 숫자 = 스텁 순번(01 · 02 …)과 같다 — 같은 말 두 번 하지 않는다 */
 /* 뒷면 (시안 12 다듬음): 잉크 바탕 + 아주 옅은 점 격자 / 복숭아 사분원 · 점 /
    가파른 리버리 띠 두 줄 (둘 다 복숭아 → 민트) / 큰 ∞ 종이색 윤곽 */
 [data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden;
@@ -258,7 +262,7 @@
   [data-ui-theme="metro"] .pcard .pc-art { inset: 6px 6px calc(var(--stub) + 2px); }
   [data-ui-theme="metro"] .pcard .pc-panel { inset: 0 0 var(--stub); }
   [data-ui-theme="metro"] .pcard .pc-syn { top: 8px; left: 8px; }
-  [data-ui-theme="metro"] .pcard .pc-full { top: 8px; right: 30px; } /* 오른쪽 위 단축키 숫자 칸을 비운다 */
+  [data-ui-theme="metro"] .pcard .pc-full { top: 32px; right: 8px; } /* 우상단 모서리는 고른 표시 칩 자리 */
 }
 
 /* ── 특권 증강 (런 출발): 막 = 닫히는 스크린도어. 두 문짝이 큰 원판의 반쪽씩을 싣고 와 가운데서 하나로 맞물린다, 아래는 노선 띠 · 안전선.
@@ -483,3 +487,37 @@
 [data-ui-theme="metro"] .pil-card.on, [data-ui-theme="metro"] .pil-card.took { border-color: var(--c-select); box-shadow: 0 4px 0 color-mix(in srgb, var(--c-select) 40%, var(--mt-deep)); }
 [data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
 [data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }
+/* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 · 아주 옅은 점 격자 / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과 / 아래 노선 띠.
+   등급색 = 일반 민트 · 희귀 파랑(--g-A) · 전설 빨강(--g-L). 뒷면(카드 돌리기 전) = 교통카드 뒷면과 같은 문법 + GLOBAL 일련번호 */
+[data-ui-theme="metro"] .gc-row { counter-reset: gc; gap: 22px; }
+[data-ui-theme="metro"] .gcard { --tc: var(--mt-b); --gh: 124px; counter-increment: gc; align-items: stretch; gap: 10px; padding: 0 0 22px; overflow: visible; text-align: left;
+  border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); background: linear-gradient(90deg, var(--tc) 0 50%, var(--mt-a) 50%) bottom / 100% 5px no-repeat, var(--panel); box-shadow: 0 4px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .gcard.gt-R { --tc: var(--g-A); border-color: color-mix(in srgb, var(--g-A) 45%, var(--mt-edge)); }
+[data-ui-theme="metro"] .gcard.gt-L { --tc: var(--g-L); border-color: color-mix(in srgb, var(--g-L) 55%, var(--mt-edge)); box-shadow: 0 4px 0 color-mix(in srgb, var(--g-L) 35%, var(--mt-deep)); } /* 전설: 글로우 대신 등급색 윤곽 · 두께 */
+[data-ui-theme="metro"] .gcard:hover, [data-ui-theme="metro"] .gcard:focus-visible { box-shadow: 0 6px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .gc-sigil::before, [data-ui-theme="metro"] .gc-sigil::after { content: ''; position: absolute; bottom: -10.75px; width: 20px; height: 20px; border-radius: 50%; background: var(--panel); } /* 절취 홈 (카드 ::after 는 뒤집기 연출이 쓴다) */
+[data-ui-theme="metro"] .gc-sigil::before { left: -12.5px; } [data-ui-theme="metro"] .gc-sigil::after { right: -12.5px; }
+[data-ui-theme="metro"] .gc-sigil { position: relative; display: grid; place-items: center; width: auto; height: var(--gh); margin: 0; padding-top: 10px; border: 0; transform: none; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
+  border-radius: var(--mt-r) var(--mt-r) 0 0; color: var(--mt-paper); font-size: var(--fs-2xl);
+  background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 24px, transparent 24.5px), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 44px, transparent 44.5px),
+    linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
+    radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 머리: 원판 위 문장 */
+[data-ui-theme="metro"] .gc-kind::before { content: counter(gc, decimal-leading-zero) ' · '; } /* 순번 */
+[data-ui-theme="metro"] .gcard[data-key]::before { content: none; } /* 단축키 숫자 = 머리표 순번 */
+[data-ui-theme="metro"] .gc-kind { position: absolute; left: 12px; top: 10px; color: var(--mt-paper); font: 600 var(--fs-2xs)/1.2 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .gcard.gt-R .gc-kind { color: var(--g-A); } [data-ui-theme="metro"] .gcard.gt-L .gc-kind { color: var(--g-L); }
+[data-ui-theme="metro"] .gcard.gt-R .gc-sigil, [data-ui-theme="metro"] .gcard.gt-L .gc-sigil { border-color: color-mix(in srgb, var(--mt-paper) 26%, transparent); color: var(--mt-paper); }
+[data-ui-theme="metro"] .gcard > b { padding: 4px 16px 0; font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
+[data-ui-theme="metro"] .gc-desc { padding-inline: 16px; }
+[data-ui-theme="metro"] .gcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden;
+  background: radial-gradient(circle at 50% 36%, var(--mt-ink) 0 13%, transparent 13.4%), radial-gradient(circle at 50% 36%, var(--mt-b) 0 30%, transparent 30.4%),
+    linear-gradient(118deg, transparent 0 56%, var(--mt-a) 56% 64%, transparent 64% 67%, color-mix(in srgb, var(--mt-a) 45%, transparent) 67% 71%, transparent 71%) 0 0 / 100% 72% no-repeat,
+    radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 뒷면 = 교통카드 문법 */
+[data-ui-theme="metro"] .gcard .cback::before { content: '∞'; position: absolute; left: 50%; top: 36%; translate: -50% -54%; color: var(--mt-paper); font: 400 var(--fs-2xl)/1 var(--f-display); }
+[data-ui-theme="metro"] .gcard .cback::after { content: 'ERRANTES METRO\A GLOBAL PASS ' counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
+  color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
+@media (max-width: 640px) {
+  [data-ui-theme="metro"] .gcard { --gh: 64px; padding-bottom: 14px; }
+  [data-ui-theme="metro"] .gc-sigil { flex-basis: 100%; width: auto; height: var(--gh); margin: 0; font-size: var(--fs-xl); }
+  [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
+}
