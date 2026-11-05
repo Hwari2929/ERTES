@@ -108,6 +108,18 @@ const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
 const shade = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v * (1 - w)).toString(16).padStart(2, '0')).join('')}`;
 /** 층 안 세로 그라데이션 (2026-11-05 사용자): 같은 재료가 이어진 층은 아래가 짙고 위가 살짝 연하다 */
 const LAYER_SHADE = { bot: 0.21, top: 0.07, topA: 0.85 }; // 사용자: 0.16 · 0.1 → 0.21 · 0.07, 위쪽은 밀도가 낮아 불투명도 85% (2026-11-05)
+/** 짙게: 채도를 높이고 명도를 내린 색 (HSL) */
+const deep = (c: string, ks = 1.35, kl = 0.58) => {
+  const [r, g, b] = hex(c).map((v) => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dd = mx - mn;
+  let h = 0, s = 0;
+  if (dd) { s = dd / (1 - Math.abs(2 * l - 1)); h = mx === r ? ((g - b) / dd) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4; h *= 60; if (h < 0) h += 360; }
+  const S = Math.min(1, s * ks + 0.08), L = l * kl, C = (1 - Math.abs(2 * L - 1)) * S, X = C * (1 - Math.abs(((h / 60) % 2) - 1)), m = L - C / 2;
+  const [R, G, B] = h < 60 ? [C, X, 0] : h < 120 ? [X, C, 0] : h < 180 ? [0, C, X] : h < 240 ? [0, X, C] : h < 300 ? [X, 0, C] : [C, 0, X];
+  return `#${[R, G, B].map((v) => Math.round(Math.max(0, Math.min(1, v + m)) * 255).toString(16).padStart(2, '0')).join('')}`;
+};
+/** 수면 · 음료 가장자리 (2026-11-05 사용자 방향): faceTint = 수면에 섞는 흰색 (처음 0.35 → 그 80%), nearGlow = 수면 앞 (아래) 끝에서 안쪽으로 밝게 퍼짐, farDark = 수면 뒤 (위) 끝에서 안쪽으로 짙게 (채도 ↑ 명도 ↓) 퍼짐,
+ *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층) */
+export const SURF2 = { faceTint: 0.35, nearGlow: 0, farDark: 0, edgeDark: 0 };
 /** 흰색을 w 만큼 섞은 색 */
 const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
@@ -260,7 +272,14 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       const face = foam && bumpyTop ? ''
         : foam
         ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed(pat(`${id}h`, FOAM_FX.head), headD, FOAM_FX.head.op, FOAM_FX.head.blend) : ''}`
-        : SURFACE.mode === 'flat' ? `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`
+        : SURFACE.mode === 'flat' ? (() => {
+          const E = `cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}"`;
+          let f = `<ellipse ${E} fill="${tint(topC, SURF2.faceTint)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
+          // 수면 앞 (아래) 끝: 밝게 안쪽으로 · 뒤 (위) 끝: 짙게 안쪽으로
+          if (SURF2.nearGlow) { parts.push(`<linearGradient id="${id}sn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${tint(topC, 0.78)}" stop-opacity="${SURF2.nearGlow}"/><stop offset=".22" stop-color="${tint(topC, 0.7)}" stop-opacity="${(SURF2.nearGlow * 0.45).toFixed(2)}"/><stop offset=".5" stop-color="${tint(topC, 0.6)}" stop-opacity="0"/></linearGradient>`); f += `<ellipse ${E} fill="url(#${id}sn)"/>`; }
+          if (SURF2.farDark) { parts.push(`<linearGradient id="${id}sd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${deep(topC, 1.5, 0.45)}" stop-opacity="${SURF2.farDark}"/><stop offset=".25" stop-color="${deep(topC, 1.4, 0.55)}" stop-opacity="${(SURF2.farDark * 0.5).toFixed(2)}"/><stop offset=".55" stop-color="${deep(topC)}" stop-opacity="0"/></linearGradient>`); f += `<ellipse ${E} fill="url(#${id}sd)"/>`; }
+          return f;
+        })()
         : surfaceHtml(id, parts, ecx, yTop, erx, ery, topC, topA, lsc);
       // 투과광: 역광이 음료를 지나며 빛난다 — 맑을수록 (재료 불투명도가 낮을수록) 세게, screen
       let glowFx = '';
@@ -273,7 +292,14 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         glowFx = `<rect${L.band ? ` class="glow-band" data-g="${id}gl" data-hw="${L.band[1]}"` : ''} x="-2" y="${(L.band ? g0 : yTop - 2).toFixed(2)}" width="52" height="${(L.band ? g1 - g0 : s.bot - yTop + 4).toFixed(2)}" fill="url(#${id}gl)" opacity="${op.toFixed(2)}" style="mix-blend-mode:screen"/>`;
         if (GLASS_LIGHT.amb) glowFx += `<rect x="-2" y="-10" width="52" height="90" fill="${L.amb}" opacity="${(L.ambOp * 0.6).toFixed(2)}" style="mix-blend-mode:soft-light"/>`;
       }
-      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${glowFx}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
+      // 음료 몸통 가장자리: 잔 벽 (안쪽 영역 테두리) 에서 안쪽으로 짙게 — 안쪽 영역을 흐려 테두리 띠만 남기는 필터 (역광 아래 층)
+      let edgeFx = '';
+      if (SURF2.edgeDark) {
+        const r0 = ga.rows[0], tall = `M${r0[1]} -20 L${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} L${r0[2]} -20 Z`;
+        parts.push(`<filter id="${id}ie" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="b"/><feComposite in="SourceAlpha" in2="b" operator="arithmetic" k2="2" k3="-2" result="e"/><feFlood flood-color="${deep(mix(d.fill.map(colorOf)), 1.5, 0.45)}" flood-opacity="1"/><feComposite in2="e" operator="in"/></filter>`);
+        edgeFx = `<path d="${tall}" fill="#000000" filter="url(#${id}ie)" opacity="${SURF2.edgeDark}"/>`;
+      }
+      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${edgeFx}${glowFx}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
     } else {
       body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
       // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
