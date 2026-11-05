@@ -56,9 +56,13 @@
 /* 입퇴장: 옆으로 몇 걸음 뒤뚱뒤뚱 (프레임 낮게: 자리 이동 · 흐려짐 모두 계단식), 에이든은 카운터 뒤에서 올라오고 내려간다 (data-from="b") */
 .bar-seat.off, .bar-front.off { opacity: 0; }
 .bar-seat.off[data-from="b"] { translate: 0 30%; }
+/* 에이든이 다른 손님에게 잔을 내주거나 치우러 갈 때 (bar.ts aidenFetch): 카운터 뒤로 슬쩍 내려가 사라졌다가 돌아온다 (이름표 · 잔도 함께) */
+.bar-seat.away, .bar-front.away { opacity: 0; pointer-events: none; }
+.bar-seat.away { translate: 0 30%; }
 @media (prefers-reduced-motion: no-preference) {
   .bar-seat, .bar-front { transition: left 1.6s steps(7, jump-end), opacity 1.2s steps(4, jump-end), translate 1s steps(4, jump-end); }
   .bar-seat.out, .bar-front.out { transition: left 2.2s steps(9, jump-end), opacity 1.6s steps(5, jump-end) .4s, translate 1.6s steps(5, jump-end); }
+  .bar-seat.away, .bar-front.away { transition: opacity .4s steps(3, jump-end), translate .4s steps(3, jump-end); }
   .bar-seat.walk .bar-fig, .bar-front.walk .bar-cup .dk > svg { animation: bar-waddle .52s steps(1, jump-end) infinite; }
 }
 @keyframes bar-waddle { 0% { rotate: -3deg; translate: 0 0; } 50% { rotate: 3deg; translate: 0 -2%; } }

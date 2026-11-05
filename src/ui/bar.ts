@@ -218,6 +218,8 @@ interface Seat {
   callAt?: number; calling?: boolean; callReal?: number;
   /** 막 들어온 낯선 손님: 다음 한때에 들어올 때 한마디 + (거의 늘) 주문 */
   arrive?: boolean;
+  /** 앉은 자리 (SEAT_X 번호 — 들어올 때 정해져 나갈 때까지 그대로, ensureSpots) */
+  spot?: number;
 }
 /** 장면 줄: [화자 id ('' = 서술 — 무대에서는 건너뜀), 대사, 이름표?, 종류? (e = 이모티콘: 대사 자리에 이모티콘 id · m = 혼잣말)] */
 type Line = [string, string, string?, ('e' | 'm')?];
@@ -848,9 +850,21 @@ function firstStage() {
 }
 
 // ───────── 그리기
-/** 무대 위치 (0~1): 인원에 맞춰 가운데로 모은다 */
-const SPOTS = [[0.5], [0.3, 0.7], [0.18, 0.5, 0.82], [0.13, 0.38, 0.62, 0.87]];
-const spotOf = (i: number, n: number) => SPOTS[Math.min(Math.max(n, 1), 4) - 1][i] ?? 0.5;
+/** 무대 자리 (0~1): 4자리 고정 (2026-11-05 사용자: 손님이 들고 날 때 남은 사람이 자리를 옮기면 부자연스럽다 — 앉은 자리는 나갈 때까지 그대로).
+ *  에이든은 왼쪽 끝부터, 손님은 가운데부터 빈자리에 앉는다 */
+const SEAT_X = [0.13, 0.38, 0.62, 0.87];
+const SEAT_PREF = { aiden: [0, 1, 2, 3], other: [1, 2, 3, 0] };
+/** 자리 없는 사람에게 빈자리를 준다 (겹치거나 벗어난 자리도 다시) — 그리기 전에 */
+function ensureSpots() {
+  const used = new Set<number>();
+  for (const s of S.stage) { if (s.spot !== undefined && SEAT_X[s.spot] !== undefined && !used.has(s.spot)) used.add(s.spot); else s.spot = undefined; }
+  for (const s of [...S.stage].sort((a, b) => Number(b.id === 'aiden') - Number(a.id === 'aiden'))) {
+    if (s.spot !== undefined) continue;
+    const p = (s.id === 'aiden' ? SEAT_PREF.aiden : SEAT_PREF.other).find((i) => !used.has(i));
+    s.spot = p ?? 0; used.add(s.spot);
+  }
+}
+const spotX = (s: Seat) => SEAT_X[s.spot ?? 1] ?? 0.5;
 /** 허리 위 구도: 스탠딩은 전신이라 얼굴 위치표(standface.gen.ts)로 맞춘다. 얼굴 가운데를 자리 가운데에, 턱을 칸 위에서 CHIN_AT 높이에,
  *  얼굴(눈썹~턱)을 칸 높이의 FACE_AT 로 (그림마다 얼굴 크기 · 위치가 조금씩 달라서). 칸 아래(허리)부터는 카운터가 가린다 */
 const CHIN_AT = 0.36, FACE_AT = 0.126;
@@ -892,10 +906,11 @@ function frontHtml(s: Seat, x: number) {
 const STICKER = '<svg class="bar-defs" width="0" height="0" aria-hidden="true"><filter id="bar-stk" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="3.5" result="d"/><feFlood style="flood-color:var(--c-white)"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></svg>';
 /** 무대: 인물들 · 카운터 · 카운터 위 잔과 이름표 · 말풍선 하나 · 잔 이름 꼬리표 */
 function floorHtml() {
-  const n = S.stage.length;
-  return `${S.stage.map((s, i) => seatHtml(s, spotOf(i, n))).join('')}
+  ensureSpots();
+  for (const s of S.stage) if (s.cup) revealed.add(s.cup); // 처음 그릴 때 이미 놓인 잔은 그대로 (에이든이 갖다주는 연출 없이)
+  return `${S.stage.map((s) => seatHtml(s, spotX(s))).join('')}
     <div class="bar-counter" aria-hidden="true" style="--tex:url('${artURL('ct_table.webp')}')"><i class="ctr-top"></i><i class="ctr-front"></i></div>
-    <div class="bar-fronts">${S.stage.map((s, i) => frontHtml(s, spotOf(i, n))).join('')}</div>
+    <div class="bar-fronts">${S.stage.map((s) => frontHtml(s, spotX(s))).join('')}</div>
     <div class="bar-bub" hidden></div><div class="bar-tip f-ui" hidden></div>`;
 }
 /** 카운터 위 잔을 지금 남은 양으로 다시 그린다 (남은 양이 4% 넘게 바뀌었거나 놓이고 치워질 때만) */
@@ -904,8 +919,15 @@ function syncCups(root: HTMLElement) {
   for (const s of S.stage) {
     const el = root.querySelector<HTMLElement>(`.bar-front[data-seat="${keyOf(s)}"]:not(.out) .bar-cup`);
     if (!el) continue;
+    if (el.dataset.wait) continue; // 에이든이 갖다주거나 치우러 간 사이
     const l = cupLeft(s.cup, now);
-    if (l === null) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; delete el.dataset.l; } continue; }
+    const clear = () => { el.hidden = true; el.innerHTML = ''; delete el.dataset.l; };
+    if (l === null) { if (!el.hidden) { if (aidenFetch(root, () => { delete el.dataset.wait; clear(); })) el.dataset.wait = '1'; else clear(); } continue; } // 빈 잔을 치우는 건 에이든 (낮)
+    if (el.hidden && s.cup!.by === 'aiden' && !revealed.has(s.cup!)) { // 에이든이 내주는 잔: 에이든이 슬쩍 사라진 사이에 놓인다
+      const c = s.cup!;
+      if (aidenFetch(root, () => { delete el.dataset.wait; revealed.add(c); syncCups(root); })) { el.dataset.wait = '1'; continue; }
+      revealed.add(c);
+    }
     const prevL = el.dataset.l === undefined ? null : +el.dataset.l;
     if (prevL !== null && Math.abs(prevL - l) < 0.04 && !(l === 0 && prevL > 0) && el.dataset.d === s.cup!.d.glass + s.cup!.name && el.dataset.n === String(S.night)) continue; // 낮 · 밤이 바뀌면 조명을 다시
     const dk = s.cup!.d.glass + s.cup!.name;
@@ -917,6 +939,32 @@ function syncCups(root: HTMLElement) {
     if (el.hidden) { el.hidden = false; el.classList.remove('put'); void el.offsetWidth; el.classList.add('put'); }
   }
   syncMarks(root, now);
+}
+/** 에이든이 내준 잔 중 연출을 마친 것 (처음 그릴 때 이미 놓인 잔 포함) */
+const revealed = new WeakSet<Cup>();
+/** 에이든이 다른 손님에게 잔을 내주거나 빈 잔을 치울 때: 혼자 슬쩍 카운터 뒤로 사라졌다가 (그 사이 잔이 놓이고 · 치워지고) 다시 돌아온다 (2026-11-05 사용자).
+ *  여러 잔이면 한 번 다녀오며 함께. 에이든이 없거나 (밤) 말하는 중 · 움직임 줄이기면 false — 바로 한다 */
+let awayState: 'none' | 'going' | 'gone' = 'none', awayBack = 0, awayQ: (() => void)[] = [];
+/** 다 사라진 뒤 다시 돌아올 때까지 (ms) */
+const AWAY_STAY = 900;
+function aidenFetch(root: HTMLElement, act: () => void): boolean {
+  const a = root.querySelector<HTMLElement>('.bar-seat[data-seat="aiden"]:not(.out)');
+  if (!a || reduced() || a.classList.contains('talking') || typeof window === 'undefined') return false;
+  const els = () => root.querySelectorAll<HTMLElement>('[data-seat="aiden"]:not(.out)');
+  const back = () => { window.clearTimeout(awayBack); awayBack = window.setTimeout(() => { els().forEach((e) => e.classList.remove('away')); awayState = 'none'; }, AWAY_STAY); };
+  if (awayState === 'gone' && a.classList.contains('away')) { window.setTimeout(act, 120); back(); return true; } // 이미 카운터 뒤: 한 번 다녀오는 길에 함께
+  awayQ.push(act);
+  if (awayState === 'going' && a.classList.contains('away')) return true;
+  awayState = 'going';
+  window.clearTimeout(awayBack);
+  els().forEach((e) => e.classList.add('away'));
+  // 잔은 에이든이 다 사라진 뒤에 놓인다 (흐려짐이 끝나면 — 화면이 바빠 전환이 늦게 시작해도 순서가 지켜지게, 늦어도 1.6초)
+  let done = false;
+  const fire = () => { if (done) return; done = true; a.removeEventListener('transitionend', onEnd); awayState = 'gone'; const q = awayQ; awayQ = []; q.forEach((f) => f()); back(); };
+  const onEnd = (e: TransitionEvent) => { if (e.target === a && e.propertyName === 'opacity' && a.classList.contains('away')) fire(); };
+  a.addEventListener('transitionend', onEnd);
+  window.setTimeout(fire, 1600);
+  return true;
 }
 /** 주문 표시 · 동전: 플레이어가 내준 잔을 다 비우면 술값 + 팁이 잔 옆에 놓인다 (누르면 거둔다) */
 function syncMarks(root: HTMLElement, now: number) {
@@ -995,8 +1043,9 @@ function syncFloor(root: HTMLElement): boolean {
   fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)').forEach((el) => { if (!want.includes(el.dataset.seat!)) { exitEl(el); moved = true; } });
   fr.querySelectorAll<HTMLElement>('.bar-front:not(.out)').forEach((el) => { if (!want.includes(el.dataset.seat!)) exitEl(el); });
   const ctr = fl.querySelector('.bar-counter');
-  S.stage.forEach((s, i) => {
-    const x = String(spotOf(i, S.stage.length));
+  ensureSpots();
+  S.stage.forEach((s) => {
+    const x = String(spotX(s));
     for (const [box, sel, html, before] of [[fl, '.bar-seat', seatHtml, ctr], [fr, '.bar-front', frontHtml, null]] as const) {
       const el = box.querySelector<HTMLElement>(`${sel}[data-seat="${keyOf(s)}"]:not(.out)`);
       if (el) { if (el.style.getPropertyValue('--x') !== x) { walk(el); el.style.setProperty('--x', x); moved = true; } continue; }
@@ -1200,6 +1249,7 @@ function showLine() {
   bub.classList.toggle('off-stage', !seat);
   bub.classList.toggle('mono', kind === 'm');
   bub.hidden = false;
+  if (seat?.classList.contains('away')) root.querySelectorAll(`[data-seat="${k}"].away`).forEach((e) => e.classList.remove('away')); // 다녀오던 에이든이 말을 하면 바로 돌아와 있다
   placeBub(root, bub, seat);
   seat?.classList.add('talking');
   void bub.offsetWidth; bub.classList.add('on'); // 움직임 줄이기면 CSS 가 흐려지기만 한다
@@ -1341,6 +1391,8 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
   testHook.__barPlay = (lines: Line[]) => { S.cur = { key: '', sit: '', lines, kind: 'emote' }; S.li = 0; stop(); tick(); };
   testHook.__barPos = (bub?: (typeof BUB_POS)[number], emo?: string) => { POS.bub = bub; POS.emo = emo; };
   testHook.__barEmo = (k: string, e: string, pos?: string) => { const seat = document.querySelector<HTMLElement>(`${BAR_SEL} .bar-seat[data-seat="${k}"]:not(.out)`); if (!seat) return; const keep = POS.emo; if (pos) POS.emo = pos; showEmote(seat, e); POS.emo = keep; };
+  testHook.__barAdd = (id: string) => { S.stage.push({ id, since: clock.now(), n: 0 }); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncFloor(root); };
+  testHook.__barDrop = (k: string) => { S.stage = S.stage.filter((x) => keyOf(x) !== k); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncFloor(root); };
   testHook.__barStage = (ids: string[]) => { const now = clock.now(); S.stage = ids.map((id) => ({ id, since: now, n: 0 })); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncFloor(root); };
   testHook.__barState = () => ({ tut: loadMeta().bar?.tut || [], served: loadMeta().bar?.served || 0, memo: S.memo, memoOpen: S.memoOpen, prepMemo: !!S.prep?.memo, pay: S.stage.map((s) => [keyOf(s), s.pay || 0]), stage: S.stage.map(keyOf), night: S.night, kind: S.cur?.kind, key: S.cur?.key || S.cur?.mono, li: S.li, enterIn: Math.round(S.enterAt - clock.now()), cycleIn: Math.round(S.cycleAt - clock.now()), cups: S.stage.map((s) => [keyOf(s), s.cup?.name, cupLeft(s.cup, clock.now())]) });
   testHook.__barNight = (n: boolean) => { setNight(n, clock.now()); if (n) S.stage = S.stage.filter((s) => s.id !== 'aiden'); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) { root.classList.toggle('night', n); syncFloor(root); } };
@@ -1400,7 +1452,6 @@ function showTip(k: string, text?: string, ms = 2200) {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   const s = S.stage.find((x) => keyOf(x) === k);
   const tip = root?.querySelector<HTMLElement>('.bar-tip');
-  const i = S.stage.findIndex((x) => keyOf(x) === k);
   if (!root || !s || !tip) return;
   if (text === undefined) {
     if (!s.cup || cupLeft(s.cup, clock.now()) === null) return;
@@ -1408,7 +1459,7 @@ function showTip(k: string, text?: string, ms = 2200) {
     text = `${l > 0 ? s.cup.name : `${s.cup.name} (빈 잔)`}${s.cup.check ? ` — ${s.cup.check}` : ''}`;
   }
   tip.textContent = text;
-  tip.style.setProperty('--x', String(spotOf(i, S.stage.length)));
+  tip.style.setProperty('--x', String(spotX(s)));
   tip.hidden = false;
   tip.classList.remove('on'); void tip.offsetWidth; tip.classList.add('on');
   clearTimeout(tipTimer);
