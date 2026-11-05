@@ -33,7 +33,7 @@ export function applyFxPrefs() {
 /** UI 테마 (설정 → 테마). 색은 src/ui/css/01-themes.css 의 [data-ui-theme] 블록에 있고, 여기서는 <html data-ui-theme> 만 바꾼다. 첫 실행 기본값 = 에란테스 갤럭시 */
 export const UI_THEMES = [
   { id: 'galaxy', name: '에란테스 갤럭시', desc: '잉크빛 남색 · 미색 · 계약서 호박색 (기본)' },
-  { id: 'metro', name: '메트로 인피니티 패스', desc: '심야 노선 남색 · 보라 · 민트 노선색 · 승강장 안전선 노랑 · 탑승권' },
+  { id: 'metro', name: '메트로 인피니티 패스', desc: '심야 노선 남색 · 보라 · 민트 노선색 · 복숭아 강조 · 탑승권' },
 ] as const;
 export const uiTheme = () => { const t = loadPrefs().uiTheme; return UI_THEMES.some((x) => x.id === t) ? t! : 'galaxy'; };
 /** 테마 연출 (설정): 켜기 · 줄이기 · 끄기. 첫 실행 기본값 = 켜기 */
