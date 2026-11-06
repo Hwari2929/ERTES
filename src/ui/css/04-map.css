@@ -296,8 +296,9 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .st-pane > h2:first-child { margin-top: 0; }
 .inv-strip { display: flex; flex-wrap: wrap; gap: 4px; }
 .quests, .globals, .log { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: var(--fs-base); }
-.globals li > .li { width: 1.1em; height: 1.1em; margin-right: 5px; vertical-align: -.2em; color: var(--c-text-2); } /* 전역 증강 아이콘 (등급색: 희귀 · 전설) */
+.globals li > .li { width: 1.1em; height: 1.1em; margin-right: 5px; vertical-align: -.2em; color: var(--g-C); } /* 전역 증강 아이콘 = 등급색 (일반 흰 · 희귀 파랑 · 전설 빨강) */
 .globals li.gt-R > .li { color: var(--g-A); } .globals li.gt-L > .li { color: var(--g-L); }
+.cx2-augs li.gt-N .aug-ic { color: var(--g-C); } .cx2-augs li.gt-R .aug-ic { color: var(--g-A); } .cx2-augs li.gt-L .aug-ic { color: var(--g-L); } /* 도감 전역 증강 줄도 같은 등급색 */
 .quests li.done { text-decoration: line-through; color: var(--c-good); }
 .log li { color: var(--c-text-2); }
 .side-tabs .log { max-height: 60vh; overflow-y: auto; user-select: text; }

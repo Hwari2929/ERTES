@@ -6,6 +6,7 @@ import { GLOBAL_BY_ID, GLOBALS, RETIRED_GLOBALS } from '../src/data/globals';
 import { DUST } from '../src/data/items';
 import { RECRUITABLE, UNIT_BY_ID } from '../src/data/units';
 import type { RunState } from '../src/types';
+import { GICONS } from '../src/ui/gicons';
 
 declare const process: { exitCode?: number };
 
@@ -124,5 +125,12 @@ function battle(seed: number, gl: string[]) {
   ok(us[1].shield > sh1, '최후의 방벽: 아군이 처음 쓰러지면 보호막');
 }
 
+// 아이콘: 지금 나오는 전역 증강마다 고유 선 아이콘 (ui/gicons.ts — 고르기 카드 상징 · 보유 목록 · 도감)
+{
+  const miss = GLOBALS.filter((g) => !GICONS[g.id]).map((g) => g.id);
+  ok(!miss.length, `전역 증강 아이콘 누락: ${miss.join(', ')}`);
+  const dup = Object.entries(GICONS).filter(([id, p], i, a) => a.findIndex(([, q]) => q === p) !== i).map(([id]) => id);
+  ok(!dup.length, `같은 아이콘을 쓰는 전역 증강: ${dup.join(', ')}`);
+}
 if (fails) { console.log(`전역 증강 검사 실패 ${fails}건 (통과 ${passed})`); process.exitCode = 1; }
 else console.log(`전역 증강 검사 통과 (${passed}건)`);

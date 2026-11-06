@@ -158,34 +158,36 @@ function glint() {
   setTimeout(() => g.remove(), 460);
 }
 
-/** 보스 노드 = 빨간 급행 (EXPRESS): 신호 빨강 급행 차체가 오른쪽 밖에서 거세게 들어와 화면을 덮고 멈추며 한 번 덜컥인다 (비스듬히 깎인 앞코는 멈추면 화면 왼쪽 밖).
+/** 보스 노드 = 빨간 급행 (EXPRESS): 전투 진입처럼 사선 면 셋(복숭아 → 빨강 → 잉크)이 먼저 화면을 쓸고, 바로 뒤를 신호 빨강 급행 차체가 오른쪽 밖에서 거세게 들어와 덮고 멈추며 한 번 덜컥인다 (비스듬히 깎인 앞코는 멈추면 화면 왼쪽 밖).
  *  차창 띠 너머 = 경보로 밝은 하늘 · 보스 실루엣 — 실루엣은 그 자리에 서 있고 창틀만 지나간다 (차체와 반대로 같은 거리를 움직여 상쇄), 멈춘 동안 천천히 다가온다.
  *  안내판 대신 큰 경고 패널: 종이 판 · 굵은 잉크 윤곽 · 단단한 잉크 그림자 · 흐르는 경고 빗금 · ! 판 · 보스 이름(흔들림) · PHASE · TERMINAL · 역 점.
- *  새 화면 그림이 받아지면 한 번 덜컥 물러섰다가 왼쪽으로 가속해 빠지고, 꼬리가 지나가며 편성 화면이 드러난다 */
-const EX = { in: 420, hold: 900, out: 560 };
+ *  새 화면 그림이 받아지면 한 번 덜컥 물러섰다가 왼쪽으로 가속해 빠지고, 꼬리 뒤로 사선 면이 잉크 → 빨강 → 복숭아 순서로 따라 쓸려 나가며 편성 화면이 드러난다 */
+const EX = { lead: 260, in: 420, hold: 1000, out: 560, wake: 360 };
 function expressIn(ghost: HTMLElement, st: Stop): Ride {
   const el = document.createElement('div');
   el.className = 'mt-ex';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = `<div class="ex-car"><div class="ex-win"><div class="ex-view">${st.img ? `<i class="ex-boss"><img alt="" decoding="async" src="${esc(st.img)}" onerror="this.remove()"></i>` : ''}</div></div>
+  el.innerHTML = `<i class="mg-pan p1"></i><i class="mg-pan p2"></i><i class="mg-pan p3"></i><div class="ex-car"><div class="ex-win"><div class="ex-view">${st.img ? `<i class="ex-boss"><img alt="" decoding="async" src="${esc(st.img)}" onerror="this.remove()"></i>` : ''}</div></div>
     <i class="ex-lv"></i><b class="ex-word">${'EXPRESS ∞ NO STOP · '.repeat(4)}</b><i class="ex-skirt"></i><i class="ex-tail"></i>
     <div class="ex-panel"><i class="ex-hz"><i></i></i><b class="ex-ic">!</b><span class="ex-k">${esc(st.kick)}</span><b class="ex-t">${esc(st.name)}</b><span class="ex-en">${esc(st.en)}</span><span class="mt-bd-stops"></span></div></div>`;
   document.body.appendChild(el);
   const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
   const boss = el.querySelector<HTMLElement>('.ex-boss');
   const anims: Animation[] = [];
-  const T = EX.in + 170;
-  // 차체(vw): 오른쪽 밖 → 0 (거세게 들어와 멈춘다) → 한 번 덜컥. 실루엣은 같은 시각에 반대로 움직여 제자리
-  const pts: [number, number, string?][] = [[0, 110, 'cubic-bezier(.12, .72, .28, 1)'], [EX.in, -1.2, 'ease-out'], [EX.in + 90, 0.5, 'ease-in-out'], [T, 0]];
+  const L = EX.lead, A = L + EX.in, T = A + 170, SK = 'skewX(-14deg)';
+  // 사선 면 셋: 전투 진입과 같은 쓸기 (복숭아 · 빨강 · 잉크 순서로 들어와 덮는다)
+  el.querySelectorAll('.mg-pan').forEach((p, k) => anims.push(tl(p, T, [[k * 60, { transform: `translateX(118vw) ${SK}` }, SLAM], [260 + k * 70, { transform: `translateX(-44vw) ${SK}` }]])));
+  // 차체(vw): 면 바로 뒤에서 오른쪽 밖 → 0 (거세게 들어와 멈춘다) → 한 번 덜컥. 실루엣은 같은 시각에 반대로 움직여 제자리
+  const pts: [number, number, string?][] = [[L, 110, 'cubic-bezier(.12, .72, .28, 1)'], [A, -1.2, 'ease-out'], [A + 90, 0.5, 'ease-in-out'], [T, 0]];
   anims.push(tl($('.ex-car'), T, pts.map(([t, x, ez]) => [t, { transform: `translateX(${x}vw)` }, ez])));
   if (boss) {
     anims.push(tl(boss, T, pts.map(([t, x, ez]) => [t, { translate: `${-x}vw 0` }, ez])));
-    anims.push(boss.animate([{ scale: '1' }, { scale: '1.07' }], { duration: 2600, delay: EX.in, easing: 'cubic-bezier(.2, .6, .3, 1)', fill: 'both' })); // 멈춘 동안 천천히 다가온다
+    anims.push(boss.animate([{ scale: '1' }, { scale: '1.07' }], { duration: 2600, delay: A, easing: 'cubic-bezier(.2, .6, .3, 1)', fill: 'both' })); // 멈춘 동안 천천히 다가온다
   }
-  anims.push(tl($('.ex-panel'), 1400, [[EX.in - 60, { transform: 'scale(1.25) rotate(-1.5deg)', opacity: 0 }, POP], [EX.in + 150, { transform: 'scale(1) rotate(-1.5deg)', opacity: 1 }]]));
-  anims.push(tl($('.ex-t'), 1400, [[EX.in + 200, { transform: 'none' }], [EX.in + 240, { transform: 'translateX(-6px)' }], [EX.in + 280, { transform: 'translateX(6px)' }], [EX.in + 320, { transform: 'translateX(-3px)' }], [EX.in + 360, { transform: 'none' }]]));
+  anims.push(tl($('.ex-panel'), 1800, [[A - 60, { transform: 'scale(1.25) rotate(-1.5deg)', opacity: 0 }, POP], [A + 150, { transform: 'scale(1) rotate(-1.5deg)', opacity: 1 }]]));
+  anims.push(tl($('.ex-t'), 1800, [[A + 200, { transform: 'none' }], [A + 240, { transform: 'translateX(-6px)' }], [A + 280, { transform: 'translateX(6px)' }], [A + 320, { transform: 'translateX(-3px)' }], [A + 360, { transform: 'none' }]]));
   anims.push($('.ex-hz > i').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-24px)' }], { duration: 420, iterations: Infinity })); // 경고 빗금이 계속 흐른다 (빗금 한 칸 = 24px)
-  return { el, ghost, fresh: true, covered: new Promise<void>((res) => setTimeout(res, EX.in)), anims, gone: false, hold: EX.hold, leave: expressLeave, held: [] };
+  return { el, ghost, fresh: true, covered: new Promise<void>((res) => setTimeout(res, 400)), anims, gone: false, hold: EX.hold, leave: expressLeave, held: [] }; // 잉크 면이 다 덮는 때 (260 + 2 × 70)
 }
 function expressLeave(r: Ride) {
   if (r.gone) return;
@@ -196,7 +198,10 @@ function expressLeave(r: Ride) {
   const pts: [number, number, string?][] = [[0, 0, 'ease-out'], [90, 0.8, 'cubic-bezier(.5, 0, .9, .45)'], [O, -126]]; // 한 번 물러섰다가 가속해서 빠진다 (차체 130vw)
   r.anims.push(tl(el.querySelector('.ex-car')!, O, pts.map(([t, x, ez]) => [t, { transform: `translateX(${x}vw)` }, ez])));
   if (boss) r.anims.push(tl(boss, O, pts.map(([t, x, ez]) => [t, { translate: `${-x}vw 0` }, ez])));
-  done(r, O + 40);
+  // 꼬리 뒤 사선 면: 꼬리가 화면을 반쯤 지날 때부터 잉크 → 빨강 → 복숭아 순서로 따라 쓸려 나간다 (지나간 열차의 바람)
+  const SK = 'skewX(-14deg)', W0 = 330, T = W0 + 2 * 55 + EX.wake;
+  el.querySelectorAll('.mg-pan').forEach((p, k) => { const at = W0 + (2 - k) * 55; r.anims.push(tl(p, T, [[at, { transform: `translateX(-44vw) ${SK}` }, OUTE], [at + EX.wake, { transform: `translateX(-250vw) ${SK}` }]])); });
+  done(r, T + 40);
 }
 
 /** 상점 = 전투 진입과 같은 밀도의 큰 면 전환 (MARKET): 복숭아 · 민트 · 잉크 사선 패널이 덮고, 잉크 위에 큰 동전 원판(∞) · 가격표 · 흘러가는 MARKET 글자 띠 두 줄 ·
