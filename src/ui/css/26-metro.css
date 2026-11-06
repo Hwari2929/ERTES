@@ -333,8 +333,7 @@
 [data-ui-theme="metro"] .pv-row { counter-reset: pv; gap: 22px; }
 [data-ui-theme="metro"] .pv-card { counter-increment: pv; position: relative; gap: 10px; min-height: 250px; padding: 0 0 18px; overflow: visible; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); box-shadow: 0 5px 0 var(--mt-deep); }
 
-[data-ui-theme="metro"] .pv-card::before, [data-ui-theme="metro"] .pv-card::after { content: ''; position: absolute; top: 95px; width: 20px; height: 20px; border-radius: 50%; background: var(--mt-ink); } /* 절취 홈 */
-[data-ui-theme="metro"] .pv-card::before { left: -11px; } [data-ui-theme="metro"] .pv-card::after { right: -11px; }
+[data-ui-theme="metro"] .pv-card { --ny: 103.25px; --nb: var(--mt-ink); } /* 절취 홈 고리: 공통 규칙 (아래 '절취 홈 고리') */
 [data-ui-theme="metro"] .pv-sigil { position: relative; display: grid; place-items: center; height: 104px; margin: 0; border-radius: var(--mt-r) var(--mt-r) 0 0; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
   background: radial-gradient(circle at 82% 125%, var(--mt-b) 0 34%, transparent 34.4%), linear-gradient(110deg, var(--mt-ink) 0 36%, color-mix(in srgb, var(--mt-ink) 35%, var(--mt-a)) 70%, var(--mt-a)); color: var(--mt-paper); }
 [data-ui-theme="metro"] .pv-sigil::before { content: 'PRIVILEGE'; position: absolute; left: 12px; top: 11px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
@@ -551,8 +550,7 @@
 [data-ui-theme="metro"] .gcard.gt-R { --tc: var(--g-A); --cs: var(--g-A); --gds: 104px; --gdo: .7; border-color: color-mix(in srgb, var(--g-A) 45%, var(--mt-edge)); }
 [data-ui-theme="metro"] .gcard.gt-L { --tc: var(--g-L); --cs: var(--g-L); --gds: 120px; --gdo: .95; border-color: color-mix(in srgb, var(--g-L) 55%, var(--mt-edge)); } /* 전설: 글로우 대신 등급색 윤곽 · 두께 */
 [data-ui-theme="metro"] .gcard:focus-visible { box-shadow: 6px 6px 0 var(--cs); } /* 등급 카드 그림자 = 등급색 (희귀 파랑 · 전설 빨강) */
-[data-ui-theme="metro"] .gc-sigil::before, [data-ui-theme="metro"] .gc-sigil::after { content: ''; position: absolute; bottom: -10.75px; width: 20px; height: 20px; border-radius: 50%; background: var(--panel); } /* 절취 홈 (카드 ::after 는 뒤집기 연출이 쓴다) */
-[data-ui-theme="metro"] .gc-sigil::before { left: -12.5px; } [data-ui-theme="metro"] .gc-sigil::after { right: -12.5px; }
+[data-ui-theme="metro"] .gcard { --ny: calc(var(--gh) - .75px); --nb: var(--panel); } /* 절취 홈 고리 = 이름 글자(b)에 단다 (카드 ::before 는 망점 · ::after 는 뒤집기 연출) */
 [data-ui-theme="metro"] .gc-sigil { position: relative; display: grid; place-items: center; width: auto; height: var(--gh); margin: 0; padding-top: 10px; border: 0; transform: none; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
   border-radius: var(--mt-r) var(--mt-r) 0 0; color: var(--mt-paper); font-size: var(--fs-2xl);
   background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 24px, transparent 24.5px), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 44px, transparent 44.5px),
@@ -597,9 +595,8 @@
 [data-ui-theme="metro"] .mn-hd::after { content: counter(mn, decimal-leading-zero); position: absolute; right: 10px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-2xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .mn-hd .item { width: 52px; height: 52px; cursor: inherit; }
 [data-ui-theme="metro"] .mn-hd > .li { width: 38px; height: 38px; color: var(--mt-paper); }
-[data-ui-theme="metro"] .card.mn > b { position: static; padding: 6px 14px 0; font-size: var(--fs-lg); letter-spacing: .02em; }
-[data-ui-theme="metro"] .card.mn > b::before, [data-ui-theme="metro"] .card.mn > b::after { content: ''; position: absolute; top: calc(var(--mh) - 10px); width: 20px; height: 20px; border-radius: 50%; background: var(--panel); } /* 절취 홈 (카드 ::before 는 키캡 자리라 이름 글자에 단다) */
-[data-ui-theme="metro"] .card.mn > b::before { left: -11.5px; } [data-ui-theme="metro"] .card.mn > b::after { right: -11.5px; }
+[data-ui-theme="metro"] .card.mn { --ny: calc(var(--mh) - .75px); --nb: var(--panel); }
+[data-ui-theme="metro"] .card.mn > b { position: static; padding: 6px 14px 0; font-size: var(--fs-lg); letter-spacing: .02em; } /* 절취 홈 고리 = 이름 글자에 (카드 ::before 는 키캡 자리) */
 [data-ui-theme="metro"] .card.mn > .mn-desc { padding-inline: 14px; }
 [data-ui-theme="metro"] .mn-ft { display: flex; align-items: center; margin: 2px 14px 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 60%, transparent); }
 [data-ui-theme="metro"] .card.mn .mn-rk { display: inline-flex; align-items: center; gap: 7px; color: var(--c-text); font: 400 var(--fs-sm)/1 var(--f-display); letter-spacing: .06em; }
@@ -618,8 +615,11 @@
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::before { content: counter(ao, decimal-leading-zero); color: var(--sti); font: 400 var(--fs-xl)/.85 var(--f-display); font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::after { content: 'AUG'; color: var(--sti); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; opacity: .8; }
 [data-ui-theme="metro"] .aug-opt.lg:not(.sch-opt) kbd::after { content: 'LEGEND'; }
-[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before, [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { content: ''; position: absolute; right: calc(62px - 9px); width: 18px; height: 18px; border-radius: 50%; background: var(--panel); z-index: 1; } /* 스텁 경계 홈 (위 · 아래) */
-[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before { top: -10px; } [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { bottom: -10px; }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before, [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { content: ''; position: absolute; right: calc(61.25px - 9px); z-index: 1; box-sizing: border-box; width: 18px; height: 18px;
+  border: 1.5px solid; border-color: inherit; border-radius: 50%; background: var(--panel); pointer-events: none; } /* 스텁 경계 홈 (위 · 아래) = 바탕색 원 + 카드 테두리와 같은 고리, 카드 밖 반쪽은 자른다 */
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before { top: -9.75px; clip-path: inset(calc(50% - .75px) -1px -1px -1px); }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { bottom: -9.75px; clip-path: inset(-1px -1px calc(50% - .75px) -1px); }
+[data-ui-theme="metro"] .aug-list:not(.sch-list) { grid-auto-rows: 1fr; } /* 줄 높이 = 가장 긴 줄 (한 목록 안에서 같은 높이) */
 /* ── 분기점 · 전환 = 환승 안내판 (2026-11-06 시안 2): 노선색 머리 띠(아이콘 · 화살표 · n번 승강장) · 큰 역 이름 · 이름 + 값 줄.
    띠 색 = 차례대로 보라 · 민트 · 복숭아, 전환은 휴식 민트 · 도전 위험 빨강 · 합성 신비학자 색. 승강장 번호 = 단축키라 모서리 키캡은 숨긴다 */
 [data-ui-theme="metro"] .cards:has(> .br-card) { counter-reset: br; gap: 16px; }
@@ -644,14 +644,14 @@
 [data-ui-theme="metro"] .dp-row { counter-reset: dp; gap: 22px; }
 [data-ui-theme="metro"] .dp-slot { --dh: 96px; display: grid; position: relative; isolation: isolate; animation: dp-card 1.3s cubic-bezier(.5, 0, .2, 1) both; animation-delay: calc(1s + var(--i) * .4s); }
 [data-ui-theme="metro"] .dp-bg.played .dp-slot { animation-duration: 0s; animation-delay: 0s; }
-[data-ui-theme="metro"] .dp-slot::before { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -1; border-radius: var(--mt-r-md); background-color: var(--c-despair); pointer-events: none;
+[data-ui-theme="metro"] .dp-slot::before { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -1; border-radius: var(--mt-r-md); background-color: var(--c-bad); pointer-events: none;
   -webkit-mask: radial-gradient(circle at 0 var(--dh), transparent 9.5px, var(--c-black) 10px), radial-gradient(circle at 100% var(--dh), transparent 9.5px, var(--c-black) 10px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
     linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
   mask: radial-gradient(circle at 0 var(--dh), transparent 9.5px, var(--c-black) 10px), radial-gradient(circle at 100% var(--dh), transparent 9.5px, var(--c-black) 10px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
     linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
   -webkit-mask-composite: source-in, source-in, source-over, source-over, source-over, source-over; mask-composite: intersect, intersect, add, add, add, add; }
 [data-ui-theme="metro"] .dp-card[data-key]::before { content: none; } /* 단축키 = 머리 순번 */
-[data-ui-theme="metro"] .dp-card { counter-increment: dp; position: relative; gap: 8px; min-height: 0; padding: 0 0 14px; border: 1.5px solid color-mix(in srgb, var(--c-despair) 50%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: none; overflow: visible; animation: none; filter: none; transition: translate .12s; }
+[data-ui-theme="metro"] .dp-card { --ny: calc(var(--dh) - .75px); --nb: color-mix(in srgb, var(--c-despair-deep) 90%, var(--c-black)); counter-increment: dp; position: relative; display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 0 0 14px; border: 1.5px solid var(--c-bad); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: none; overflow: visible; animation: none; filter: none; transition: translate .12s; }
 [data-ui-theme="metro"] .dp-card:is(:hover, :focus-visible) { translate: -2px -2px; filter: none; box-shadow: none; }
 [data-ui-theme="metro"] .dp-card:active { translate: 4px 4px; box-shadow: none; }
 [data-ui-theme="metro"] .dp-sigil { position: relative; display: grid; place-items: center; height: var(--dh); border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
@@ -659,9 +659,7 @@
 [data-ui-theme="metro"] .dp-sigil .li { width: 38px; height: 38px; }
 [data-ui-theme="metro"] .dp-sigil::before { content: 'DESPAIR'; position: absolute; left: 11px; top: 9px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
 [data-ui-theme="metro"] .dp-sigil::after { content: counter(dp, decimal-leading-zero); position: absolute; right: 10px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-2xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
-[data-ui-theme="metro"] .dp-card > b { position: static; padding: 2px 14px 0; }
-[data-ui-theme="metro"] .dp-card > b::before, [data-ui-theme="metro"] .dp-card > b::after { content: ''; position: absolute; top: calc(var(--dh) - 10px); width: 20px; height: 20px; border-radius: 50%; background: color-mix(in srgb, var(--c-despair-deep) 90%, var(--c-black)); } /* 절취 홈 = 붉은 막 색 */
-[data-ui-theme="metro"] .dp-card > b::before { left: -11.5px; } [data-ui-theme="metro"] .dp-card > b::after { right: -11.5px; }
+[data-ui-theme="metro"] .dp-card > b { position: static; padding: 2px 14px 0; } /* 절취 홈 고리 = 이름 글자에 (홈 바탕 = 붉은 막 색) */
 [data-ui-theme="metro"] .dp-card > :is(.dp-desc, .dp-quip) { padding-inline: 14px; }
 [data-ui-theme="metro"] .dp-rec { display: flex; align-items: center; gap: 7px; margin: auto 14px 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 70%, transparent); }
 [data-ui-theme="metro"] .dp-rec::before { content: ''; flex: none; width: 9px; height: 9px; background: var(--c-despair); rotate: 45deg; }
@@ -778,6 +776,34 @@
 [data-ui-theme="metro"] .ach-slot { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); }
 [data-ui-theme="metro"] .ach-slot > i { border: 1.5px solid color-mix(in srgb, var(--mt-paper) 25%, var(--mt-edge)); }
 @media (max-width: 600px) { [data-ui-theme="metro"] .ach-card { grid-template-columns: 52px 1fr; } [data-ui-theme="metro"] .ach-card .ach-medal { width: 52px; } }
+/* ── 절취 홈 고리 (티켓형 고르기 카드 공통 — 특권 · 전역 증강 · 미니 카드 · 절망 증강, 2026-11-06 사용자 결정): 홈 = 카드 뒤 바탕색(--nb) 원 + 카드 테두리와 같은 1.5px 고리,
+   카드 밖 반쪽은 잘라 안쪽 반원만 → 테두리가 홈 둘레를 따라 이어진다 (홈에서 테두리가 끊기지 않는다). 고리 색은 카드 테두리색을 물려받아 가리킴 · 고름 상태도 따라간다. --ny = 절취선 가운데 높이 */
+[data-ui-theme="metro"] :is(.gcard, .card.mn, .dp-card) > b { border-color: inherit; }
+[data-ui-theme="metro"] :is(.pv-card, .gcard > b, .card.mn > b, .dp-card > b)::before, [data-ui-theme="metro"] :is(.pv-card, .gcard > b, .card.mn > b, .dp-card > b)::after {
+  content: ''; position: absolute; top: calc(var(--ny) - 10px); bottom: auto; z-index: 1; box-sizing: border-box; width: 20px; height: 20px; min-width: 0; padding: 0;
+  border: 1.5px solid; border-color: inherit; border-radius: 50%; background: var(--nb); box-shadow: none; pointer-events: none; }
+[data-ui-theme="metro"] :is(.pv-card, .gcard > b, .card.mn > b, .dp-card > b)::before { left: -10.75px; right: auto; clip-path: inset(-1px -1px -1px calc(50% - .75px)); }
+[data-ui-theme="metro"] :is(.pv-card, .gcard > b, .card.mn > b, .dp-card > b)::after { right: -10.75px; left: auto; clip-path: inset(-1px calc(50% - .75px) -1px -1px); }
+/* 탑승권(.pcard)은 마스크로 뚫은 실제 홈 → 홈 가장자리에 같은 고리만 (판 .mt-pass 의 ::before · ::after, 카드 밖은 마스크가 자른다) */
+[data-ui-theme="metro"] .mt-pass { border-color: inherit; }
+[data-ui-theme="metro"] .mt-pass::before, [data-ui-theme="metro"] .mt-pass::after { content: ''; position: absolute; bottom: calc(var(--stub) - 11.75px); box-sizing: border-box; width: 20.5px; height: 20.5px;
+  border: 1.5px solid; border-color: inherit; border-radius: 50%; pointer-events: none; }
+[data-ui-theme="metro"] .mt-pass::before { left: -11.75px; } [data-ui-theme="metro"] .mt-pass::after { right: -11.75px; }
+/* ── 티켓형 고르기 카드 크기 고정 (2026-11-06 사용자 결정: 표마다 높이 · 너비가 들쭉날쭉하지 않게). 넘치는 설명은 줄 수를 자르고 전문은 카드에 가리키면 (title) — 절망 증강 중 긴 것은 카드용 짧은 문구 (data/despair.ts brief) */
+@media (min-width: 701px) {
+  [data-ui-theme="metro"] .gc-row { grid-template-columns: repeat(auto-fit, 284px); justify-content: center; }
+  [data-ui-theme="metro"] .gcard { height: 306px; min-height: 0; }
+  [data-ui-theme="metro"] .gc-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+  [data-ui-theme="metro"] .mn-row { grid-template-columns: repeat(auto-fit, 248px); justify-content: center; }
+  [data-ui-theme="metro"] .card.mn { height: 304px; min-height: 0; }
+  [data-ui-theme="metro"] .card.mn > .mn-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+  [data-ui-theme="metro"] .dp-row { grid-template-columns: repeat(auto-fit, 320px); justify-content: center; }
+  [data-ui-theme="metro"] .dp-card { height: 316px; }
+  [data-ui-theme="metro"] .dp-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+  [data-ui-theme="metro"] .dp-quip { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  [data-ui-theme="metro"] .pv-row { grid-template-columns: repeat(auto-fit, 264px); justify-content: center; }
+  [data-ui-theme="metro"] .pv-card { height: 280px; min-height: 0; }
+}
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
    누를 것(단추 · 고르는 카드 · 분대 줄 · 함선 관리)만 선명한 그림자, 담는 판은 평평 (35번). 항로도 그림은 그대로 둔다 */
 /* 구획 제목: 큰 제목 글꼴 + 노선색 네모 표식 */

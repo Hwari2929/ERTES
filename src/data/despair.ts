@@ -14,6 +14,8 @@ export interface DespairDef {
   name: string;
   /** 효과 (설정값을 그릴 때마다 읽는다) */
   desc: () => string;
+  /** 고르기 카드에만 쓰는 짧은 효과 (desc 가 카드 높이를 넘는 것만 — 실제 규칙 · 환경 탭 · 도감은 desc, 카드에 가리키면 desc 전문) */
+  brief?: () => string;
   /** 한 줄 사연 (카드 · 도감) */
   quip: string;
   /** 선 아이콘 키 (ui/synicons.ts) */
@@ -34,6 +36,7 @@ export const CATWHEEL = 'J_catwheel';
 export const DESPAIRS: DespairDef[] = [
   { id: 'D.rock', name: '단장의 반려 돌', icon: 'k.struct',
     desc: () => `기물 영입 선택지 ${D().rockSlots}개가 반려 돌로 바뀝니다. 반려 돌은 시너지가 없고 공격 · 이동을 하지 않으며, 영입하면 늘 출전해 출전 칸 하나를 차지합니다 (방출하면 보상 없이 사라지고, 다시 선택지에 섞입니다).`,
+    brief: () => `기물 영입 선택지 ${D().rockSlots}개가 반려 돌로 바뀝니다. 반려 돌은 시너지가 없고 싸우지 않으며, 영입하면 늘 출전 칸 하나를 차지합니다.`,
     quip: '유닉스가 보내온 위로 선물. 단장이 아끼는 돌이라 두고 갈 수도 없다.' },
   { id: 'D.overclock', name: '오버클럭', icon: 'a.cd',
     desc: () => `모든 적의 기술 쿨다운 감소 속도 +${pc(D().overclock)}.`, mod: () => `+${pc(D().overclock)}`,
@@ -46,6 +49,7 @@ export const DESPAIRS: DespairDef[] = [
     quip: '이번 분기 실적만 보면 됩니다. 다음 분기는 다음 분기 담당자가.' },
   { id: 'D.unix', name: '유닉스제 대량 생산', icon: 'r.part',
     desc: () => `장비를 합성하거나 희귀 · 고급 장비를 얻을 때 ${pc(D().catwheel)} 확률로 아무 기능이 없는 [캣휠]로 바뀝니다. 캣휠이 ${D().zi}개 모이면 저절로 합쳐져 모든 주요 능력치 +${D().ziMajors} 전설 장비 [캣휠(ZI존)]이 됩니다.`,
+    brief: () => `장비를 합성하거나 희귀 · 고급 장비를 얻을 때 ${pc(D().catwheel)} 확률로 기능 없는 [캣휠]로 바뀝니다. 캣휠 ${D().zi}개 = 전설 장비 [캣휠(ZI존)].`,
     quip: '직전 분기 대비 생산량 증가. 쓸모는 원칙에 포함되지 않는다.' },
   { id: 'D.petra', name: '페트라 균등 납품', icon: 'a.shield',
     desc: () => `모든 적이 전투 시작 때 최대 체력 ${pc(D().shield)} 보호막을 두릅니다.`, mod: () => pc(D().shield),

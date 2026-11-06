@@ -247,10 +247,10 @@ export function routeHold(run: RunState): boolean {
   return R.currentOptions(run).length > 1;
 }
 
-/** 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복): 머리(.mn-hd) = 종류 머리표(data-k) · 큰 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 / 아래 표식(.mn-ft).
+/** 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복, title = 긴 설명 전문 — 메트로는 카드 높이가 고정이라 설명 줄 수를 자른다): 머리(.mn-hd) = 종류 머리표(data-k) · 큰 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 / 아래 표식(.mn-ft).
  *  메트로만 머리 칸 · 아래 표식을 그린다 — 갤럭시는 .mn-hd 가 display: contents, .mn-ft 숨김이라 지금 카드 배치 그대로 (css/08-panels-modal.css) */
 function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; title?: string }) {
-  return `<button class="card mn t${o.tier}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.title ? ` title="${esc(o.title)}"` : ''}><span class="mn-hd" data-k="${esc(o.k)}">${o.icon}</span><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span></span></button>`;
+  return `<button class="card mn t${o.tier}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.title && o.title.length > 70 ? ` title="${esc(o.title)}"` : ''}><span class="mn-hd" data-k="${esc(o.k)}">${o.icon}</span><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span></span></button>`;
 }
 
 // ───────────────────────── 모달: 대기 중인 선택
@@ -261,7 +261,7 @@ export function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     mcls = 'global';
     body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
-      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}">
+      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
@@ -288,7 +288,7 @@ export function pendingModal(run: RunState): string {
     const held = despairsOf(run); // 페이즈 시작 때 더 고르는 것: 이미 짊어진 절망을 함께 보여 준다
     body = `<div class="dp-body"><span class="dp-kicker">${p.phase ? `${p.phase}페이즈 · 깊어지는 절망` : `${esc(diffName(run.diff) || '고난')}의 대가`}</span><h1>절망 증강</h1><p class="small dp-sub">${p.phase ? `절망이 하나 더 쌓입니다. 의뢰가 끝날 때까지 이미 짊어진 절망과 함께 걸립니다. 고르지 않고는 나아갈 수 없습니다.` : '이번 의뢰 내내 짊어질 절망을 하나 고르세요. 고르지 않고는 출격할 수 없습니다.'}</p>
       ${held.length ? `<p class="dp-held"><span>짊어진 절망</span>${held.map((d) => `<b title="${esc(d.desc())}">${lineIcon(d.icon, 'li')}${esc(d.name)}</b>`).join('')}</p>` : ''}
-      <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<span class="dp-slot" style="--i:${i}"><button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"><span class="dp-sigil" aria-hidden="true">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc(d.desc()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button></span>`; }).join('')}</div>
+      <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<span class="dp-slot" style="--i:${i}"><button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"${d.brief ? ` title="${esc(d.desc())}"` : ''}><span class="dp-sigil" aria-hidden="true">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc((d.brief || d.desc)()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button></span>`; }).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-despair" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
@@ -340,9 +340,9 @@ export function pendingModal(run: RunState): string {
     // 엔지니어 포탑 장비: 3개 중 1개 → 모든 포탑 공통. 머리 = 제목 + 고른 수 칩, 카드 = 아이콘 · 이름 · 효과 (+ 모든 주요 능력치 칩)
     const had = run.turretMods?.length || 0;
     body = `<div class="tp-head"><h1>감시 포탑 장비 — 엔지니어 ${SYN_BY_ID.ENG.tiers[p.tier - 1] ?? ''}명</h1>${kvChip('장비', `<b>${had}</b>/${ENG_TUR.picks}`, '고른 포탑 장비 (모든 포탑 공통)')}</div>
-      <div class="cards mn-row">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return miniCard({ a: 'pick-turret', v: i, k: 'TURRET', tier: 'T', icon: itemIcon(id), name: esc(g?.name || id), desc: statIc(esc(g?.desc || '')), mark: '모든 포탑', cls: 'tp-card', title: `단축키 ${i + 1}` }); }).join('')}</div>`;
+      <div class="cards mn-row">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return miniCard({ a: 'pick-turret', v: i, k: 'TURRET', tier: 'T', icon: itemIcon(id), name: esc(g?.name || id), desc: statIc(esc(g?.desc || '')), mark: '모든 포탑', cls: 'tp-card', title: g?.desc || '' }); }).join('')}</div>`;
   } else if (p.t === 'itemPick') {
-    body = `<h1>${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '' }); }).join('')}</div>`;
+    body = `<h1>${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', title: it.desc }); }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     // 잠시 나감: 창을 접고 아래 화면(지도 · 파티 · 기물 상세)을 보다가 같은 자리 단추로 돌아온다 (고른 후보 · 새로고침 횟수 유지)
     if (app.recruitAway === p.options.join(',')) return `<button class="btn primary rc-back" data-a="rc-back">${p.syns ? '지정 소집' : '기물 영입'}으로 돌아가기</button>`;
@@ -387,7 +387,7 @@ export function pendingModal(run: RunState): string {
     return pilgrimScreen(run, p); // 성소 덮개 (상단 바 아래 전체, app/pilgrim.ts) — 창 틀을 쓰지 않는다
   } else if (p.t === 'blessing') {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
-      <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈' }); }).join('')}</div>`;
+      <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈', title: d.desc }); }).join('')}</div>`;
   } else if (p.t === 'notice') {
     mcls = 'notice';
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p>${p.rows?.length ? `<dl class="nt-rows">${p.rows.map(([k, v]) => `<dt>${ic(esc(k))}</dt><dd>${ic(esc(v))}</dd>`).join('')}</dl>` : ''}<button class="btn primary" data-a="notice-ok">확인</button>`;
