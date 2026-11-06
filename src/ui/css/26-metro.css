@@ -64,11 +64,11 @@
 .ex-view { position: absolute; inset: 7% 0; overflow: hidden;
   background: var(--mt-sky), radial-gradient(22px 1px at 50% 50%, color-mix(in srgb, var(--mt-paper) 55%, transparent), transparent) 0 0 / 230px 41px,
     radial-gradient(120% 70% at 50% 118%, color-mix(in srgb, var(--mt-d) 78%, transparent), transparent 72%) 0 0 / 100% 100%, linear-gradient(var(--mt-ink) 35%, color-mix(in srgb, var(--mt-d) 30%, var(--mt-ink))) 0 0 / 100% 100%;
-  animation: ex-sky .9s linear infinite; /* 창 너머 별이 흐른다 (가까운 층일수록 빠르다 — 급행은 서지 않는다) */
+  animation: ex-sky 2.4s linear infinite; /* 창 너머 별이 흐른다 (가까운 층일수록 빠르다 — 급행은 서지 않는다). 한 바퀴 = 각 층 타일 폭의 배수라 이음매 없이 되풀이 */
   --wo: calc(57vw - var(--ww) * 1.5 + var(--wp) / 2); /* 창 하나가 화면 가운데 (차창 안 좌표 57vw = 화면 50vw) */
   -webkit-mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x;
   mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x; } /* 창 = 각진 큰 창 · 너머 = 별 하늘 (아래는 경보로 붉다) */
-@keyframes ex-sky { to { background-position: 194px 0, 122px 0, 151px 0, 346px 0, 690px 0, 0 0, 0 0; } }
+@keyframes ex-sky { to { background-position: 600px 0, 470px 0, 1840px 0, 0 0, 0 0; } } /* 별 두 층 (600 · 470 = 타일 폭) · 꼬리 별 (230 × 8) · 경보 빛 · 바탕 */
 .ex-boss { position: absolute; left: 57vw; top: 5%; width: 0; height: 140%; transform-origin: 0 30%; } /* 보스 실루엣 자리: 화면 가운데 (차창 안 좌표), 머리부터 허벅지까지 */
 .ex-boss img { position: absolute; left: 0; top: 0; height: 100%; width: auto; max-width: none; translate: -50% 0;
   filter: brightness(0) drop-shadow(2px 0 0 var(--mt-d)) drop-shadow(-2px 0 0 var(--mt-d)) drop-shadow(0 2px 0 var(--mt-d)) drop-shadow(0 -2px 0 var(--mt-d)); } /* 그림의 모양만 (잉크 실루엣 + 빨간 윤곽 — 어두운 별 하늘에서도 읽힌다) */
