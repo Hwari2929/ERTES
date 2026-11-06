@@ -81,7 +81,7 @@
   --mt-edge: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 카드 · 창 외곽선 (stroke 1.5px) */
   --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
   --mt-sh: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
-  --mt-sh-p: var(--mt-sh);             /* 주 동작(쿠폰 단추) 그림자 — 같은 잿빛 */
+  --mt-sh-p: var(--c-select);          /* 주 동작 그림자 = 선택색(복숭아): 모양은 일반 단추와 같고 그림자 색 하나만 다르다 — 다음 행동 = 강조색 (2026-11-06 피드백: 전투 시작 · 맵으로가 계산값까지 같았다) */
   --mt-sh-pass: var(--mt-sh);          /* 탑승권(기물 카드) 그림자 — 같은 잿빛, 우하단으로 옅어지는 망점 */
   --st-dot: #cfe35a;                   /* 지속 피해 = 라임 (기본 #ff9a5a 는 복숭아 선택색과 같은 색) */
   --gx-select: #f2a93b; --gx-select-ink: #1a1206; --gx-brand: #f2a93b; --gx-credit: #f2a93b; /* 타이틀(메트로 제외 구역)은 갤럭시 색 그대로 */

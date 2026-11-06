@@ -385,7 +385,7 @@ export function summaryModal(run: RunState) {
     <div class="rs-grid">
       ${d && mvp ? `<section class="rs-mvp" aria-label="MVP">
         <div class="rs-mvp-art">${standImg(d.id, 'stand', true) || sprite(d, 'spr big')}</div>
-        <div class="rs-mvp-tag"><span class="rs-crown">${s.won ? 'MVP' : '분투'}</span><em>${mvp.title}</em></div>
+        <div class="rs-mvp-tag"><span class="rs-crown${s.won ? '' : ' ko'}">${s.won ? 'MVP' : '분투'}</span><em>${mvp.title}</em></div>
         <div class="rs-mvp-name"><b>${esc(d.name)}</b><small>${esc(d.title)}</small></div>
         <blockquote class="rs-quote">${esc(quote)}</blockquote>
         <div class="rs-mvp-stats">${mvpStat}</div>

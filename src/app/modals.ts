@@ -279,7 +279,7 @@ export function pendingModal(run: RunState): string {
   } else if (p.t === 'privilege') {
     mcls = 'privilege';
     body = `<div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
-      <div class="pv-row">${p.options.map((o, i) => `<button class="pv-card" style="--i:${i}" data-a="pick-privilege" data-v="${i}"><span class="pv-sigil" aria-hidden="true">♜</span><b>${esc(R.privilegeName(o))}</b><span class="pv-desc">${ic(esc(R.privilegeDesc(o)))}</span></button>`).join('')}</div>
+      <div class="pv-row">${p.options.map((o, i) => `<button class="pv-card" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${R.privilegeDesc(o).length > 70 ? ` title="${esc(R.privilegeDesc(o))}"` : ''}><span class="pv-sigil" aria-hidden="true">♜</span><b>${esc(R.privilegeName(o))}</b><span class="pv-desc">${ic(esc(R.privilegeDesc(o)))}</span></button>`).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'despair') {
     // 절망 증강: 어둡게 가라앉는 카드 (특권 · 등급 공개 연출과 따로, 소리는 낮은 음 하나 — sound.ts despair)

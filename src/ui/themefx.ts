@@ -47,7 +47,7 @@ let goSeen = 0;
 /** 새 화면 그림을 기다리는 최대 시간 (ms) */
 const CAP = 4000;
 /** 큰 전환 하나: 덮개(el) · 얼린 화면(ghost) · 다 덮인 때(covered) · 덮인 뒤 최소로 머무는 시간(hold) · 걷기(leave) · 덮개가 걷힐 때까지 멈춰 둔 아래 화면 등장 연출(held) */
-type Ride = { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean; hold: number; leave: (r: Ride) => void; held: Animation[] };
+type Ride = { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean; hold: number; leave: (r: Ride) => void; held: Animation[]; quick?: boolean };
 let ride: Ride | null = null;
 
 /** 지금 화면을 얼려 둔 사본 (열차가 다 덮으면 걷는다) */
@@ -206,7 +206,10 @@ function expressLeave(r: Ride) {
 
 /** 상점 = 전투 진입과 같은 밀도의 큰 면 전환 (MARKET): 복숭아 · 민트 · 잉크 사선 패널이 덮고, 잉크 위에 큰 동전 원판(∞) · 가격표 · 흘러가는 MARKET 글자 띠 두 줄 ·
  *  망점 · 바코드 기둥 · 진열칸 5개(하나씩 불이 들어온다) + 다음 역 탑승권. 새 화면 그림이 받아지면(최소 MK.hold) 패널이 같은 방향으로 빠지며 상점이 드러난다 */
-const MK = { cover: 400, hold: 760, run: 5200 };
+const MK = { cover: 400, hold: 760, run: 5200, holdQuick: 120 };
+/** 이번 접속에서 지난 상점 전환 수 — 상점은 런 한 번에 20번 넘게 지나는 가장 잦은 전환이라, 첫 번만 다 보여 주고(덮인 뒤 0.76초) 다음부터는 짧게 지난다
+ *  (덮인 뒤 0.12초 + 빠른 걷기 → 약 0.8초, 2026-11-06 피드백: 매번 1.25초) */
+let mkCount = 0;
 function marketIn(ghost: HTMLElement, st: Stop): Ride {
   const el = document.createElement('div');
   el.className = 'mt-go mt-go-market';
@@ -233,7 +236,8 @@ function marketIn(ghost: HTMLElement, st: Stop): Ride {
   anims.push(tl($('.mg-bars'), T, [[380, { transform: 'scaleY(0)' }, SLAM], [600, { transform: 'scaleY(1)' }]]));
   anims.push(tl($('.mg-tk'), T, [[340, { transform: 'scale(1.22) rotate(-2deg)', opacity: 0 }, POP], [540, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }]]));
   el.querySelectorAll('.mk-shelf b').forEach((b, k) => anims.push(tl(b, T, [[440 + k * 70, { opacity: 0, transform: 'scale(.3) rotate(-45deg)' }, POP], [540 + k * 70, { opacity: 1, transform: 'scale(1) rotate(0deg)' }]])));
-  return { el, ghost, fresh: true, covered: anims[pans.length - 1].ready.then(() => new Promise<void>((res) => setTimeout(res, MK.cover))), anims, gone: false, hold: MK.hold, leave: marketLeave, held: [] };
+  const quick = mkCount++ > 0;
+  return { el, ghost, fresh: true, covered: anims[pans.length - 1].ready.then(() => new Promise<void>((res) => setTimeout(res, MK.cover))), anims, gone: false, hold: quick ? MK.holdQuick : MK.hold, leave: marketLeave, held: [], quick };
 }
 /** 상점 전환 걷기: 표에 구멍이 뚫리고(펀치) 잉크 · 민트 · 복숭아 순서로 패널이 왼쪽으로 빠진다 */
 function marketLeave(r: Ride) {
@@ -241,11 +245,12 @@ function marketLeave(r: Ride) {
   r.gone = true;
   const el = r.el;
   el.classList.add('open');
-  const T = 620, SK = 'skewX(-14deg)';
-  r.anims.push(tl(el.querySelector('.mg-punch')!, T, [[0, { transform: 'scale(0)' }, POP], [100, { transform: 'scale(1)' }]]));
-  r.anims.push(tl(el.querySelector('.mg-tk')!, T, [[110, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }, OUTE], [330, { transform: 'translateX(-46vw) skewX(18deg) rotate(-2deg)', opacity: 0 }]]));
-  r.anims.push(tl(el.querySelector('.mg-stage')!, T, [[150, { opacity: 1 }], [250, { opacity: 0 }]]));
-  el.querySelectorAll('.mg-pan').forEach((p, k) => { const at = 120 + (2 - k) * 55; r.anims.push(tl(p, T, [[at, { transform: `translateX(-44vw) ${SK}` }, OUTE], [at + 360, { transform: `translateX(-250vw) ${SK}` }]])); });
+  const q = r.quick ? .6 : 1; // 짧은 걷기 (두 번째 상점부터): 같은 순서 · 6할 시간
+  const T = Math.round(620 * q), SK = 'skewX(-14deg)';
+  r.anims.push(tl(el.querySelector('.mg-punch')!, T, [[0, { transform: 'scale(0)' }, POP], [100 * q, { transform: 'scale(1)' }]]));
+  r.anims.push(tl(el.querySelector('.mg-tk')!, T, [[110 * q, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }, OUTE], [330 * q, { transform: 'translateX(-46vw) skewX(18deg) rotate(-2deg)', opacity: 0 }]]));
+  r.anims.push(tl(el.querySelector('.mg-stage')!, T, [[150 * q, { opacity: 1 }], [250 * q, { opacity: 0 }]]));
+  el.querySelectorAll('.mg-pan').forEach((p, k) => { const at = (120 + (2 - k) * 55) * q; r.anims.push(tl(p, T, [[at, { transform: `translateX(-44vw) ${SK}` }, OUTE], [at + 360 * q, { transform: `translateX(-250vw) ${SK}` }]])); });
   release(r, 600);
   done(r, T + 40);
 }
