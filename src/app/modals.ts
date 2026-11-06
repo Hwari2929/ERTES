@@ -262,7 +262,7 @@ export function pendingModal(run: RunState): string {
     mcls = 'global';
     body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
-        <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
+        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
