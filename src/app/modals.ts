@@ -247,10 +247,10 @@ export function routeHold(run: RunState): boolean {
   return R.currentOptions(run).length > 1;
 }
 
-/** 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복, title = 긴 설명 전문 — 메트로는 카드 높이가 고정이라 설명 줄 수를 자른다): 머리(.mn-hd) = 종류 머리표(data-k) · 큰 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 / 아래 표식(.mn-ft).
+/** 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복, 칸 .tslot = 메트로 그림자 · 실제 구멍 홈 (갤럭시는 display: contents), title = 긴 설명 전문 — 메트로는 카드 높이가 고정이라 설명 줄 수를 자른다): 머리(.mn-hd) = 종류 머리표(data-k) · 큰 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 / 아래 표식(.mn-ft).
  *  메트로만 머리 칸 · 아래 표식을 그린다 — 갤럭시는 .mn-hd 가 display: contents, .mn-ft 숨김이라 지금 카드 배치 그대로 (css/08-panels-modal.css) */
 function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; title?: string }) {
-  return `<button class="card mn t${o.tier}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.title && o.title.length > 70 ? ` title="${esc(o.title)}"` : ''}><span class="mn-hd" data-k="${esc(o.k)}">${o.icon}</span><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span></span></button>`;
+  return `<span class="tslot mslot"><button class="card mn t${o.tier}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.title && o.title.length > 70 ? ` title="${esc(o.title)}"` : ''}><span class="mn-hd" data-k="${esc(o.k)}">${o.icon}</span><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span></span></button></span>`;
 }
 
 // ───────────────────────── 모달: 대기 중인 선택
@@ -261,9 +261,9 @@ export function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     mcls = 'global';
     body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
-      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
+      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
-        <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
+        <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
@@ -328,7 +328,7 @@ export function pendingModal(run: RunState): string {
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
-          return `<button class="aug-opt${app.augPick === i ? ' on' : ''}${isLegendAug(a.id) ? ' lg' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button>`;
+          return `<span class="tslot aslot"><button class="aug-opt${app.augPick === i ? ' on' : ''}${isLegendAug(a.id) ? ' lg' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button></span>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         ${p.kind === 'school' && app.abilPop && /^(cantrip|psipass):/.test(app.abilPop) ? `<div class="ru-pop">${abilPopHtml(app.abilPop, d, pv.b, pv.c)}</div>` : ''}
         <div class="ru-foot">${opts.length

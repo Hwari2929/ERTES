@@ -81,7 +81,7 @@ async function reveal(md: HTMLElement, cards: (readonly [HTMLElement, Grade])[],
   await settle(md);
   let flashed = false;
   cards.forEach(async ([el, g], i) => {
-    await flipped(el.parentElement);
+    await flipped(el.closest('.deal-box')); // 카드가 칸(.tslot)에 들어 있어도 카드 줄 (deal-box)
     await frame();
     await settle(el);
     await wait(i * 70);
@@ -153,8 +153,12 @@ export function greatFlash(els: HTMLElement[]) {
   });
 }
 /** 테두리 광: 나타났다가 사라진다 (최상은 조금 더 오래). still = 움직임 줄이기 (바깥에서 조여 드는 움직임 없이) */
+/** 마스크로 홈을 뚫은 카드 (메트로 티켓형): 카드 밖에 그리는 테두리 광 · 번지는 빛이 잘리므로 카드 안쪽으로 그린다 */
+const masked = (el: Element) => { const cs = getComputedStyle(el); return (cs.getPropertyValue('mask-image') || cs.getPropertyValue('-webkit-mask-image') || 'none') !== 'none'; };
+/** 카드 뒤 빛 줄기를 까는 줄: 카드가 칸(.tslot)에 들어 있으면 칸의 부모 (칸은 그림자 필터를 쓰므로 빛 줄기가 그림자를 만들지 않게) */
+const rowOf = (el: HTMLElement) => { const p = el.parentElement; return p?.classList.contains('tslot') ? p.parentElement : p; };
 function ring(el: HTMLElement, g: Grade, still: boolean) {
-  const w = g === 3 ? '3px' : '2px', off = g === 3 ? '3px' : '2px', from = still ? off : '7px';
+  const m = masked(el), w = g === 3 ? '3px' : '2px', off = m ? '-6px' : g === 3 ? '3px' : '2px', from = still ? off : m ? '-14px' : '7px';
   el.animate([
     { outline: `${w} solid transparent`, outlineOffset: from },
     { outline: `${w} solid var(--rv-c)`, outlineOffset: off, offset: 0.16 },
@@ -170,18 +174,20 @@ function burst(el: HTMLElement, g: Grade, flash: boolean) {
   const sh = add('rv-shine', el);
   gone(sh.animate([{ backgroundPosition: '130% 0' }, { backgroundPosition: '-30% 0' }], { duration: g === 3 ? 900 : 700, easing: 'ease-out' }), sh);
   el.animate([{ scale: '1' }, { scale: g === 3 ? '1.05' : '1.025', offset: 0.3 }, { scale: '1' }], { duration: 420, easing: 'cubic-bezier(.2, .9, .3, 1.2)' });
-  el.animate([{ boxShadow: '0 0 0 0 transparent' }, { boxShadow: `0 0 ${g === 3 ? 34 : 18}px ${g === 3 ? 6 : 2}px var(--rv-glow)`, offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], { duration: g === 3 ? 1400 : 1000, easing: 'ease-out' });
+  const ins = masked(el) ? 'inset ' : '';
+  el.animate([{ boxShadow: `${ins}0 0 0 0 transparent` }, { boxShadow: `${ins}0 0 ${g === 3 ? 34 : 18}px ${g === 3 ? 6 : 2}px var(--rv-glow)`, offset: 0.3 }, { boxShadow: `${ins}0 0 0 0 transparent` }], { duration: g === 3 ? 1400 : 1000, easing: 'ease-out' });
   if (g < 3) return;
   // 카드 흔들림 (개별 translate: 테마 등장 애니메이션의 transform 과 겹치지 않음)
   el.animate([{ translate: '0 0' }, { translate: '-5px 2px' }, { translate: '5px -2px' }, { translate: '-4px 1px' }, { translate: '3px -1px' }, { translate: '-1px 0' }, { translate: '0 0' }], { duration: 420, delay: 80, easing: 'ease-out' });
   // 카드 뒤 빛 줄기: 카드가 든 줄(격자) 안, 카드 밑에 깐다. 가로로 긴 증강 줄은 왼쪽 아이콘 쪽에서
-  const host = el.parentElement;
+  const host = rowOf(el);
   if (host) {
     host.classList.add('rv-host');
     const ray = add('rv-rays', host);
     const wide = el.offsetWidth > el.offsetHeight * 2.5;
     const s = wide ? Math.max(260, el.offsetHeight * 3.2) : Math.max(el.offsetWidth, el.offsetHeight) * 2.1;
-    ray.style.left = `${el.offsetLeft + (wide ? 44 : el.offsetWidth / 2)}px`; ray.style.top = `${el.offsetTop + el.offsetHeight / 2}px`;
+    const hr = host.getBoundingClientRect(), er = el.getBoundingClientRect(); // 줄 기준 자리 (칸 안이어도 같은 값)
+    ray.style.left = `${er.left - hr.left + (wide ? 44 : er.width / 2)}px`; ray.style.top = `${er.top - hr.top + er.height / 2}px`;
     ray.style.width = ray.style.height = `${s}px`;
     gone(ray.animate([{ opacity: 0, transform: 'translate(-50%, -50%) scale(.3) rotate(0deg)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1) rotate(30deg)', offset: 0.25 }, { opacity: 0.75, transform: 'translate(-50%, -50%) scale(1.05) rotate(70deg)', offset: 0.7 }, { opacity: 0, transform: 'translate(-50%, -50%) scale(1.1) rotate(95deg)' }], { duration: 2200, easing: 'cubic-bezier(.2, .7, .3, 1)' }), ray);
   }
