@@ -1895,7 +1895,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .picked-u .spr { width: 100%; height: 100%; object-fit: cover; }
 .picked-u.empty { border-style: dashed; border-color: var(--line); cursor: default; }
 /* 영입 창 */
-.modal.recruit { width: min(1280px, 100%); height: min(90dvh, 900px); max-height: none; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+/* 영입 창 = 전체 화면 (2026-11-06 사용자 결정): 바깥 여백 · 둥근 모서리 없이 화면을 다 쓴다 (휴대폰 노치 = 안전 여백).
+   카드 높이 = 창 높이 − 머리 − 하단(한 줄 고정 높이) → 고르기 전후로(하단 '영입 시' 시너지 줄) 카드 · 일러스트 높이가 변하지 않는다 */
+.modal-bg:has(> .modal.recruit) { padding: 0; }
+.modal.recruit { width: 100%; height: 100dvh; max-width: none; max-height: none; overflow: hidden; display: flex; flex-direction: column; gap: 10px; border-width: 0; border-radius: 0;
+  padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); }
 .rc-head { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; } /* 한 줄: 제목 · 상태 칩 · 주요 적 · (오른쪽 끝) 도구 — 카드에 높이를 남긴다 */
 .rc-head > h1 { margin: 0; white-space: nowrap; }
 .rc-head p { margin: 2px 0 0; }
@@ -1918,10 +1922,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @media (max-width: 640px) { .rc-head { flex-wrap: wrap; } .rc-mu { flex-basis: 100%; } } /* 세로 휴대폰: 주요 적은 둘째 줄 */
 /* 영입 · 지정 소집 창에서 잠시 나간 동안: 화면 아래 가운데 돌아가기 단추 (전체 상세 · 팝업보다 아래 층) */
 .rc-back { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: var(--z-float); box-shadow: var(--shadow-pop); }
-.rc-track { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(215px, 18.5vw, 260px); gap: 11px; padding-block: 20px; overflow-x: auto; justify-content: safe center; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.rc-track { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(215px, calc((100dvh - 196px) * .42), 400px); /* 카드 너비 = 카드 높이(화면 높이 − 머리 · 하단 · 여백)의 0.42 — 전체 화면에서도 탑승권 비율이 홀쭉해지지 않는다 */ gap: 11px; padding-block: 20px; overflow-x: auto; justify-content: safe center; scroll-snap-type: x proximity; scrollbar-width: thin; }
 .rc-track > .pslot { scroll-snap-align: start; }
 .pslot { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-height: 0; } /* 카드 슬롯: 안쪽 카드가 뒤집혀도 슬롯(스크롤 스냅 기준)은 변하지 않는다 */
-.rc-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.rc-foot { flex: none; height: 48px; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; } /* 한 줄 고정 높이 (카드 높이가 흔들리지 않게) */
+.rc-foot > .muted { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rc-foot .btn { min-width: 120px; }
 /* 후보 카드 */
 .pcard { position: relative; height: 100%; min-height: 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: radial-gradient(120% 80% at 50% 30%, var(--panel-2), var(--panel)); cursor: pointer; color: inherit; }
@@ -2002,19 +2007,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .nr-foot .nr-syn { gap: 6px 8px; }
 .rc-syn { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; flex-wrap: nowrap; flex: 1 1 0; }
 .rc-syn > .small { flex: none; }
-.rc-syn .nr-syn { flex: 1 1 0; min-width: 0; }
+.rc-syn .nr-syn { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } /* 시너지가 많아도 한 줄 (넘치면 옆으로 넘긴다) */
 .syn-tk.up .syn-dia { box-shadow: 0 0 0 2px var(--c), 0 0 12px var(--c); } /* 영입하면 오르는 시너지 */
 .syn-tk.up .syn-tx b::after { content: ' ▲'; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); font-size: .7em; }
 @media (max-width: 860px) {
   .nr-foot .picked { order: 0; flex: 1 1 100%; }
   .nr-foot .nr-syn { order: 1; flex: 1 1 100%; }
   .nr-foot .btn { order: 2; }
-  .rc-foot { flex-wrap: wrap; }
-  .rc-syn { flex: 1 1 100%; }
   .rc-syn .syn-tx { display: none; }
+  .rc-syn ~ .muted { display: none; } /* 좁은 화면: '○○ 선택됨' 은 '○○ 영입 시' 와 같은 말 — 하단을 한 줄로 */
 }
 @media (max-width: 640px) {
-  .modal.recruit { height: 94dvh; padding: 14px; }
   .rc-track { grid-auto-columns: 150px; gap: 8px; justify-content: start; }
   .car-track { grid-auto-columns: 150px; gap: 8px; }
   .car-btn { display: none; }
@@ -2716,7 +2719,8 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
   .modal { max-height: calc(100vh - 16px); overflow-y: auto; }
   .stat-pop.sheet { max-height: 80vh; }
   /* 영입 · 계약: 화면 높이를 꽉 쓰고, 카드 시너지는 위쪽 한 줄 */
-  .modal.recruit { height: calc(100dvh - 16px); max-height: none; overflow: hidden; padding: 10px 14px; gap: 6px; }
+  .modal.recruit { gap: 6px; padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); } /* 전체 화면 (09-recruit.css) — 낮은 화면은 여백만 줄인다 */
+  .rc-foot { height: 42px; }
   .modal.recruit h1 { font-size: var(--fs-xl); }
   .rc-head p { font-size: var(--fs-xs); }
   .rc-track, .car-track { grid-auto-columns: clamp(140px, 19vw, 180px); }
@@ -6370,6 +6374,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* ── 창 · 판: 누를 수 없는 것 = 평평한 판 (1.5px 윤곽 · 위 노선 띠 · 그림자 없음). 덮개 = 망점 */
 [data-ui-theme="metro"] .modal:not(.privilege, .despair) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); box-shadow: none;
   background-image: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%); background-size: 100% 5px; background-repeat: no-repeat; }
+[data-ui-theme="metro"] .modal.recruit { border-width: 0; border-radius: 0; } /* 영입 창 = 전체 화면 (위 노선 띠는 그대로) */
 [data-ui-theme="metro"] .um { border: 1.5px solid var(--mt-edge); box-shadow: none; }
 [data-ui-theme="metro"] .um::after { content: ''; position: absolute; inset: 0; z-index: var(--z-float); border-radius: inherit; pointer-events: none; background: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%) top / 100% 5px no-repeat; } /* 노선 띠: 오른쪽 칸 바탕에 가리지 않게 맨 위 층 */
 [data-ui-theme="metro"] .modal-bg:not(.pv-bg, .dp-bg, .res-bg:not(.win)) { background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 1px, transparent 1.6px) 0 0 / 6px 6px, var(--overlay); }
