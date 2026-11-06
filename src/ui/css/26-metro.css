@@ -12,6 +12,16 @@
 [data-ui-theme="metro"] .pref input { accent-color: var(--mt-b); } /* 체크 = 민트 (기본 규칙의 선택색을 덮는다) */
 .mt-win > i { position: absolute; }
 .mt-win.busy { opacity: .6; } /* 전투 중: 멈춘 별 (themefx setBusy) */
+/* 전투판 · 편성판 (2026-11-06 피드백 '전투판에서 테마가 끊긴다'): 아군 진형이 간격 · 적 진형과 맞닿은 변 = 승강장 안전선 (종이색 실선 3px — app/battle.ts safeLine),
+   판 위 = 노선 띠 (보라 · 민트, 정보 판과 같은 문법). 움직이지 않는다 (전투 성능) */
+[data-ui-theme="metro"] .cell.mine:is(.ln-t, .ln-b, .ln-l, .ln-r) { --sl: color-mix(in srgb, var(--mt-paper) 72%, transparent); }
+[data-ui-theme="metro"] .cell.mine.ln-t { box-shadow: inset 0 3px 0 var(--sl); }
+[data-ui-theme="metro"] .cell.mine.ln-b { box-shadow: inset 0 -3px 0 var(--sl); }
+[data-ui-theme="metro"] .cell.mine.ln-l { box-shadow: inset 3px 0 0 var(--sl); }
+[data-ui-theme="metro"] .cell.mine.ln-r { box-shadow: inset -3px 0 0 var(--sl); }
+[data-ui-theme="metro"] .cell.mine.ln-t.ln-l { box-shadow: inset 0 3px 0 var(--sl), inset 3px 0 0 var(--sl); }
+[data-ui-theme="metro"] .cell.mine.ln-t.ln-r { box-shadow: inset 0 3px 0 var(--sl), inset -3px 0 0 var(--sl); }
+[data-ui-theme="metro"] .board::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; height: 4px; z-index: 1; pointer-events: none; background: linear-gradient(90deg, var(--mt-a) 0 50%, var(--mt-b) 50%); } /* 판 위 노선 띠 */
 .mt-lt { height: 3px; opacity: 0; border-radius: var(--r-pill);
   background: repeating-linear-gradient(90deg, var(--mt-a) 0 34px, transparent 34px 40px, var(--mt-b) 40px 74px, transparent 74px 80px); }
 /* 큰 화면 전환 (themefx.ts): 런 출발 = 바코드 게이트 · 보스 = 빨간 급행 · 상점 = MARKET 패널 (아래 전투 진입과 같은 부품). 덮는 동안만 누름을 막는다 */
@@ -975,11 +985,10 @@
 @media (prefers-reduced-motion: reduce) { [data-ui-theme="metro"] .co-ring { animation: none; } }
 /* ══ 런 결과 보고서 (ui/report.ts .aar): 머리 = 전투 결과 띠와 같은 탑승권 머리 (70° 잉크 → 보라, 패배 = 빨강 · 모서리 망점 · 원형 도장),
    수치 칸 = 디자인 시스템 InfoPanel (모노 머리표 · 큰 숫자), 구획 = 정보 패널 (1.5px 윤곽 + 위 노선 띠), 막대 = 눈금 없는 각진 게이지 */
-[data-ui-theme="metro"] .aar-head { --rs-dot: var(--mt-b); --dw: 420px; --dh: 120px; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r);
+[data-ui-theme="metro"] .aar-head { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r);
   background: linear-gradient(70deg, var(--mt-ink) 0 48%, color-mix(in srgb, var(--mt-ink) 60%, var(--mt-a)) 100%); }
-[data-ui-theme="metro"] .aar.lose .aar-head { --rs-dot: var(--mt-c); background: linear-gradient(70deg, var(--mt-ink) 0 48%, color-mix(in srgb, var(--mt-ink) 60%, var(--mt-d)) 100%); }
-[data-ui-theme="metro"] .aar-head::before { inset: 46px 0 auto auto; width: var(--dw); height: var(--dh); opacity: 1; pointer-events: none; background: var(--rs-dot);
-  -webkit-mask: var(--mt-dot-tr) right top / 100% 100% no-repeat; mask: var(--mt-dot-tr) right top / 100% 100% no-repeat; } /* 경고 빗금 대신 망점 하나: 머리표 줄 아래 우측 (도장 뒤) — 글자 위에 겹치지 않는다. 승리 = 민트 · 패배 = 복숭아 */
+[data-ui-theme="metro"] .aar.lose .aar-head { background: linear-gradient(70deg, var(--mt-ink) 0 48%, color-mix(in srgb, var(--mt-ink) 60%, var(--mt-d)) 100%); }
+[data-ui-theme="metro"] .aar-head::before { content: none; } /* 머리 장식 = 도장 하나 (망점을 뺐다 — 패널 장식은 하나, 2026-11-06) */ /* 경고 빗금 대신 망점 하나: 머리표 줄 아래 우측 (도장 뒤) — 글자 위에 겹치지 않는다. 승리 = 민트 · 패배 = 복숭아 */
 [data-ui-theme="metro"] .aar-head > * { position: relative; }
 [data-ui-theme="metro"] .aar-kicker { border-bottom: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent); }
 [data-ui-theme="metro"] .aar-title h1 { color: var(--mt-paper); font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
@@ -1002,7 +1011,7 @@
 [data-ui-theme="metro"] .aar-bar { height: 10px; border: 1px solid var(--mt-edge); border-radius: var(--r-sm); background: var(--mt-ink); }
 [data-ui-theme="metro"] .aar-bar i { border-radius: 0; }
 [data-ui-theme="metro"] .aar-note { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); }
-@media (max-width: 640px) { [data-ui-theme="metro"] .aar-head { --dw: 280px; --dh: 80px; } [data-ui-theme="metro"] .aar-stamp { width: 96px; height: 96px; } [data-ui-theme="metro"] .aar-stamp b { font-size: var(--fs-md); } }
+@media (max-width: 640px) { [data-ui-theme="metro"] .aar-stamp { width: 96px; height: 96px; } [data-ui-theme="metro"] .aar-stamp b { font-size: var(--fs-md); } }
 /* 창 안의 판: 전장 브리핑 카드 = 정보 패널 (1.5px 전장색 윤곽 · 위 전장색 띠) · 알림 행 표 = 잉크 칸 + 모노 값 */
 [data-ui-theme="metro"] .field-card { border: 1.5px solid color-mix(in srgb, var(--c) 55%, var(--mt-edge)); border-top: 4px solid var(--c); border-radius: var(--mt-r-md); background: var(--mt-ink); }
 [data-ui-theme="metro"] .fc-head b { font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }

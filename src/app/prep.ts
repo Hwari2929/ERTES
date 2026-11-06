@@ -24,7 +24,7 @@ import { app, esc, loadPrefs, pctTxt, root } from './state';
 import { POT_PIP, RF_GEM, SPECIAL_GLYPH, breadNote, hero, itemIcon, majorIcon, sprite, statIc, statPopHtml, synergyPanel } from './common';
 import { enemyCategory, relicTok, traitGroup } from './unitparts';
 import { detailPanel, powRow, skillCard, ultCard, weaponCard } from './abilities';
-import { boardTitle, craneLayer, craneOn, heroHead, tendOf, tendText, terrainCell, terrainIcons, terrainLayer, tierKo } from './battle';
+import { boardTitle, craneLayer, craneOn, heroHead, safeLine, tendOf, tendText, terrainCell, terrainIcons, terrainLayer, tierKo } from './battle';
 import { TURRET_RULES, kvChip } from './modals';
 import { tryUse } from './popups';
 import { prepZoomCtl } from './zoom';
@@ -457,7 +457,8 @@ export function prepScreen(run: RunState) {
           : terrainCell(tLay, x, y, `data-a="sel-terrain" data-v="${gid}"${walk && mine ? ` data-drop="cell:${x}:${y}"` : walk && isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, !!node?.enc?.gateOpen, st); // 걸을 수 있는 지형이 아군 진형에 있으면 (단상) 기물을 세운다
         continue;
       }
-      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
+      const zp = (dx: number, dy: number) => { const nx = sx + dx, ny = sy + dy; if (nx < 0 || ny < 0 || nx >= bw || ny >= bh) return 'edge'; const q = fromScr(geo, nx + fr.ox, ny + fr.oy); if (q.x < PAD || q.x >= fw - PAD) return 'edge'; return q.y >= geo.ay0 && q.y <= geo.ay1 ? 'ally' : zoneAt(geo, q.x, q.y) === 'foe' ? 'foe' : 'mid'; };
+      cells += `<div class="cell ${mine ? `mine${safeLine(zp)}` : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
   for (const u of deployed(run)) {
