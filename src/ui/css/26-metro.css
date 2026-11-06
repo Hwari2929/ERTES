@@ -140,7 +140,7 @@
 /* ── 단추: 보조 = 평평한 판, 주 동작 = 티켓 (양 끝 반원 홈은 배경 그림 — 단축키 표 · 포커스 링이 잘리지 않는다) */
 /* 단추 그림자 = 디자인 시스템 shadow-sm: 흐리지 않은 잉크(종이색) 그림자를 오른쪽 아래로 4px. 가리키면 살짝 떠서 6px, 누르면 그림자 거리만큼 내려앉는다.
    drop-shadow 라 쿠폰 홈 · 단축키 표까지 같은 모양으로 민다. 주 동작 쿠폰 = 보라, 켜진 것(.on) = 선택색, 비활성 · 유령 = 없음. 작은 단추는 거리를 줄인다 */
-[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 4px; --so-up: 6px; --sx: var(--so); --sh: var(--mt-paper); border: 1.5px solid var(--mt-edge); border-radius: var(--r-md); box-shadow: none;
+[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 4px; --so-up: 6px; --sx: var(--so); --sh: var(--mt-sh); border: 1.5px solid var(--mt-edge); border-radius: var(--r-md); box-shadow: none;
   filter: drop-shadow(var(--sx) var(--sx) 0 var(--sh)); transition: border-color .15s, background-color .15s, translate .09s cubic-bezier(.2, .9, .2, 1), filter .09s cubic-bezier(.2, .9, .2, 1); }
 [data-ui-theme="metro"] .btn.small:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 3px; --so-up: 4px; } [data-ui-theme="metro"] .btn.tiny:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 2px; --so-up: 3px; }
 [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { --sx: var(--so-up); translate: -1px -1px; border-color: var(--mt-hover); background-color: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); } /* 가리킴 = 밝은 회색 (선택색은 고른 것 · 다음 행동에만) */
@@ -153,7 +153,7 @@
 /* 쿠폰형 주 동작 (티켓 홈): 둥글기 = 다른 단추와 같은 --r-md. 채움은 ::after 한 층 — 테두리(복숭아, 정수 1px) + 홈 고리 + 노선색을 섞은 Y2K 그라디언트
    (시안 1 '선셋': 복숭아 → 장미 → 보라) + 우측 하단으로 갈수록 짙어지는 망점 그림자 (--mt-dot-shade). 홈은 그 채움 층에만 뚫는다 (단축키 표 · 포커스 링이 잘리지 않게).
    테두리 · 고리는 1px: 1.5px 는 브라우저마다 1 · 1.5 로 그려져 고리와 테두리 끝이 어긋난다 */
-[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny) { --tk1: var(--c-select); --tk2: var(--mt-a); --tk-edge: var(--c-select); --tk-dot: var(--mt-dot-shade); --sh: var(--mt-a);
+[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny) { --tk1: var(--c-select); --tk2: var(--mt-a); --tk-edge: var(--c-select); --tk-dot: var(--mt-dot-shade); --sh: var(--mt-sh-p);
   isolation: isolate; padding-inline: 22px; border-width: 1px; border-color: transparent; border-radius: var(--r-md); background: none; color: var(--c-select-ink); }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny):not(.rc-back) { position: relative; } /* 채움 층의 기준 (화면에 고정된 '돌아가기'는 이미 기준이 된다) */
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny)::after { content: ''; position: absolute; inset: -1px; z-index: -1; border: 1px solid var(--tk-edge); border-radius: inherit; pointer-events: none;
@@ -194,7 +194,7 @@
 
 /* ── 고르는 카드 (증강 · 장비 · 포탑 장비 · 전역 증강 · 뒤집을 보급): 아래 두께, 가리키면 밝은 회색 윤곽, 고른 것은 선택색(가리켜도 유지), 누르면 내려앉는다 */
 /* 고르는 카드도 단추와 같은 그림자 문법 (디자인 시스템 MiniCard): 오른쪽 아래 잉크 4px, 가리키면 2px 떠서 6px, 누르면 내려앉음, 고른 것 = 선택색 6px */
-[data-ui-theme="metro"] :is(.card, .gcard, .aug-opt, .pv-card, .sg-card:not(.sg-empty), .pil-card, .stat-pick):not(:is(.bar, .ct) *) { --cs: var(--mt-paper); box-shadow: 4px 4px 0 var(--cs);
+[data-ui-theme="metro"] :is(.card, .gcard, .aug-opt, .pv-card, .sg-card:not(.sg-empty), .pil-card, .stat-pick):not(:is(.bar, .ct) *) { --cs: var(--mt-sh); box-shadow: 4px 4px 0 var(--cs);
   transition: translate .09s cubic-bezier(.2, .9, .2, 1), box-shadow .09s cubic-bezier(.2, .9, .2, 1), border-color .15s; }
 [data-ui-theme="metro"] :is(.card, .gcard, .aug-opt):not(:is(.bar, .ct) *) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); }
 [data-ui-theme="metro"] :is(.card, .gcard, .aug-opt, .pv-card, .sg-card:not(.sg-empty), .pil-card[role="button"], .stat-pick):not(:is(.bar, .ct) *, [disabled], :disabled, .open, .on, .sold, .took, .off):hover { translate: -2px -2px; border-color: var(--mt-hover); box-shadow: 6px 6px 0 var(--cs); } /* 고른 카드(.on)는 가리켜도 선택색 */
@@ -212,7 +212,7 @@
    사진 창 배경 = 전투 유형 모듈 (그림 아래, 면 없이 1.5px 선만): 명사수 = 조준경 · 돌격가 = 속도선 · 전문가 = 설계 모눈 · 궤도 · 지휘관 = 방사선 */
 .mt-pass { display: none; }
 /* 판 그림자 = 오른쪽 아래 7px (테마의 딱딱한 그림자는 모두 같은 방향). 카드와 같은 판을 뒤에 깔고 망점 마스크로 우하단 끝으로 갈수록 옅게 — 판의 절취 홈도 같이 뚫는다 */
-[data-ui-theme="metro"] .pslot { --stub: 40px; --sh: var(--mt-a); position: relative; isolation: isolate; }
+[data-ui-theme="metro"] .pslot { --stub: 40px; --sh: var(--mt-sh-pass); position: relative; isolation: isolate; }
 [data-ui-theme="metro"] .pslot:has(.pcard.sel) { --sh: var(--c-select); }
 [data-ui-theme="metro"] .pslot::before { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -1; border-radius: var(--mt-r); background-color: var(--sh); pointer-events: none; transition: background-color .25s ease;
   -webkit-mask: radial-gradient(circle at 0 calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)), radial-gradient(circle at 100% calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
@@ -236,7 +236,7 @@
 [data-ui-theme="metro"] .mt-pass > i { display: none; position: absolute; right: 14px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--mt-a); }
 [data-ui-theme="metro"] .mt-pass-stub { position: absolute; left: 0; right: 0; bottom: 0; height: var(--stub); display: flex; align-items: center; gap: 10px; padding: 0 14px; background: linear-gradient(100deg, var(--ps-a), var(--ps-b)); color: var(--mt-on);
   --ps-a: var(--mt-b); --ps-b: var(--mt-a); transition: --ps-a .25s ease, --ps-b .25s ease; }
-[data-ui-theme="metro"] .pcard.sel .mt-pass-stub { --ps-a: var(--mt-a); --ps-b: var(--c-select); } /* 고르면 스텁 = 보라 → 복숭아 (0.25초, 아래 @property 로 색이 이어진다) */
+[data-ui-theme="metro"] .pcard.sel .mt-pass-stub { --ps-a: var(--mt-b); --ps-b: var(--c-select); } /* 고르면 스텁 = 민트 → 복숭아 (0.25초, 아래 @property 로 색이 이어진다 · 2026-11-06 사용자 결정) */
 @property --ps-a { syntax: '<color>'; inherits: false; initial-value: transparent; }
 @property --ps-b { syntax: '<color>'; inherits: false; initial-value: transparent; }
 [data-ui-theme="metro"] .mt-pass-stub::before { content: ''; position: absolute; left: 12px; right: 12px; top: 0; border-top: var(--mt-perf) color-mix(in srgb, var(--mt-on) 35%, transparent); } /* 절취선 */
@@ -592,9 +592,9 @@
 [data-ui-theme="metro"] .pb-row { padding: 6px 2px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); border-radius: 0; background: none; }
 [data-ui-theme="metro"] .pb-ri { border: 1px solid color-mix(in srgb, var(--c, var(--mt-edge)) 55%, var(--mt-edge)); background: var(--mt-ink); }
 /* 분대 줄 = 누르는 것: 작은 단추 그림자 (3px), 고른 분대 = 선택색 */
-[data-ui-theme="metro"] .pb-sq { border: 1.5px solid var(--mt-edge); border-radius: var(--r-md); background: var(--panel-2); box-shadow: 3px 3px 0 var(--mt-paper); transition: translate .09s, box-shadow .09s, border-color .15s; }
-[data-ui-theme="metro"] .pb-sq:not(.on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--mt-paper); }
-[data-ui-theme="metro"] .pb-sq:active { translate: 3px 3px; box-shadow: 0 0 0 var(--mt-paper); }
+[data-ui-theme="metro"] .pb-sq { border: 1.5px solid var(--mt-edge); border-radius: var(--r-md); background: var(--panel-2); box-shadow: 3px 3px 0 var(--mt-sh); transition: translate .09s, box-shadow .09s, border-color .15s; }
+[data-ui-theme="metro"] .pb-sq:not(.on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--mt-sh); }
+[data-ui-theme="metro"] .pb-sq:active { translate: 3px 3px; box-shadow: 0 0 0 var(--mt-sh); }
 [data-ui-theme="metro"] .pb-sq.on { border-color: var(--c-select); box-shadow: 4px 4px 0 var(--c-select); }
 /* 전투: 미터 = 눈금 게이지, 기록 = 로그 (줄 · 아군/적 색 막대 · 모노 숫자) */
 [data-ui-theme="metro"] .mbar { height: 8px; border: 1px solid var(--mt-edge); border-radius: var(--r-sm);
@@ -612,16 +612,16 @@
 [data-ui-theme="metro"] .ci-name { text-shadow: 3px 3px 0 var(--c-black); }
 [data-ui-theme="metro"] .ci-line { padding: 5px 12px; border: 0; border-radius: var(--r-sm); background: var(--mt-paper); color: var(--mt-on); box-shadow: 4px 4px 0 var(--c1); }
 /* 지도: 함선 관리 = 누르는 줄 (단추 그림자), 값은 모노 */
-[data-ui-theme="metro"] .ship-btn { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: 4px 4px 0 var(--mt-paper); transition: translate .09s, box-shadow .09s, border-color .15s; }
-[data-ui-theme="metro"] .ship-btn:not(:disabled):hover { translate: -2px -2px; border-color: var(--mt-hover); box-shadow: 6px 6px 0 var(--mt-paper); }
-[data-ui-theme="metro"] .ship-btn:not(:disabled):active { translate: 4px 4px; box-shadow: 0 0 0 var(--mt-paper); }
+[data-ui-theme="metro"] .ship-btn { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: 4px 4px 0 var(--mt-sh); transition: translate .09s, box-shadow .09s, border-color .15s; }
+[data-ui-theme="metro"] .ship-btn:not(:disabled):hover { translate: -2px -2px; border-color: var(--mt-hover); box-shadow: 6px 6px 0 var(--mt-sh); }
+[data-ui-theme="metro"] .ship-btn:not(:disabled):active { translate: 4px 4px; box-shadow: 0 0 0 var(--mt-sh); }
 [data-ui-theme="metro"] .ship-btn:disabled { box-shadow: none; }
 /* HUD · 메뉴 · 설정 */
 [data-ui-theme="metro"] .top .pill { font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .slot { border-radius: 0; background: none; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); padding-inline: 2px; }
 [data-ui-theme="metro"] .pref { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); }
 [data-ui-theme="metro"] .modal input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; margin: 2px 0 0; cursor: pointer;
-  border: 1.5px solid var(--mt-paper); border-radius: var(--r-sm); background: var(--mt-ink); box-shadow: 2px 2px 0 var(--mt-paper); } /* 체크 = 디자인 시스템 Controls: 각진 칸 + 선명한 그림자 */
+  border: 1.5px solid var(--mt-paper); border-radius: var(--r-sm); background: var(--mt-ink); box-shadow: 2px 2px 0 var(--mt-sh); } /* 체크 = 디자인 시스템 Controls: 각진 칸 + 선명한 그림자 */
 [data-ui-theme="metro"] .modal input[type="checkbox"]:checked { border-color: var(--mt-b); box-shadow: 2px 2px 0 var(--mt-b);
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.4 6.4 11.6 13 4.4'/%3E%3C/svg%3E") center / 13px 13px no-repeat, var(--mt-b); }
 [data-ui-theme="metro"] .modal input[type="checkbox"]:focus-visible { outline: 2px solid var(--mt-a); outline-offset: 3px; }
@@ -643,7 +643,7 @@
 [data-ui-theme="metro"] .cx-seg button { border-width: 1.5px; }
 [data-ui-theme="metro"] .cx-seg button.on { background: color-mix(in srgb, var(--c-select) 12%, transparent); }
 /* 고르는 칸 = 미니 카드 문법: 1.5px 윤곽 · 선명한 종이 그림자 (가리키면 떠서 커지고, 누르면 내려앉고, 고른 것 = 선택색 윤곽 · 그림자) */
-[data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-mc, .cx-lcard) { --cs: var(--mt-paper); --so: 3px; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: var(--so) var(--so) 0 var(--cs);
+[data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-mc, .cx-lcard) { --cs: var(--mt-sh); --so: 3px; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: var(--so) var(--so) 0 var(--cs);
   transition: translate .09s cubic-bezier(.2, .9, .2, 1), box-shadow .09s cubic-bezier(.2, .9, .2, 1), border-color .15s ease; }
 [data-ui-theme="metro"] .cx-card { --so: 4px; }
 [data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-mc, .cx-lcard):hover { translate: -2px -2px; border-color: var(--mt-hover); box-shadow: calc(var(--so) + 2px) calc(var(--so) + 2px) 0 var(--cs); }

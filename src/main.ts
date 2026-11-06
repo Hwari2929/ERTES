@@ -154,6 +154,8 @@ if (typeof document !== 'undefined') {
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { if (app.screen === 'title' || app.menu) render(); });
 window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop, .ask-pop')) layoutPanels(); }, { passive: true });
 
+/** 서서히 나타나는 덮개 화면: 다시 그릴 때는 등장 애니메이션을 건너뛴다 (render 의 hadOv) */
+const OVERLAYS = ['.shop-ov', '.pil-ov'];
 /** 메트로 큰 전환이 서는 정거장 (themefx.ts Stop): 런 출발(명부 → 지도) = 바코드 게이트 · 지도에서 보스 노드 = 빨간 급행(차창 너머 보스 실루엣) · 상점 = MARKET.
  *  나머지 화면 전환은 그대로 컷 */
 function mtStop(run: RunState | null, prev: string, next: string): TFX.Stop | null {
@@ -205,9 +207,11 @@ export function render() {
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd', '.pil-ov'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
-  TFX.beforeScreen(prevScreen, app.screen, root, mtStop(run, prevScreen, app.screen)); // 메트로: 런 출발 · 보스 · 상점에서만 바뀌기 전 화면을 덮는 열차 (그리기 전에 지금 화면을 얼려 둔다)
+  TFX.beforeScreen(prevScreen, app.screen, root, mtStop(run, prevScreen, app.screen)); // 메트로: 런 출발 · 보스 · 상점에서만 바뀌기 전 화면을 덮는 큰 전환 (그리기 전에 지금 화면을 얼려 둔다)
+  const hadOv = OVERLAYS.filter((q) => root.querySelector(q)); // 다시 그리기 전에 이미 열려 있던 덮개 (상점 · 순례)
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${run && app.releaseConfirm ? releaseModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
+  for (const q of hadOv) root.querySelector(q)?.classList.add('no-in'); // 열려 있던 덮개는 등장(서서히 나타나기)을 다시 하지 않는다 — 누를 때마다 화면 전체가 깜빡이던 원인
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
   detailHeadBind();
