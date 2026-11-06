@@ -266,7 +266,7 @@ export function routeHold(run: RunState): boolean {
 function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; tc?: string; price?: string; off?: boolean; more?: string }) {
   const more = o.more ?? `<b>${o.name}</b><small>${esc(o.mark)}${o.price ? ` · ${o.price}` : ''}</small><span>${o.desc}</span>`;
   return `<span class="tslot mslot${o.off ? ' off' : ''}"><button class="card mn t${o.tier}${o.price ? ' buy' : ''}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.off ? ' aria-disabled="true"' : ''}${o.tc ? ` style="--tc:${o.tc}"` : ''}>`
-    + `<span class="mn-hd"><span class="mn-tl"><span>${esc(o.k)}</span><i aria-hidden="true"></i></span>${o.icon}${o.price ? '' : '<span class="mn-n" aria-hidden="true"></span>'}</span>`
+    + `<span class="mn-hd"><span class="mn-tl"><span>${esc(o.k)}</span><i aria-hidden="true"></i></span>${o.icon.replace(/ title="[^"]*"/g, '')}${o.price ? '' : '<span class="mn-n" aria-hidden="true"></span>'}</span>`
     + `<span class="mn-lo"><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span>${o.price ? `<span class="mn-pr">${o.price}</span>` : ''}</span></span>`
     + `<span class="mn-more" hidden>${more}</span></button></span>`;
 }

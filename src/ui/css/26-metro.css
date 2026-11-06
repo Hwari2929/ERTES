@@ -604,6 +604,7 @@
 [data-ui-theme="metro"] .card.mn { --tc: var(--g-C); --n: 7px; --mnb: var(--mt-edge); counter-increment: mn; position: relative; display: block; width: 100%; min-width: 0; min-height: 0; padding: 0; overflow: visible;
   border: 0; border-radius: 0; background: none; color: var(--c-text); text-align: left; }
 [data-ui-theme="metro"] .card.mn:hover { transform: none; border-color: transparent; }
+[data-ui-theme="metro"] .tslot.mslot > .card.mn { box-shadow: none; } /* 그림자는 칸(.tslot drop-shadow)이 두 칸의 모양(둥근 모서리 · 홈) 그대로 그린다 — 공용 고르는 카드의 네모 그림자를 끈다 */
 [data-ui-theme="metro"] .card.mn:is(:hover, :focus-visible):not([aria-disabled="true"]) { --mnb: var(--mt-hover); }
 [data-ui-theme="metro"] .card.mn.on { --mnb: var(--c-select); }
 [data-ui-theme="metro"] .card.mn.tG { --tc: var(--g-G); } [data-ui-theme="metro"] .card.mn.tA { --tc: var(--g-A); } [data-ui-theme="metro"] .card.mn.tL { --tc: var(--g-L); } [data-ui-theme="metro"] .card.mn.tU { --tc: var(--g-U); }
@@ -621,7 +622,8 @@
 [data-ui-theme="metro"] .card.mn .mn-tl i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 [data-ui-theme="metro"] .card.mn .mn-n { display: block; position: absolute; right: 8px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-3xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .mn-n::before { content: counter(mn, decimal-leading-zero); }
-[data-ui-theme="metro"] .mn-hd .item { width: 48px; height: 48px; cursor: inherit; }
+[data-ui-theme="metro"] .card.mn .mn-hd .item { width: 52%; height: auto; aspect-ratio: 1; font-size: var(--fs-3xl); cursor: inherit; } /* 원본 규격: 엠블럼 = 그림 칸 폭의 52% */
+[data-ui-theme="metro"] .card.mn .mn-hd .item .ii { width: 52%; height: 52%; }
 [data-ui-theme="metro"] .card.mn .mn-hd > .li { width: 34%; height: auto; aspect-ratio: 1; color: var(--mt-b); stroke-width: 1.5px; } /* 선 아이콘 = 원본 엠블럼처럼 가는 민트 선 */
 [data-ui-theme="metro"] .mn-lo { padding: 10px 11px 11px; border-top: 0; border-radius: 0 0 var(--mt-r-md) var(--mt-r-md); background: var(--panel);
   -webkit-mask: radial-gradient(circle at 0 0, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 0, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat;
@@ -658,7 +660,7 @@
 [data-ui-theme="metro"] .card.mn.sold .mn-pr { color: var(--c-text-2); font: 700 var(--fs-sm)/1 var(--f-body); letter-spacing: .02em; }
 [data-ui-theme="metro"] .tslot.off { --cs: transparent; } /* 못 삼 = 그림자 없음 (35번 — 누를 수 없는 것은 평평하게) */
 [data-ui-theme="metro"] .card.mn[aria-disabled="true"] { cursor: default; }
-@media (max-height: 560px) { [data-ui-theme="metro"] .mn-hd { aspect-ratio: 2 / 1; } [data-ui-theme="metro"] .mn-hd .item { width: 36px; height: 36px; } [data-ui-theme="metro"] .card.mn .mn-hd > .li { width: 26%; } } /* 낮은 가로 화면: 그림 칸을 낮게 */
+@media (max-height: 560px) { [data-ui-theme="metro"] .mn-hd { aspect-ratio: 2 / 1; } [data-ui-theme="metro"] .card.mn .mn-hd .item { width: 30%; } [data-ui-theme="metro"] .card.mn .mn-hd > .li { width: 26%; } } /* 낮은 가로 화면: 그림 칸을 낮게 */
 /* 상세 팝오버 (app/hover.ts mnTip): 잉크 판 · 1.5px 윤곽 · 위 카드 색 띠 — 이름 · 등급 | 값 · 설명 전문 */
 [data-ui-theme="metro"] .mn-tip { border: 1.5px solid var(--mt-edge); border-top: 3px solid var(--tc, var(--mt-edge)); border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); }
 [data-ui-theme="metro"] .mn-tip > small { color: var(--c-text-2); font: 700 var(--fs-xs)/1.3 var(--f-body); letter-spacing: .02em; }
