@@ -638,12 +638,22 @@
 [data-ui-theme="metro"] .fk-rows > * { padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
 [data-ui-theme="metro"] .fk-rows dt { font: 600 var(--fs-2xs)/1.9 var(--f-mono); letter-spacing: .1em; }
 /* ── 절망 증강 = 붉은 미니 카드 (2026-11-06 시안 2): 미니 카드 문법 — 머리 = 잉크 → 절망 진홍 그라디언트 · DESPAIR 머리표 · 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 · 한마디 / 아래 기록 줄.
-   붉은 막 · 무겁게 떨어지는 등장은 그대로, 가리킴 · 누름은 고르는 카드 문법 (번지는 붉은 빛 대신 선명한 그림자) */
-[data-ui-theme="metro"] .dp-row { counter-reset: dp; gap: 18px; }
+   붉은 막 · 무겁게 떨어지는 등장은 그대로, 가리킴 · 누름은 고르는 카드 문법.
+   그림자 = 카드 뒤 판 (.dp-slot::before — 탑승권 판 그림자와 같은 문법): 오른쪽 아래 7px · 절망 진홍 100% · 망점 마스크로 우하단 끝으로 갈수록 옅게 · 판의 절취 홈도 뚫는다
+   (2026-11-06 사용자 결정 — 어두운 붉은 막 위라 잿빛 그림자가 묻힌다). 무겁게 떨어지는 등장은 칸(.dp-slot)이 맡아 판과 카드가 함께 떨어진다 */
+[data-ui-theme="metro"] .dp-row { counter-reset: dp; gap: 22px; }
+[data-ui-theme="metro"] .dp-slot { --dh: 96px; display: grid; position: relative; isolation: isolate; animation: dp-card 1.3s cubic-bezier(.5, 0, .2, 1) both; animation-delay: calc(1s + var(--i) * .4s); }
+[data-ui-theme="metro"] .dp-bg.played .dp-slot { animation-duration: 0s; animation-delay: 0s; }
+[data-ui-theme="metro"] .dp-slot::before { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -1; border-radius: var(--mt-r-md); background-color: var(--c-despair); pointer-events: none;
+  -webkit-mask: radial-gradient(circle at 0 var(--dh), transparent 9.5px, var(--c-black) 10px), radial-gradient(circle at 100% var(--dh), transparent 9.5px, var(--c-black) 10px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
+    linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
+  mask: radial-gradient(circle at 0 var(--dh), transparent 9.5px, var(--c-black) 10px), radial-gradient(circle at 100% var(--dh), transparent 9.5px, var(--c-black) 10px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
+    linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
+  -webkit-mask-composite: source-in, source-in, source-over, source-over, source-over, source-over; mask-composite: intersect, intersect, add, add, add, add; }
 [data-ui-theme="metro"] .dp-card[data-key]::before { content: none; } /* 단축키 = 머리 순번 */
-[data-ui-theme="metro"] .dp-card { --dh: 96px; counter-increment: dp; position: relative; gap: 8px; min-height: 0; padding: 0 0 14px; border: 1.5px solid color-mix(in srgb, var(--c-despair) 50%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: 4px 4px 0 var(--mt-sh); overflow: visible; }
-[data-ui-theme="metro"] .dp-card:is(:hover, :focus-visible) { translate: -2px -2px; filter: none; box-shadow: 6px 6px 0 var(--c-despair); }
-[data-ui-theme="metro"] .dp-card:active { translate: 4px 4px; box-shadow: 0 0 0 var(--c-despair); }
+[data-ui-theme="metro"] .dp-card { counter-increment: dp; position: relative; gap: 8px; min-height: 0; padding: 0 0 14px; border: 1.5px solid color-mix(in srgb, var(--c-despair) 50%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: none; overflow: visible; animation: none; filter: none; transition: translate .12s; }
+[data-ui-theme="metro"] .dp-card:is(:hover, :focus-visible) { translate: -2px -2px; filter: none; box-shadow: none; }
+[data-ui-theme="metro"] .dp-card:active { translate: 4px 4px; box-shadow: none; }
 [data-ui-theme="metro"] .dp-sigil { position: relative; display: grid; place-items: center; height: var(--dh); border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
   background: linear-gradient(120deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--c-despair)) 72%, var(--c-despair) 100%); }
 [data-ui-theme="metro"] .dp-sigil .li { width: 38px; height: 38px; }
@@ -656,7 +666,8 @@
 [data-ui-theme="metro"] .dp-rec { display: flex; align-items: center; gap: 7px; margin: auto 14px 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 70%, transparent); }
 [data-ui-theme="metro"] .dp-rec::before { content: ''; flex: none; width: 9px; height: 9px; background: var(--c-despair); rotate: 45deg; }
 [data-ui-theme="metro"] .dp-held b { border-radius: var(--r-sm); border-width: 1.5px; }
-@media (max-width: 700px) { [data-ui-theme="metro"] .dp-card { --dh: 64px; } }
+@media (max-width: 700px) { [data-ui-theme="metro"] .dp-slot { --dh: 64px; } }
+@media (prefers-reduced-motion: reduce) { [data-ui-theme="metro"] .dp-slot { animation: none; } }
 /* ── 전장 카드 (전장 브리핑 · 지도 환경 탭, app/modals.ts fieldCard) = 디자인 시스템 정보 패널: 머리 = 잉크 → 전장색 띠 (전장색 원판 위 아이콘 · 머리표 = 지역 · 큰 이름) /
    조건 = 전장색 네모 표식 줄 / 출현 · 정예 · 보스 = 이름 + 값 줄 (위 실선) / 주요 적 = 정보 화면과 같은 줄. 환경 탭의 카드는 브리핑을 다시 여는 단추라 선명한 그림자 */
 [data-ui-theme="metro"] .field-card { gap: 0; padding: 0 0 6px; overflow: hidden; border: 1.5px solid color-mix(in srgb, var(--c) 45%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); }
@@ -749,6 +760,24 @@
 [data-ui-theme="metro"] .ms-syn.on::after { content: ''; position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--mt-ink), 0 0 0 3.5px var(--c); } /* 펀치 구멍 */
 [data-ui-theme="metro"] .ms-syn:disabled { box-shadow: none; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--mt-paper) 9%, transparent) 6px 7.5px), var(--mt-ink); }
 [data-ui-theme="metro"] .ms-syn.ms-demo { box-shadow: none; }
+/* ── 업적 = 역 스탬프 (2026-11-06 업적 시안 1): 메달 → 등급색 도장 (테두리 · 점선 고리 · 안쪽 고리 · 문양 = 등급색, 비스듬히 찍힘 · 금속 광 · 별 빛 없음),
+   아직 못 받은 업적 = 옅은 빈 도장 (기울지 않음). 도감 업적 탭 · 달성 배너에 적용, 바 진열장(제외 구역)은 메달 그림 그대로. 업적 카드 · 머리 · 진열장 = 1.5px 판, 빈 진열 칸 = 실선 고리 (점선은 절취선에만) */
+[data-ui-theme="metro"] .ach-medal:not(:is(.bar, .ct, .title-screen, .adv) *) .am-rim { fill: none; stroke: var(--am-c); stroke-width: 2.4; }
+[data-ui-theme="metro"] .ach-medal:not(:is(.bar, .ct, .title-screen, .adv) *) .am-beads { stroke: var(--am-c); stroke-width: 1.8; stroke-dasharray: .01 3.2; opacity: 1; }
+[data-ui-theme="metro"] .ach-medal:not(:is(.bar, .ct, .title-screen, .adv) *) .am-face { fill: none; stroke: var(--am-c); stroke-width: 1.2; }
+[data-ui-theme="metro"] .ach-medal:not(:is(.bar, .ct, .title-screen, .adv) *) .am-ink { color: var(--am-c); filter: none; }
+[data-ui-theme="metro"] .ach-medal:not(:is(.bar, .ct, .title-screen, .adv) *) :is(.am-hl, .am-gloss, .am-star) { display: none; }
+[data-ui-theme="metro"] .ach-medal:not(:is(.bar, .ct, .title-screen, .adv) *):not(.locked, .ach-mini) { rotate: -12deg; }
+[data-ui-theme="metro"] .ach-medal.locked:not(:is(.bar, .ct, .title-screen, .adv) *) { --am-c: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-edge)); filter: none; opacity: .55; }
+[data-ui-theme="metro"] .ach-card { grid-template-columns: 64px 1fr auto; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); background: var(--panel); }
+[data-ui-theme="metro"] .ach-card.got { border-color: color-mix(in srgb, var(--am-c) 50%, var(--mt-edge)); background: var(--panel); }
+[data-ui-theme="metro"] .ach-card .ach-medal { width: 60px; }
+[data-ui-theme="metro"] .ach-meta { font-family: var(--f-mono); letter-spacing: .04em; }
+[data-ui-theme="metro"] :is(.ach-cx-head, .ach-cx-case) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); }
+[data-ui-theme="metro"] .ach-cx-prog b { font-family: var(--f-display); font-weight: 400; }
+[data-ui-theme="metro"] .ach-slot { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); }
+[data-ui-theme="metro"] .ach-slot > i { border: 1.5px solid color-mix(in srgb, var(--mt-paper) 25%, var(--mt-edge)); }
+@media (max-width: 600px) { [data-ui-theme="metro"] .ach-card { grid-template-columns: 52px 1fr; } [data-ui-theme="metro"] .ach-card .ach-medal { width: 52px; } }
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
    누를 것(단추 · 고르는 카드 · 분대 줄 · 함선 관리)만 선명한 그림자, 담는 판은 평평 (35번). 항로도 그림은 그대로 둔다 */
 /* 구획 제목: 큰 제목 글꼴 + 노선색 네모 표식 */
