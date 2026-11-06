@@ -78,7 +78,11 @@
   --mt-r-sm: 10px;                     /* 탭 · 알림 (디자인 시스템 radius-sm) */
   --mt-r-md: 12px;                     /* 고르는 카드 · 노드 표 · 사진 창 (radius-md) */
   --mt-deep: #05060a;                  /* 누를 수 있는 것의 아래 두께 (카드) */
-  --mt-edge: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 카드 · 창 외곽선 (stroke 1.5px) */
+  --mt-edge: color-mix(in srgb, var(--mt-paper) 42%, var(--mt-ink)); /* 카드 · 창 외곽선 (stroke 1.5px) — 판 바탕 대비 3:1 (2026-11-06 일상 브루탈 시안 3, 이전 30% = 2.1:1) */
+  --mt-r-panel: 4px;                   /* 담는 판 (정보 패널 · 대기석 · 항로도 · 상점 설명) — 각지게 (2026-11-06 일상 브루탈 시안 3). 누를 것 · 표는 각자 둥글기 그대로 */
+  --mt-r-win: 6px;                     /* 창 (덮는 창 · 기물 전체 상세) */
+  --mt-r-win-in: calc(var(--mt-r-win) - 1.5px); --mt-r-panel-in: calc(var(--mt-r-panel) - 1.5px); --mt-r-md-in: calc(var(--mt-r-md) - 1.5px); /* 1.5px 윤곽 안쪽에 붙는 머리 · 칸의 둥글기 */
+  --mt-head: linear-gradient(100deg, var(--mt-paper) 0 42%, color-mix(in srgb, var(--mt-paper) 45%, var(--mt-a)) 74%, var(--mt-a)); /* 종이 머리 (알림 창 · 이번 전투 · 상인 상점 머리) */
   --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
   --mt-sh: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
   --mt-sh-p: var(--c-select);          /* 주 동작 그림자 = 선택색(복숭아): 모양은 일반 단추와 같고 그림자 색 하나만 다르다 — 다음 행동 = 강조색 (2026-11-06 피드백: 전투 시작 · 맵으로가 계산값까지 같았다) */
