@@ -1,4 +1,5 @@
 // 시너지 아이콘: 24×24 선 아이콘 (Lucide 스타일 — stroke 2, 둥근 끝). 색은 currentColor
+import { GICON_ON, GICONS } from './gicons';
 const P: Record<string, string> = {
   // 세력
   UNI: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
@@ -298,7 +299,7 @@ const L: Record<string, string> = {
   't.assassin': '<path d="M20 4l-1.2 5.2L10 18l-4-4 8.8-8.8z"/><path d="M5 13l6 6"/><path d="M7 17l-3 3"/>',
 };
 export function lineIcon(key: string, cls = 'li'): string {
-  const p = L[key];
+  const p = L[key] ?? (GICON_ON ? GICONS[key] : undefined); // 전역 증강은 증강 id 그대로 (ui/gicons.ts, 다 그려지면 켠다)
   return p ? `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>` : '';
 }
 /** 증강 상징: 이름 · 설명의 핵심어로 고른다 */

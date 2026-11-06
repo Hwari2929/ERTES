@@ -543,6 +543,11 @@
   background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 24px, transparent 24.5px), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 44px, transparent 44.5px),
     linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
     radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 머리: 원판 위 문장 */
+[data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 44px; --gdi: 30px;
+  background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 var(--gdi), transparent calc(var(--gdi) + .5px)), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 var(--gd), transparent calc(var(--gd) + .5px)),
+    linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
+    radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 아이콘이 있으면 원판 안 잉크 동전을 키운다 (뒷면 ∞ 자리와 같은 동전) */
+[data-ui-theme="metro"] .gc-sigil .gc-ic { width: 36px; height: 36px; transform: none; } /* 전역 증강 아이콘 = 종이색 선 (ui/gicons.ts) */
 [data-ui-theme="metro"] .gc-kind::before { content: counter(gc, decimal-leading-zero) ' · '; } /* 순번 */
 [data-ui-theme="metro"] .gcard[data-key]::before { content: none; } /* 단축키 숫자 = 머리표 순번 */
 [data-ui-theme="metro"] .gc-kind { position: absolute; left: 12px; top: 10px; color: var(--mt-paper); font: 600 var(--fs-2xs)/1.2 var(--f-mono); letter-spacing: .16em; }
@@ -560,6 +565,7 @@
 @media (max-width: 640px) {
   [data-ui-theme="metro"] .gcard { --gh: 64px; padding-bottom: 14px; }
   [data-ui-theme="metro"] .gc-sigil { flex-basis: 100%; width: auto; height: var(--gh); margin: 0; font-size: var(--fs-xl); }
+  [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 25px; --gdi: 17px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 22px; height: 22px; }
   [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
 }
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
@@ -619,3 +625,94 @@
 [data-ui-theme="metro"] .modal input[type="checkbox"]:checked { border-color: var(--mt-b); box-shadow: 2px 2px 0 var(--mt-b);
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.4 6.4 11.6 13 4.4'/%3E%3C/svg%3E") center / 13px 13px no-repeat, var(--mt-b); }
 [data-ui-theme="metro"] .modal input[type="checkbox"]:focus-visible { outline: 2px solid var(--mt-a); outline-offset: 3px; }
+/* ══ 도감 · 툴팁 · 튜토리얼 말풍선 (디자인 시스템 Tabs · MiniCard · DetailView · Tip · Dialogue) */
+/* 도감 머리 · 탭 = 서류철 탭 (번호 01~ 모노 · 고른 탭 = 종이 면), 고정 띠는 같은 바닥 */
+[data-ui-theme="metro"] .codex .cx-top h1 { font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] :is(.cx-tabs, .cx-tools) { background: var(--mt-floor); }
+[data-ui-theme="metro"] .cx-tabs { counter-reset: cxt; gap: 0 10px; border-bottom: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] .cx-tg { gap: 3px; }
+[data-ui-theme="metro"] .cx-tg2 { padding-left: 10px; border-left: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] .cx-tab { counter-increment: cxt; display: inline-flex; align-items: center; gap: 6px; margin-bottom: -1.5px; padding: 0 10px; border: 1.5px solid var(--mt-edge); border-bottom: 0; border-radius: var(--mt-r-sm) var(--mt-r-sm) 0 0; color: var(--c-text-2); }
+[data-ui-theme="metro"] .cx-tab::before { content: counter(cxt, decimal-leading-zero); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .04em; opacity: .6; }
+[data-ui-theme="metro"] .cx-tab:hover { color: var(--c-text); border-color: var(--mt-hover); }
+[data-ui-theme="metro"] .cx-tab.on { border-color: var(--mt-paper); background: var(--mt-paper); color: var(--mt-on); }
+/* 목록 머리: 검색 칸 = 잉크 칸 · 분절 단추 = 태그 (고른 것 = 선택색 윤곽 + 옅은 면) */
+[data-ui-theme="metro"] .cx2-q { border: 1.5px solid var(--mt-edge); border-radius: var(--r-sm); background: var(--mt-ink); }
+[data-ui-theme="metro"] .cx2-q:focus { border-color: var(--mt-a); }
+[data-ui-theme="metro"] .cx-seg-l { font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .12em; }
+[data-ui-theme="metro"] .cx-seg button { border-width: 1.5px; }
+[data-ui-theme="metro"] .cx-seg button.on { background: color-mix(in srgb, var(--c-select) 12%, transparent); }
+/* 고르는 칸 = 미니 카드 문법: 1.5px 윤곽 · 선명한 종이 그림자 (가리키면 떠서 커지고, 누르면 내려앉고, 고른 것 = 선택색 윤곽 · 그림자) */
+[data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-mc, .cx-lcard) { --cs: var(--mt-paper); --so: 3px; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: var(--so) var(--so) 0 var(--cs);
+  transition: translate .09s cubic-bezier(.2, .9, .2, 1), box-shadow .09s cubic-bezier(.2, .9, .2, 1), border-color .15s ease; }
+[data-ui-theme="metro"] .cx-card { --so: 4px; }
+[data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-mc, .cx-lcard):hover { translate: -2px -2px; border-color: var(--mt-hover); box-shadow: calc(var(--so) + 2px) calc(var(--so) + 2px) 0 var(--cs); }
+[data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-mc, .cx-lcard):active { translate: var(--so) var(--so); box-shadow: 0 0 0 var(--cs); }
+[data-ui-theme="metro"] :is(.cx-card, .cx-tile, .cx-lcard, .cx2-sch):is(.on, .peek) { --cs: var(--c-select); border-color: var(--c-select); box-shadow: var(--so) var(--so) 0 var(--cs); translate: none; }
+[data-ui-theme="metro"] .cx-card .cx-nm { font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
+[data-ui-theme="metro"] .cx-pic { border-bottom: 1.5px solid var(--mt-edge); }
+/* 상세 · 표 · 행: 판은 평평 (상세 = 정보 패널 문법 — 1.5px 윤곽 + 위 노선 띠), 표 머리 = 모노, 줄 = 아래 선만 */
+[data-ui-theme="metro"] .cx-ud-name { font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
+[data-ui-theme="metro"] .cx-ud-art { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); }
+[data-ui-theme="metro"] .cx-tbl thead th { font: 600 var(--fs-2xs)/1.4 var(--f-mono); letter-spacing: .1em; }
+[data-ui-theme="metro"] .cx-tbl :is(th, td) { border-bottom-color: color-mix(in srgb, var(--mt-edge) 55%, transparent); }
+[data-ui-theme="metro"] .cx-tbl thead th { border-bottom: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] :is(.cx2-note, .cx2-st) { border-color: var(--mt-edge); border-radius: var(--r-sm); }
+[data-ui-theme="metro"] .codex-row { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); }
+[data-ui-theme="metro"] .codex-row.rare { border-color: var(--c-divine); }
+[data-ui-theme="metro"] .codex :is(main > h2, .cx-h, .cx-d h3, .cx-d h4, .cx2-c > h3) { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .codex .cx-h .cx-hn { font-family: var(--f-mono); letter-spacing: .04em; }
+[data-ui-theme="metro"] .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3)::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); } /* 구획 제목 = 노선색 네모 표식 (정보 화면과 같다) */
+/* 툴팁 · 팝오버 = 디자인 시스템 Tip: 잉크 판 · 1.5px 윤곽 · 작은 둥글기, 번지는 그림자 · 글로우 없음 (같은 색 화면 위에서는 잉크 고리로 떼어 놓는다) */
+[data-ui-theme="metro"] :is(.kw-tip, .item-tip, .tl-pop, .stat-pop, .ask-pop) { border-width: 1.5px; border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); }
+[data-ui-theme="metro"] :is(.kw-tip, .tl-pop, .stat-pop) { border-color: var(--mt-edge); }
+[data-ui-theme="metro"] .tl-pop { border-top: 3px solid var(--nc); } /* 노드 종류색 머리 띠 */
+[data-ui-theme="metro"] .item-tip { border-left-width: 4px; }
+[data-ui-theme="metro"] :is(.tl-pop small, .item-tip small) { font-family: var(--f-mono); letter-spacing: .06em; }
+[data-ui-theme="metro"] .stat-pop.sheet { box-shadow: 0 0 0 1.5px var(--mt-ink); }
+/* 튜토리얼 말풍선 = 디자인 시스템 Dialogue: 이름표 = 탑승권 머리 (잉크 → 보라 띠 · 절취선 · 양옆 홈), 몸통 = 대사. 가리키는 고리 = 선택색 실선 (번지는 빛 대신 바깥 고리가 퍼지며 사라진다) */
+[data-ui-theme="metro"] .co-bub { gap: 10px; padding: 0 0 12px; overflow: hidden; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); box-shadow: 0 0 0 1.5px var(--mt-ink); }
+[data-ui-theme="metro"] .co-head { position: relative; padding: 10px 14px; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
+  background: linear-gradient(110deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--mt-a)) 76%, var(--mt-a)); }
+[data-ui-theme="metro"] .co-pt { border: 1.5px solid var(--mt-paper); }
+[data-ui-theme="metro"] .co-nm { color: var(--mt-paper); font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .co-n { color: color-mix(in srgb, var(--mt-paper) 72%, transparent); letter-spacing: .12em; }
+[data-ui-theme="metro"] :is(.co-tx, .co-foot) { padding-inline: 14px; }
+[data-ui-theme="metro"] .co-ring { border-radius: var(--mt-r-sm); box-shadow: 0 0 0 2px var(--mt-ink); outline: 2px solid var(--c-select); outline-offset: 2px; animation: mt-co-ring 1.6s cubic-bezier(.2, .6, .3, 1) infinite; }
+@keyframes mt-co-ring { 70%, 100% { outline-offset: 12px; outline-color: transparent; } }
+@media (prefers-reduced-motion: reduce) { [data-ui-theme="metro"] .co-ring { animation: none; } }
+/* ══ 런 결과 보고서 (ui/report.ts .aar): 머리 = 전투 결과 띠와 같은 탑승권 머리 (70° 잉크 → 보라, 패배 = 빨강 · 모서리 망점 · 원형 도장),
+   수치 칸 = 디자인 시스템 InfoPanel (모노 머리표 · 큰 숫자), 구획 = 정보 패널 (1.5px 윤곽 + 위 노선 띠), 막대 = 눈금 없는 각진 게이지 */
+[data-ui-theme="metro"] .aar-head { --rs-dot: var(--mt-b); --dw: 420px; --dh: 120px; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r);
+  background: linear-gradient(70deg, var(--mt-ink) 0 48%, color-mix(in srgb, var(--mt-ink) 60%, var(--mt-a)) 100%); }
+[data-ui-theme="metro"] .aar.lose .aar-head { --rs-dot: var(--mt-c); background: linear-gradient(70deg, var(--mt-ink) 0 48%, color-mix(in srgb, var(--mt-ink) 60%, var(--mt-d)) 100%); }
+[data-ui-theme="metro"] .aar-head::before { inset: 46px 0 auto auto; width: var(--dw); height: var(--dh); opacity: 1; pointer-events: none; background: var(--rs-dot);
+  -webkit-mask: var(--mt-dot-tr) right top / 100% 100% no-repeat; mask: var(--mt-dot-tr) right top / 100% 100% no-repeat; } /* 경고 빗금 대신 망점 하나: 머리표 줄 아래 우측 (도장 뒤) — 글자 위에 겹치지 않는다. 승리 = 민트 · 패배 = 복숭아 */
+[data-ui-theme="metro"] .aar-head > * { position: relative; }
+[data-ui-theme="metro"] .aar-kicker { border-bottom: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent); }
+[data-ui-theme="metro"] .aar-title h1 { color: var(--mt-paper); font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .aar-meta div { border-left: 1.5px solid color-mix(in srgb, var(--mt-paper) 26%, transparent); }
+[data-ui-theme="metro"] .aar-stamp { --st: var(--mt-b); width: 128px; height: 128px; padding: 0 10px; box-sizing: border-box; place-content: center; text-align: center; transform: none; rotate: -14deg;
+  border: 2.5px solid var(--st); border-radius: 50%; background: var(--mt-ink); color: var(--st); box-shadow: inset 0 0 0 4px var(--mt-ink), inset 0 0 0 6px color-mix(in srgb, var(--st) 75%, transparent); } /* 원형 도장 (디자인 시스템 Stamp) */
+[data-ui-theme="metro"] .aar.lose .aar-stamp { --st: var(--mt-d); rotate: 8deg; }
+[data-ui-theme="metro"] .aar-stamp b { font-size: var(--fs-xl); letter-spacing: .04em; }
+[data-ui-theme="metro"] .aar-stamp small { font-size: var(--fs-2xs); letter-spacing: .1em; line-height: 1.25; }
+@media (prefers-reduced-motion: no-preference) { [data-ui-theme="metro"] .aar-stamp { animation: mt-stamp-in .42s cubic-bezier(.3, 1.5, .5, 1) .35s both; } [data-ui-theme="metro"] .aar.lose .aar-stamp { animation: none; } }
+[data-ui-theme="metro"] :is(.aar-kpi, .aar-mvp) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); background: var(--mt-ink); }
+[data-ui-theme="metro"] .aar-mvp { border-top: 4px solid var(--ax); }
+[data-ui-theme="metro"] .aar-kpi.is-main { border-color: var(--mt-a); box-shadow: inset 0 4px 0 var(--mt-a); }
+[data-ui-theme="metro"] :is(.aar-kpi small, .aar-mvp-k, .aar-h3) { font-family: var(--f-mono); letter-spacing: .04em; }
+[data-ui-theme="metro"] .aar-kpi b { font-family: var(--f-display); font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+[data-ui-theme="metro"] .aar-sec { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md);
+  background-image: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%); background-size: 100% 4px; background-repeat: no-repeat; }
+[data-ui-theme="metro"] .aar-h { font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .aar-n { border: 1.5px solid var(--mt-b); color: var(--mt-b); font-family: var(--f-mono); letter-spacing: .04em; } /* 구획 번호 = 민트 칸 */
+[data-ui-theme="metro"] .aar-bar { height: 10px; border: 1px solid var(--mt-edge); border-radius: var(--r-sm); background: var(--mt-ink); }
+[data-ui-theme="metro"] .aar-bar i { border-radius: 0; }
+[data-ui-theme="metro"] .aar-note { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); }
+@media (max-width: 640px) { [data-ui-theme="metro"] .aar-head { --dw: 280px; --dh: 80px; } [data-ui-theme="metro"] .aar-stamp { width: 96px; height: 96px; } [data-ui-theme="metro"] .aar-stamp b { font-size: var(--fs-md); } }
+/* 창 안의 판: 전장 브리핑 카드 = 정보 패널 (1.5px 전장색 윤곽 · 위 전장색 띠) · 알림 행 표 = 잉크 칸 + 모노 값 */
+[data-ui-theme="metro"] .field-card { border: 1.5px solid color-mix(in srgb, var(--c) 55%, var(--mt-edge)); border-top: 4px solid var(--c); border-radius: var(--mt-r-md); background: var(--mt-ink); }
+[data-ui-theme="metro"] .fc-head b { font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .nt-rows { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); }
+[data-ui-theme="metro"] .nt-rows dd { font-family: var(--f-mono); }

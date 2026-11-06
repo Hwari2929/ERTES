@@ -296,6 +296,8 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .st-pane > h2:first-child { margin-top: 0; }
 .inv-strip { display: flex; flex-wrap: wrap; gap: 4px; }
 .quests, .globals, .log { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: var(--fs-base); }
+.globals li > .li { width: 1.1em; height: 1.1em; margin-right: 5px; vertical-align: -.2em; color: var(--c-text-2); } /* 전역 증강 아이콘 (등급색: 희귀 · 전설) */
+.globals li.gt-R > .li { color: var(--g-A); } .globals li.gt-L > .li { color: var(--g-L); }
 .quests li.done { text-decoration: line-through; color: var(--c-good); }
 .log li { color: var(--c-text-2); }
 .side-tabs .log { max-height: 60vh; overflow-y: auto; user-select: text; }
