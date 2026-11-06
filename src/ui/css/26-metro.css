@@ -584,6 +584,42 @@
   [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 25px; --gdi: 17px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 22px; height: 22px; }
   [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
 }
+/* ── 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복, app/modals.ts miniCard): 머리 = 잉크 → 등급색 120° 그라디언트 · 종류 머리표(모노) · 큰 아이콘 · 순번(오른쪽 아래) /
+   절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과 / 아래 = 등급 표식 (모양 + 이름 — 색만으로 나누지 않는다, 10번). 순번 = 단축키라 모서리 키캡은 숨긴다 */
+[data-ui-theme="metro"] .mn-row { counter-reset: mn; gap: 16px; }
+[data-ui-theme="metro"] .card.mn { --tc: var(--g-C); --mh: 96px; counter-increment: mn; position: relative; grid-template-rows: auto auto 1fr auto; align-content: stretch; gap: 6px; padding: 0 0 12px; overflow: visible; }
+[data-ui-theme="metro"] .card.mn.tG { --tc: var(--g-G); } [data-ui-theme="metro"] .card.mn.tA { --tc: var(--g-A); } [data-ui-theme="metro"] .card.mn.tL { --tc: var(--g-L); } [data-ui-theme="metro"] .card.mn.tU { --tc: var(--g-U); }
+[data-ui-theme="metro"] .card.mn.tS { --tc: var(--g-S); } [data-ui-theme="metro"] .card.mn.tT { --tc: var(--g-T); } [data-ui-theme="metro"] .card.mn.tB { --tc: var(--el-holy); } /* 포탑 = 포탑 장비색 · 축복 = 신성 */
+[data-ui-theme="metro"] .card.mn[data-key]::before { content: none; }
+[data-ui-theme="metro"] .mn-hd { position: relative; display: grid; place-items: center; height: var(--mh); border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
+  background: linear-gradient(120deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--tc)) 72%, var(--tc) 100%); }
+[data-ui-theme="metro"] .mn-hd::before { content: attr(data-k); position: absolute; left: 11px; top: 9px; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .mn-hd::after { content: counter(mn, decimal-leading-zero); position: absolute; right: 10px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-2xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .mn-hd .item { width: 52px; height: 52px; cursor: inherit; }
+[data-ui-theme="metro"] .mn-hd > .li { width: 38px; height: 38px; color: var(--mt-paper); }
+[data-ui-theme="metro"] .card.mn > b { position: static; padding: 6px 14px 0; font-size: var(--fs-lg); letter-spacing: .02em; }
+[data-ui-theme="metro"] .card.mn > b::before, [data-ui-theme="metro"] .card.mn > b::after { content: ''; position: absolute; top: calc(var(--mh) - 10px); width: 20px; height: 20px; border-radius: 50%; background: var(--panel); } /* 절취 홈 (카드 ::before 는 키캡 자리라 이름 글자에 단다) */
+[data-ui-theme="metro"] .card.mn > b::before { left: -11.5px; } [data-ui-theme="metro"] .card.mn > b::after { right: -11.5px; }
+[data-ui-theme="metro"] .card.mn > .mn-desc { padding-inline: 14px; }
+[data-ui-theme="metro"] .mn-ft { display: flex; align-items: center; margin: 2px 14px 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 60%, transparent); }
+[data-ui-theme="metro"] .card.mn .mn-rk { display: inline-flex; align-items: center; gap: 7px; color: var(--c-text); font: 400 var(--fs-sm)/1 var(--f-display); letter-spacing: .06em; }
+[data-ui-theme="metro"] .mn-rk i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--tc); } /* 재료 · 축복 = 원 */
+[data-ui-theme="metro"] .card.mn:is(.tG, .tA) .mn-rk i { border-radius: 0; rotate: 45deg; } /* 고급 · 희귀 = 마름모 */
+[data-ui-theme="metro"] .card.mn:is(.tL, .tU) .mn-rk i { width: 13px; height: 13px; border-radius: 0; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); } /* 전설 · 고유 = 별 */
+[data-ui-theme="metro"] .card.mn:is(.tT, .tS) .mn-rk i { border-radius: 0; } /* 포탑 · 합성 재료 = 네모 */
+@media (max-width: 640px) { [data-ui-theme="metro"] .card.mn { --mh: 64px; } [data-ui-theme="metro"] .mn-hd .item { width: 40px; height: 40px; } [data-ui-theme="metro"] .mn-hd > .li { width: 28px; height: 28px; } [data-ui-theme="metro"] .mn-hd::after { font-size: var(--fs-xl); } }
+/* ── 공명 등급 증강 = 스텁 줄 (디자인 시스템 Stub row): 아이콘 · 이름 · 효과 | 절취선 + 위아래 홈 | 오른쪽 스텁 = 순번(단축키) + 머리표. 고르면 스텁이 선택색, 전설 증강은 스텁이 전설 빨강 */
+[data-ui-theme="metro"] .aug-list:not(.sch-list) { counter-reset: ao; }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt) { --stc: color-mix(in srgb, var(--mt-a) 22%, var(--mt-ink)); --sti: var(--mt-paper); counter-increment: ao; position: relative; grid-template-columns: 48px minmax(0, 1fr) 62px; overflow: visible; padding-right: 0; }
+[data-ui-theme="metro"] .aug-opt.lg:not(.sch-opt) { --stc: var(--g-L); --sti: var(--mt-on); }
+[data-ui-theme="metro"] .aug-opt.on:not(.sch-opt) { --stc: var(--c-select); --sti: var(--c-select-ink); }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd { position: relative; align-self: stretch; display: grid; place-content: center; justify-items: center; gap: 5px; margin: -12px 0; padding: 0; border: 0; border-left: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 30%, transparent);
+  border-radius: 0 var(--mt-r-md) var(--mt-r-md) 0; background: var(--stc); color: transparent; font-size: 0; transition: background-color .2s; }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::before { content: counter(ao, decimal-leading-zero); color: var(--sti); font: 400 var(--fs-xl)/.85 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::after { content: 'AUG'; color: var(--sti); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; opacity: .8; }
+[data-ui-theme="metro"] .aug-opt.lg:not(.sch-opt) kbd::after { content: 'LEGEND'; }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before, [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { content: ''; position: absolute; right: calc(62px - 9px); width: 18px; height: 18px; border-radius: 50%; background: var(--panel); z-index: 1; } /* 스텁 경계 홈 (위 · 아래) */
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before { top: -10px; } [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { bottom: -10px; }
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
    누를 것(단추 · 고르는 카드 · 분대 줄 · 함선 관리)만 선명한 그림자, 담는 판은 평평 (35번). 항로도 그림은 그대로 둔다 */
 /* 구획 제목: 큰 제목 글꼴 + 노선색 네모 표식 */

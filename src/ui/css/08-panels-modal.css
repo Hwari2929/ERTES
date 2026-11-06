@@ -70,6 +70,7 @@
 .xp-gain li { display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); }
 .xp-gain b { color: var(--c-info); margin-left: auto; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.mn-hd { display: contents; } .mn-ft { display: none; } /* 고르는 미니 카드 (app/modals.ts miniCard): 머리 칸 · 아래 표식은 메트로만 — 기본은 지금 카드 배치 그대로 */
 .card { display: grid; gap: 6px; align-content: start; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px; cursor: pointer; min-height: 120px; }
 .card:hover { border-color: var(--c-select); transform: translateY(-2px); transition: transform .12s; }
 .card b { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-xl); }

@@ -7,10 +7,10 @@ import { DESPAIR_BY_ID, despairsOf } from '../data/despair';
 import { EVENT_BY_ID } from '../data/events';
 import { fieldElites, fieldOf } from '../data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from '../data/globals';
-import { combine, CONSUMABLES, isConsumable, isLegendConsumable, DUST, SHARD, itemInfo, TURRET_GEAR } from '../data/items';
+import { combine, CONSUMABLES, isConsumable, isLegendConsumable, DUST, SHARD, itemInfo, tierKey, TURRET_GEAR } from '../data/items';
 import { ENG_TUR, OCCULT_SYNTH, SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, type UnitDef } from '../data/units';
-import { GROUPS, UNIT_GROUP, augMark } from '../data/schools';
+import { GROUPS, UNIT_GROUP, augMark, isLegendAug } from '../data/schools';
 import { deployed, synergyCounts, totalMajors, unitEffects } from '../engine/build';
 import * as R from '../engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from '../data/scene';
@@ -26,7 +26,7 @@ import * as REPORT from '../ui/report';
 import { lineIcon, synIcon } from '../ui/synicons';
 import * as SHOP from '../ui/shop';
 import { FS_SVG, UI_FX, app, canFullscreen, esc, isFullscreen, pct1, pctTxt, root, themePicker, uiFx } from './state';
-import { NODE_ICON, augIcon, interestLines, itemIcon, majorIcon, recommendedMajors, sprite, statIc, synToken } from './common';
+import { NODE_ICON, TIER_NAME, augIcon, interestLines, itemIcon, majorIcon, recommendedMajors, sprite, statIc, synToken } from './common';
 import { despairNames, dpPlayed, matchupChips, matchupHtml, pvPlayed, setDpPlayed, setPvPlayed } from './title';
 import { CAN_HOVER, PSI_RANKS, detailToggle, ownedChip, pickCard, schoolOpt, sub, supplyHtml, teamCount } from './unitparts';
 import { CR, ic, musterModal, phaseBoss, rankLabel, rosterRow, supplyHint } from './map';
@@ -246,6 +246,12 @@ export function routeHold(run: RunState): boolean {
   return R.currentOptions(run).length > 1;
 }
 
+/** 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복): 머리(.mn-hd) = 종류 머리표(data-k) · 큰 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 / 아래 표식(.mn-ft).
+ *  메트로만 머리 칸 · 아래 표식을 그린다 — 갤럭시는 .mn-hd 가 display: contents, .mn-ft 숨김이라 지금 카드 배치 그대로 (css/08-panels-modal.css) */
+function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; title?: string }) {
+  return `<button class="card mn t${o.tier}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.title ? ` title="${esc(o.title)}"` : ''}><span class="mn-hd" data-k="${esc(o.k)}">${o.icon}</span><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span></span></button>`;
+}
+
 // ───────────────────────── 모달: 대기 중인 선택
 export function pendingModal(run: RunState): string {
   const p = run.pending[0];
@@ -320,7 +326,7 @@ export function pendingModal(run: RunState): string {
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
-          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button>`;
+          return `<button class="aug-opt${app.augPick === i ? ' on' : ''}${isLegendAug(a.id) ? ' lg' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         ${p.kind === 'school' && app.abilPop && /^(cantrip|psipass):/.test(app.abilPop) ? `<div class="ru-pop">${abilPopHtml(app.abilPop, d, pv.b, pv.c)}</div>` : ''}
         <div class="ru-foot">${opts.length
@@ -332,9 +338,9 @@ export function pendingModal(run: RunState): string {
     // 엔지니어 포탑 장비: 3개 중 1개 → 모든 포탑 공통. 머리 = 제목 + 고른 수 칩, 카드 = 아이콘 · 이름 · 효과 (+ 모든 주요 능력치 칩)
     const had = run.turretMods?.length || 0;
     body = `<div class="tp-head"><h1>감시 포탑 장비 — 엔지니어 ${SYN_BY_ID.ENG.tiers[p.tier - 1] ?? ''}명</h1>${kvChip('장비', `<b>${had}</b>/${ENG_TUR.picks}`, '고른 포탑 장비 (모든 포탑 공통)')}</div>
-      <div class="cards">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return `<button class="card tp-card" data-a="pick-turret" data-v="${i}" title="단축키 ${i + 1}">${itemIcon(id)}<b>${esc(g?.name || id)}</b><span>${statIc(esc(g?.desc || ''))}</span></button>`; }).join('')}</div>`;
+      <div class="cards mn-row">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return miniCard({ a: 'pick-turret', v: i, k: 'TURRET', tier: 'T', icon: itemIcon(id), name: esc(g?.name || id), desc: statIc(esc(g?.desc || '')), mark: '모든 포탑', cls: 'tp-card', title: `단축키 ${i + 1}` }); }).join('')}</div>`;
   } else if (p.t === 'itemPick') {
-    body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span></button>`; }).join('')}</div>`;
+    body = `<h1>${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '' }); }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     // 잠시 나감: 창을 접고 아래 화면(지도 · 파티 · 기물 상세)을 보다가 같은 자리 단추로 돌아온다 (고른 후보 · 새로고침 횟수 유지)
     if (app.recruitAway === p.options.join(',')) return `<button class="btn primary rc-back" data-a="rc-back">${p.syns ? '지정 소집' : '기물 영입'}으로 돌아가기</button>`;
@@ -376,7 +382,7 @@ export function pendingModal(run: RunState): string {
     return pilgrimScreen(run, p); // 성소 덮개 (상단 바 아래 전체, app/pilgrim.ts) — 창 틀을 쓰지 않는다
   } else if (p.t === 'blessing') {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
-      <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${ic(esc(d.desc))}</span></button>`; }).join('')}</div>`;
+      <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈' }); }).join('')}</div>`;
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p>${p.rows?.length ? `<dl class="nt-rows">${p.rows.map(([k, v]) => `<dt>${ic(esc(k))}</dt><dd>${ic(esc(v))}</dd>`).join('')}</dl>` : ''}<button class="btn primary" data-a="notice-ok">확인</button>`;
   }

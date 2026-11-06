@@ -80,6 +80,8 @@ export function xpBar(u: UnitState) {
   const need = CFG.xpToNext(u.rank);
   return `<div class="xp"><i style="width:${(u.xp / need) * 100}%"></i><b>${u.xp}/${need}</b></div>`;
 }
+/** 장비 · 물품 등급 이름 (tierKey 기준): 장비 팝업 머리 · 고르는 미니 카드 아래 표식 (app/modals.ts miniCard) */
+export const TIER_NAME: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', U: '고유', S: '합성 재료', K: '소모품', T: '포탑 장비' };
 export function itemIcon(id: string | null, attrs = '', note = '', count = 1) { // note: 툴팁 덧붙임 (갓 구운 빵의 남은 전투 등) · count: 보관함에 겹친 같은 소모품 수
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
@@ -301,7 +303,6 @@ export function itemTip(el: HTMLElement, key: string) {
   if (!id) return;
   const it = itemInfo(id);
   const tier = tierKey(id);
-  const TIER_NAME: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', U: '고유' };
   const tip = document.createElement('div');
   tip.className = `item-tip tip-${tier}`;
   tip.innerHTML = `<span class="tip-tier">${TIER_NAME[tier] || ''}</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>
