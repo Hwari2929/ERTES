@@ -105,7 +105,7 @@ export function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
       : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${tierKey(id)}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
     return `<div class="card sup-card open sup-${c.kind}${jpClass(c)}" data-sup="${i}">${jp}${body}<i class="sup-dt" aria-hidden="true"></i></div>`; // sup-dt = 메트로 우하단 망점 (갤럭시는 숨김)
   };
-  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`} · 마지막 장: ${app.run && R.solventOn(app.run) ? '분리 용제 또는 재구성 회로' : '재구성 회로 또는 공명도'}.</p>
+  return `<h1 class="mt-hd" data-k="SUPPLY" style="--hdc:var(--mt-b)">보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`} · 마지막 장: ${app.run && R.solventOn(app.run) ? '분리 용제 또는 재구성 회로' : '재구성 회로 또는 공명도'}.</p>
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>
     <div class="row-btns">${left ? `<button class="btn primary" data-a="supply-all">모두 뒤집기 (${left}장)</button>` : '<button class="btn primary" data-a="supply-done">계속</button>'}</div>`;
 }

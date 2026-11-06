@@ -174,7 +174,7 @@ export function newRunScreen() {
     ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title, place: fld.name })}
     <div class="nr-head">
       <div class="nr-title"><h2 class="nr-band-t nr-field">「${esc(title)}」 <small>${esc(fld.name)}</small></h2><h1>계약 기물 ${CFG.startUnits}명을 선택하세요</h1></div>
-      <div class="nr-side"><div class="nr-band-info">${fieldBandInfo(fld.id)}</div></div>
+      <div class="nr-side"><div class="nr-band-info">${fieldBandInfo(fld.id)}</div><button class="btn ghost nr-reroll" data-a="reroll-starters" title="고른 기물을 모두 해제하고 후보 ${app.pool.length}명을 새로 뽑습니다. 직전 후보와 겹치지 않게 뽑고, 우세 시너지 기물 보장은 그대로입니다 (단축키 R)" ${app.poolRerolls > 0 ? '' : 'disabled'}>새로고침 (${app.poolRerolls}회)</button></div>
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
@@ -189,7 +189,6 @@ export function newRunScreen() {
       <div class="nr-syn syn-list">${(() => { const cnt = teamCount(app.starters); const ids = SYNERGIES.map((x) => x.id).filter((id) => cnt(id) > 0).sort((x, y) => cnt(y) - cnt(x)); return ids.map((id) => synToken(id, cnt(id))).join(''); })()}</div>
       <button class="btn ghost" data-a="ct-back" title="차림표로 돌아가 의뢰 · 약관을 다시 고릅니다 (서명은 무릅니다)">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
-      <button class="btn ghost" data-a="reroll-starters" title="고른 기물을 모두 해제하고 후보 ${app.pool.length}명을 새로 뽑습니다. 직전 후보와 겹치지 않게 뽑고, 우세 시너지 기물 보장은 그대로입니다 (단축키 R)" ${app.poolRerolls > 0 ? '' : 'disabled'}>새로고침 (${app.poolRerolls}회)</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
     </div>
   </main>`;

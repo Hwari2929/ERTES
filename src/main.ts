@@ -170,6 +170,7 @@ export function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
+  document.documentElement.style.setProperty('--mt-no', `'${String(run?.map?.length ? Math.min(run.step + 1, run.map.length) : 0).padStart(2, '0')}'`); // 메트로 표 머리 정차 번호 (NO. 07 — 상단 바 칸 번호와 같다)
   if (app.goAfter && (!run || !goAfterOk(run))) app.goAfter = null; // 다른 칸 · 다른 런: 미뤄 둔 진입은 버린다
   else if (run && app.goAfter && !run.pending.length && app.screen === 'map') { const g = app.goAfter.t; app.goAfter = null; queueMicrotask(() => act('enter', g)); } // 미뤄 둔 창을 다 닫음: 고른 노드로
   if (app.popOff && !(run && placingSel(run) && app.popOff === popKey(run))) app.popOff = ''; // 놓기가 끝나거나 다른 것을 고르면 닫아 둔 팝업 기록을 지운다

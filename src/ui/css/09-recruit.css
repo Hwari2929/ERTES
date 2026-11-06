@@ -8,6 +8,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .nr-head > .nr-title { flex: 0 0 auto; min-width: 0; } /* 제목 줄은 줄지 않는다 (오른쪽 정보가 줄어든다) */
 .nr-side { min-width: 0; }
 .nr-side { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.nr-side > .nr-reroll { flex: none; } /* 후보 새로고침 = 머리 오른쪽 (다시 뽑기는 어느 고르기 화면이든 머리 오른쪽 끝, 2026-11-06) */
 .nr-field { color: var(--c-text); }
 .nr-head p { margin: 2px 0 0; }
 .nr-title { display: grid; gap: 4px; min-width: 0; }

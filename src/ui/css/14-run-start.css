@@ -95,6 +95,7 @@
 .pv-body h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); text-shadow: 0 0 22px rgb(242 169 59 / .5); }
 .pv-body > p { margin: 0; }
 .pv-kicker { font-size: var(--fs-sm); letter-spacing: .4em; color: var(--c-brand); }
+.pv-flap { display: none; } /* 메트로 행선 안내판 글자판 (26-metro.css) */
 .pv-row { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 6px; }
 .pv-row > .gslot { display: grid; }
 /* 특권 카드 = 전역 증강과 같은 카드 (2026-11-06 사용자 결정 — 같은 유형의 토큰 · 연출, app/modals.ts): 색 = 브랜드 호박 (특권은 등급이 없다).

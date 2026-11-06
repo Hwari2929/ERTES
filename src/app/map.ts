@@ -171,7 +171,7 @@ export function musterModal(run: RunState) {
     return s ? `<button class="ms-pick on" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" title="${esc(s.name)} 빼기"><span class="syn-dia"><i>${synIcon(s.id) || s.icon}</i></span><b>${esc(s.name)}</b></button>`
       : `<span class="ms-pick" title="빈 칸 — 위에서 시너지를 고르세요"><span class="muted">${i + 1}</span></span>`;
   }).join('');
-  return `<h1>지정 소집</h1>
+  return `<h1 class="mt-hd" data-k="MUSTER · TICKET" style="--hdc:var(--mt-b)">지정 소집</h1>
     <div class="ms-legend small muted"><span><i class="ms-syn ms-demo"><span class="ms-n">5</span></i>후보 수</span><span><i class="ms-syn ms-demo own" style="--c:var(--c-text)"></i>보유 중인 시너지</span></div>
     ${group('faction', '세력')}${group('trait', '특성')}
     <div class="row-btns ms-foot"><div class="ms-state"><div class="ms-picks" aria-label="고른 시너지 ${sel.length}/${CFG.musterPicks}">${picks}</div>

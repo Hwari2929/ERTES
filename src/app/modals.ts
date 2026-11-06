@@ -71,7 +71,7 @@ export function shopHead(run: RunState, stock: NonNullable<NonNullable<RunState[
   const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
   if (run.node?.synth) {
     const t = R.occultTier(run), disc = OCCULT_SYNTH.disc[t - 1] || 0;
-    return `<div class="screen-head"><h1>합성 공방</h1><div class="sh-row">
+    return `<div class="screen-head mt-hd" style="--hdc:var(--c-credit)"><h1 data-k="WORKSHOP · SYNTH">합성 공방</h1><div class="sh-row">
       ${t ? kvChip(SYN_BY_ID.OCCULT.name, `<b>${t}단계</b>`, '', 'syn') : ''}
       ${kvChip('상품', `<b>${OCCULT_SYNTH.base + t}</b>`, `기본 ${OCCULT_SYNTH.base} + 신비학자 단계`)}
       ${disc ? modChip('', `가격 −${pctTxt(disc)}`, `신비학자 ${t}단계 할인`, 'good') : ''}
@@ -79,7 +79,7 @@ export function shopHead(run: RunState, stock: NonNullable<NonNullable<RunState[
     </div></div>`;
   }
   const S = CFG.shop;
-  return `<div class="screen-head"><h1>암시장 상점</h1><div class="sh-row">
+  return `<div class="screen-head mt-hd" style="--hdc:var(--c-credit)"><h1 data-k="BLACK MARKET">암시장 상점</h1><div class="sh-row">
     ${run.phase >= S.gearFrom ? modChip(PART, '고급 · 희귀 1개 이상 확정', `${S.gearFrom}페이즈부터 고급 · 희귀 장비가 1개 이상 늘 진열됩니다`, 'good') : ''}
     <span class="ah-in cons" title="소모품 1개 입고 확률">${CONS}<small>소모품</small><b>${pctTxt(S.cons)}</b></span>
     <span class="ah-in emb" title="문장 1개 입고 확률 (출전 기물의 시너지 위주)">${PART}<small>문장</small><b>${pctTxt(S.emblem)}</b></span>
@@ -111,7 +111,7 @@ const INVEST_CARD: Record<string, { icon: string; gain: string }> = {
 export function newsScreen(run: RunState) {
   const offers = run.node?.news || [];
   return `<main class="wrap nd-news">
-    <div class="screen-head"><h1>은하 속보</h1><div class="sh-row">${kvChip('보유 명성', `<b>${run.fame}</b>`, '쌓아 둔 명성 — 아래 보상으로 바꾼다')}</div><p class="muted small">보스전을 앞두고 언론이 몰려왔습니다.</p></div>
+    <div class="screen-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="PRESS · BREAKING NEWS">은하 속보</h1><div class="sh-row">${kvChip('보유 명성', `<b>${run.fame}</b>`, '쌓아 둔 명성 — 아래 보상으로 바꾼다')}</div><p class="muted small">보스전을 앞두고 언론이 몰려왔습니다.</p></div>
     <div class="cards mn-row mn-buy">${offers.map((o, i) => {
       const d = R.NEWS_OFFERS[o.id], poor = !o.sold && run.fame < o.cost, g = NEWS_CARD[o.id];
       return miniCard({ a: 'buy-news', v: i, k: 'PRESS', tier: 'N', icon: lineIcon(g?.icon || 'n.news'), name: esc(d.name), desc: ic(esc(d.desc)), mark: g?.gain || '',
@@ -124,7 +124,7 @@ export function newsScreen(run: RunState) {
 export function investScreen(run: RunState) {
   const offers = run.node?.invest || [];
   return `<main class="wrap nd-invest">
-    <div class="screen-head"><h1>호이슌 투자 창구</h1><div class="sh-row">
+    <div class="screen-head mt-hd" style="--hdc:var(--c-credit)"><h1 data-k="HOISUN HOLDINGS · INVEST DESK">호이슌 투자 창구</h1><div class="sh-row">
       ${kvChip('보유', `${CR}<b>${run.credits}</b>`, '에너지 크레딧', 'cr')}
       ${kvChip('다음 전투 이자', `<b>+${R.interestInfo(run).interest}</b>`, interestLines(run).tip, 'cr')}
       ${kvChip('만기 정산', run.fund ? `${CR}<b>${run.fund}</b>` : '<b>—</b>', run.fund ? '다음 페이즈 시작에 돌려받는 크레딧 (호이슌 펀드)' : '맡긴 펀드 없음', run.fund ? 'cr' : 'zero')}
@@ -285,7 +285,7 @@ export function pendingModal(run: RunState): string {
   let body = '', mcls = '';
   if (p.t === 'global') {
     mcls = 'global';
-    body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
+    body = `<h1 class="mt-hd" data-k="GLOBAL · COUNCIL" style="--hdc:var(--mt-a)">${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
@@ -303,7 +303,7 @@ export function pendingModal(run: RunState): string {
       <div class="row-btns"><button class="btn primary" data-a="field-ok">출격 준비</button></div>`;
   } else if (p.t === 'privilege') {
     mcls = 'privilege';
-    body = `<div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
+    body = `<div class="pv-body"><span class="pv-flap" aria-hidden="true">${[...'PRIVILEGE'].map((c, i) => `<i style="--n:${i}">${c}</i>`).join('')}</span><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
       <div class="pv-row">${p.options.map((o, i) => { const desc = R.privilegeDesc(o); return `<span class="tslot gslot gt-P" style="--i:${i}"><button class="gcard pv-card gt-P" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${desc.length > 70 ? ` title="${esc(desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
         <span class="gc-kind">특권</span><b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
@@ -332,7 +332,7 @@ export function pendingModal(run: RunState): string {
       const rec = recommendedMajors(d);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
+        <div class="ru-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="RANK UP · STATS">${p.rank}등급 달성 보상 · 능력치</h1></div>
         ${`<p class="muted small">스페셜 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>확정할 때 ${Math.round(CFG.greatChance * 100)}% 확률로 <b>대성공</b>: 고른 능력치 상승량 2배 · (등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>`}
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
@@ -348,7 +348,7 @@ export function pendingModal(run: RunState): string {
       const opts = p.options || [];
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
+        <div class="ru-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="RANK UP · AUGMENT">${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
           <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, ${PSI_RANKS.join(' · ')}등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 ${CFG.augEvery}등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? matchupChips(run.field) : ''}
@@ -366,10 +366,10 @@ export function pendingModal(run: RunState): string {
   } else if (p.t === 'turretPick') {
     // 엔지니어 포탑 장비: 3개 중 1개 → 모든 포탑 공통. 머리 = 제목 + 고른 수 칩, 카드 = 아이콘 · 이름 · 효과 (+ 모든 주요 능력치 칩)
     const had = run.turretMods?.length || 0;
-    body = `<div class="tp-head"><h1>감시 포탑 장비 — 엔지니어 ${SYN_BY_ID.ENG.tiers[p.tier - 1] ?? ''}명</h1>${kvChip('장비', `<b>${had}</b>/${ENG_TUR.picks}`, '고른 포탑 장비 (모든 포탑 공통)')}</div>
+    body = `<div class="tp-head mt-hd" style="--hdc:var(--g-T)"><h1 data-k="TURRET · GEAR">감시 포탑 장비 — 엔지니어 ${SYN_BY_ID.ENG.tiers[p.tier - 1] ?? ''}명</h1>${kvChip('장비', `<b>${had}</b>/${ENG_TUR.picks}`, '고른 포탑 장비 (모든 포탑 공통)')}</div>
       <div class="cards mn-row">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return miniCard({ a: 'pick-turret', v: i, k: 'TURRET', tier: 'T', icon: itemIcon(id), name: esc(g?.name || id), desc: statIc(esc(g?.desc || '')), mark: '모든 포탑', cls: 'tp-card' }); }).join('')}</div>`;
   } else if (p.t === 'itemPick') {
-    body = `<h1>${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', tc: itemTone(id) }); }).join('')}</div>`;
+    body = `<h1 class="mt-hd" data-k="ITEM · PICK" style="--hdc:var(--mt-b)">${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', tc: itemTone(id) }); }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     // 잠시 나감: 창을 접고 아래 화면(지도 · 파티 · 기물 상세)을 보다가 같은 자리 단추로 돌아온다 (고른 후보 · 새로고침 횟수 유지)
     if (app.recruitAway === p.options.join(',')) return `<button class="btn primary rc-back" data-a="rc-back">${p.syns ? '지정 소집' : '기물 영입'}으로 돌아가기</button>`;
@@ -377,7 +377,7 @@ export function pendingModal(run: RunState): string {
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head"><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div class="rc-mu" title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div><span class="rc-tools"><button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
+    body = `<div class="rc-head mt-hd hd-row" style="--hdc:var(--mt-b)"><h1 data-k="${p.syns ? 'MUSTER' : 'RECRUIT'} · BOARDING">${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div class="rc-mu" title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div><span class="rc-tools">${p.syns ? '' : `<button class="btn" data-a="reroll-recruit" ${rr > 0 ? '' : 'disabled'}>새로고침 (${rr}회)</button>`}<button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
       <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
@@ -386,7 +386,6 @@ export function pendingModal(run: RunState): string {
         const before = teamCount(owned), after = teamCount([...owned, pick]);
         return `<div class="rc-syn"><span class="small"><b>${esc(d.name)}</b> 영입 시</span><div class="nr-syn syn-list">${[...d.factions, ...d.traits].map((id) => synToken(id, after(id), tierOf(id as SynergyId, after(id)) > tierOf(id as SynergyId, before(id)) ? ' up' : '')).join('')}</div></div>`;
       })() : ''}<span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
-        ${p.syns ? '' : `<button class="btn" data-a="reroll-recruit" ${rr > 0 ? '' : 'disabled'}>새로고침 (${rr}회)</button>`}
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {
@@ -394,7 +393,7 @@ export function pendingModal(run: RunState): string {
       news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
       invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `제례 ${CFG.rite.choices} · 나눔 1 중 1장 무료 · 권능 ${run.power}으로 성유물 · 개종`,
     };
-    body = `<h1>분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
+    body = `<h1 class="mt-hd" data-k="JUNCTION" style="--hdc:var(--mt-b)">분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
   } else if (p.t === 'muster') {
     body = musterModal(run);
   } else if (p.t === 'fork') {
@@ -402,7 +401,7 @@ export function pendingModal(run: RunState): string {
     const xp = Math.round(CFG.xpPool(run.phase) * CFG.forkRestXp);
     const ot = R.occultTier(run), off = ot ? OCCULT_SYNTH.disc[ot - 1] : 0;
     const rows = (r: [string, string][]) => `<dl class="fk-rows">${r.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
-    body = `<h1>전환</h1><p class="muted small">페이즈의 갈림길입니다. 숨을 고를지, 한 걸음 앞서 나갈지 고르세요.</p><div class="cards">
+    body = `<h1 class="mt-hd" data-k="TRANSFER" style="--hdc:var(--c-streak)">전환</h1><p class="muted small">페이즈의 갈림길입니다. 숨을 고를지, 한 걸음 앞서 나갈지 고르세요.</p><div class="cards">
       <button class="card br-card n-supply" data-a="pick-fork" data-v="rest"><span class="br-ic">${NODE_ICON.supply}</span><b>휴식</b>${rows([['체력', `+${CFG.forkRestHp + Math.floor((run.maxHp - run.hp) * CFG.forkRestLost)} <small>기본 ${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%</small>`], [ic('공명도'), `풀 ${xp} 분배`]])}</button>
       <button class="card br-card n-adversity" data-a="pick-fork" data-v="challenge"><span class="br-ic">${NODE_ICON.challenge}</span><b>도전</b>${rows([['전투', `다음 페이즈(${run.phase + 1}) 역경 수준`], ['승리', ic(`대량의 공명도 + 남은 역경 · 사건 · 보급 · 보스 보상 → ${run.phase >= CFG.victoryPhase ? '곧바로 보스' : '바로 다음 페이즈'}`)], ['패배', '역경 패배와 같은 체력 피해']])}</button>
       ${ot ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic">${synIcon('OCCULT') || '✶'}</span><b>합성</b>${rows([['상품', `${OCCULT_SYNTH.base + ot}개`], ...(off ? [['가격', `−${Math.round(off * 100)}%`] as [string, string]] : [])])}<span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다.</span></button>` : ''}
@@ -413,7 +412,7 @@ export function pendingModal(run: RunState): string {
   } else if (p.t === 'pilgrim') {
     return pilgrimScreen(run, p); // 성소 덮개 (상단 바 아래 전체, app/pilgrim.ts) — 창 틀을 쓰지 않는다
   } else if (p.t === 'blessing') {
-    body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
+    body = `<h1 class="mt-hd" data-k="SANCTUARY · BLESSING" style="--hdc:var(--c-divine)">순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈' }); }).join('')}</div>`;
   } else if (p.t === 'notice') {
     mcls = 'notice';

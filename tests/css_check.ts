@@ -31,6 +31,8 @@ export const LEGACY: Record<string, string> = {
 };
 /** JS(src/app/* · battleview.ts 등)가 style="--x:…" / setProperty('--x') 로 주입하는 변수 */
 export const JS_VARS = ['--cols', // app/map.ts routeGraph: 분기 항로 지도 칸 수
+  '--hdc', // 표 머리 노드색 (마크업 style — app/modals.ts · ui/shop.ts · app/pilgrim.ts · app/map.ts · app/unitparts.ts .mt-hd)
+  '--mt-no', // 표 머리 정차 번호 (main.ts render 가 문서 루트에 넣는다)
   '--bx', // ui/themefx.ts gateIn: 바코드 게이트 막대 왼쪽 위치 (별 하늘을 막대 건너 잇는다)
   '--tex', '--wall', // ui/bar.ts 카운터 나무결 · ui/barprep.ts 제조대 뒷벽 그림 (artURL)
   '--sx', '--sw', // ui/bar.ts focusOrder 스포트라이트 자리 · 폭 (placeShot 주문 사진 자리 · 폭도)

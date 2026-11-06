@@ -116,7 +116,7 @@ export function pilgrimScreen(run: RunState, p: Pil): string {
   const dv = R.divines(run);
   const took = p.took !== undefined;
   const bless = run.blessing ? BLESSING_BY_ID[run.blessing]?.name : '';
-  const head = `<header class="pil-head"><h1>${lineIcon('n.pilgrim', 'li')}순례</h1>
+  const head = `<header class="pil-head mt-hd hd-row" style="--hdc:var(--c-divine)"><h1 data-k="PILGRIM · SANCTUARY">${lineIcon('n.pilgrim', 'li')}순례</h1>
     <div class="pil-chips">${kvChip('권능', `<b>${run.power}</b>`, '디바인이 전투에서 모은 신성력으로 얻는다 · 성유물 · 개종 · 축성에 쓴다', 'pil-pw')}${kvChip('고르기', `<b>${took ? 1 : 0}</b>/1`, '제단의 카드 중 1장을 무료로 받는다')}${kvChip('축복', bless ? `<b>${esc(bless)}</b>` : '없음', '이번 페이즈 동안 모든 아군에게 (제례를 받으면 그 신앙의 축복)')}</div>
     <button class="btn primary pil-done" data-a="pilgrim-done">순례 마치기</button></header>`;
   // 제단 뒤 벽: 아치 · 촛대 선반 · 작은 봉헌 촛불 (정적, 명암 없음)
