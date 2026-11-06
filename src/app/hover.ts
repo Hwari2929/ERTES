@@ -47,6 +47,42 @@ export function tlPop(el: HTMLElement) {
   tip.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
   tip.style.top = `${r.bottom + 8 + tip.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - tip.offsetHeight - 8) : r.bottom + 8}px`;
 }
+// ───────────────────────── 미니 카드 상세 팝오버 (디자인 시스템 MiniCard — 카드에는 이름 · 설명 한 줄만, 전체 = 팝오버. 메트로만: 갤럭시 카드는 설명 전문을 그대로 싣는다).
+//  마우스 = 가리키면 (떠나면 닫힘), 터치 = 첫 탭에 띄우고 카드를 고름 표시 · 같은 카드를 다시 탭 = 실행 (UI.md 11). 바깥 탭 · 스크롤 · Esc = 닫힘
+let mnArmed = '';
+const mnKey = (c: HTMLElement) => `${c.dataset.a}|${c.dataset.v}`;
+export const mnOn = () => document.documentElement.dataset.uiTheme === 'metro';
+export function mnTip(card: HTMLElement, pin = false) {
+  const more = card.querySelector<HTMLElement>('.mn-more');
+  if (!more) return;
+  let tip = document.querySelector<HTMLElement>('.mn-tip');
+  if (tip?.dataset.k === mnKey(card) && tip.classList.contains('pin') === pin) return;
+  if (!tip) { tip = document.createElement('div'); tip.className = 'mn-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+  tip.dataset.k = mnKey(card);
+  tip.classList.toggle('pin', pin);
+  tip.style.setProperty('--tc', getComputedStyle(card).getPropertyValue('--tc'));
+  tip.innerHTML = more.innerHTML;
+  const r = card.getBoundingClientRect(), w = Math.min(280, innerWidth - 16);
+  tip.style.width = `${w}px`;
+  tip.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
+  const below = r.bottom + 10;
+  tip.style.top = `${below + tip.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - tip.offsetHeight - 10) : below}px`;
+}
+export function mnHide() {
+  document.querySelector('.mn-tip')?.remove();
+  document.querySelectorAll('.card.mn.mn-armed').forEach((c) => c.classList.remove('on', 'mn-armed'));
+  mnArmed = '';
+}
+/** 터치로 누른 미니 카드: 첫 탭 = 상세 팝오버 + 고름 표시 (true — 실행하지 않음), 같은 카드 다시 탭 = 닫고 실행 (false) */
+export function mnTap(card: HTMLElement): boolean {
+  const k = mnKey(card);
+  if (mnArmed === k) { mnHide(); return false; }
+  mnHide();
+  mnArmed = k;
+  card.classList.add('on', 'mn-armed');
+  mnTip(card, true);
+  return true;
+}
 // ───────────────────────── 키워드 설명 팝업 (PC 호버 · 모바일 탭)
 export let kwPinned: HTMLElement | null = null;
 export function pinKw(el: HTMLElement) { showKw(el); kwPinned = el; }

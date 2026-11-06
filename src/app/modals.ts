@@ -92,8 +92,8 @@ export function shopScreen(run: RunState) {
     ${shopHead(run, stock)}
     <div class="cards mn-row mn-buy">${stock.map((s, i) => {
       const it = itemInfo(s.item), t = isLegendConsumable(s.item) ? 'L' : tierKey(s.item), poor = !s.sold && run.credits < s.price;
-      return miniCard({ a: 'buy', v: i, k: 'ITEM', tier: t, icon: itemIcon(s.item), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', title: it.desc, tc: itemTone(s.item),
-        price: s.sold ? '판매됨' : s.price ? `${CR}<b>${s.price}</b>` : '<b>무료</b>', off: s.sold || poor, why: poor ? '크레딧 부족' : '', cls: s.sold ? 'sold' : poor ? 'poor' : '' });
+      return miniCard({ a: 'buy', v: i, k: 'ITEM', tier: t, icon: itemIcon(s.item), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', tc: itemTone(s.item),
+        price: s.sold ? '판매됨' : s.price ? `${CR}<b>${s.price}</b>` : '<b>무료</b>', off: s.sold || poor, cls: s.sold ? 'sold' : poor ? 'poor' : '' });
     }).join('')}</div>
     ${inventoryPanel(run)}
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">떠나기</button></div>
@@ -114,8 +114,8 @@ export function newsScreen(run: RunState) {
     <div class="screen-head"><h1>은하 속보</h1><div class="sh-row">${kvChip('보유 명성', `<b>${run.fame}</b>`, '쌓아 둔 명성 — 아래 보상으로 바꾼다')}</div><p class="muted small">보스전을 앞두고 언론이 몰려왔습니다.</p></div>
     <div class="cards mn-row mn-buy">${offers.map((o, i) => {
       const d = R.NEWS_OFFERS[o.id], poor = !o.sold && run.fame < o.cost, g = NEWS_CARD[o.id];
-      return miniCard({ a: 'buy-news', v: i, k: 'PRESS', tier: 'N', icon: lineIcon(g?.icon || 'n.news'), name: esc(d.name), desc: ic(esc(d.desc)), mark: g?.gain || '', title: d.desc,
-        price: o.sold ? '교환함' : `<small>명성</small><b>${o.cost}</b>`, off: o.sold || poor, why: poor ? '명성 부족' : '', cls: o.sold ? 'sold' : poor ? 'poor' : '' });
+      return miniCard({ a: 'buy-news', v: i, k: 'PRESS', tier: 'N', icon: lineIcon(g?.icon || 'n.news'), name: esc(d.name), desc: ic(esc(d.desc)), mark: g?.gain || '',
+        price: o.sold ? '교환함' : `<small>명성</small><b>${o.cost}</b>`, off: o.sold || poor, cls: o.sold ? 'sold' : poor ? 'poor' : '' });
     }).join('')}</div>
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">보스전으로</button></div>
   </main>`;
@@ -131,8 +131,8 @@ export function investScreen(run: RunState) {
     </div><p class="muted small">호이슌 홀딩스가 특별 상품을 내밀었습니다.</p></div>
     <div class="cards mn-row mn-buy">${offers.map((o, i) => {
       const d = R.INVEST_OFFERS[o.id], poor = !o.sold && run.credits < o.cost, g = INVEST_CARD[o.id], txt = d.desc(run, o);
-      return miniCard({ a: 'buy-invest', v: i, k: 'INVEST', tier: 'I', icon: lineIcon(g?.icon || 'n.invest'), name: esc(d.name), desc: ic(esc(txt)), mark: g?.gain || '', title: txt,
-        price: o.sold ? '계약함' : `${CR}<b>${o.cost}</b>`, off: o.sold || poor, why: poor ? '크레딧 부족' : '', cls: o.sold ? 'sold' : poor ? 'poor' : '' });
+      return miniCard({ a: 'buy-invest', v: i, k: 'INVEST', tier: 'I', icon: lineIcon(g?.icon || 'n.invest'), name: esc(d.name), desc: ic(esc(txt)), mark: g?.gain || '',
+        price: o.sold ? '계약함' : `${CR}<b>${o.cost}</b>`, off: o.sold || poor, cls: o.sold ? 'sold' : poor ? 'poor' : '' });
     }).join('')}</div>
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">떠나기</button></div>
   </main>`;
@@ -256,13 +256,19 @@ export function routeHold(run: RunState): boolean {
   return R.currentOptions(run).length > 1;
 }
 
-/** 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복 · 노드 화면 상품, 칸 .tslot = 메트로 그림자 · 실제 구멍 홈 (갤럭시는 display: contents), title = 긴 설명 전문 — 메트로는 카드 높이가 고정이라 설명 줄 수를 자른다): 머리(.mn-hd) = 종류 머리표(data-k) · 큰 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 / 아래 표식(.mn-ft).
- *  메트로만 머리 칸 · 아래 표식을 그린다 — 갤럭시는 .mn-hd 가 display: contents, .mn-ft 숨김이라 지금 카드 배치 그대로 (css/08-panels-modal.css).
- *  tc = 등급색 대신 쓰는 카드 색 (문장 = 시너지 색 등, itemTone). 사는 카드(price, 투자 · 속보 · 합성 공방): 카드 전체 = 사기 단추, 값 = 아래 표식 줄 오른쪽 (갤럭시도 보인다),
- *  off = 못 누름 (산 것 · 값 부족 — 그림자 없음, why = 이유), 산 것은 값 자리에 계약함 같은 말. 창 밖이라 순번(= 숫자키) 은 그리지 않는다 */
-function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; title?: string; tc?: string; price?: string; off?: boolean; why?: string }) {
-  const tip = o.why || (o.title && o.title.length > 70 ? o.title : '');
-  return `<span class="tslot mslot${o.off ? ' off' : ''}"><button class="card mn t${o.tier}${o.price ? ' buy' : ''}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.off ? ' disabled' : ''}${o.tc ? ` style="--tc:${o.tc}"` : ''}${tip ? ` title="${esc(tip)}"` : ''}><span class="mn-hd" data-k="${esc(o.k)}">${o.icon}</span><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span>${o.price ? `<span class="mn-pr">${o.price}</span>` : ''}</span></button></span>`;
+/** 고르는 미니 카드 = 디자인 시스템 MiniCard (ADMIT ONE components/MiniCard, 2026-11-06 사용자 결정: 원본 구조 그대로) — 전리품 · 포탑 장비 · 축복 · 노드 화면 상품.
+ *  작은 표 카드: 그림 칸(.mn-hd: 분류 머리표 + 점 · 큰 아이콘 · 번호) / 절취선 + 양옆 홈 / 아래 칸(.mn-lo: 이름 · 설명 한 줄 — 말줄임 / 아래 줄 = 등급 표식 | 값).
+ *  전체 내용 = 상세 팝오버 (.mn-more → app/hover.ts mnTip — 마우스 = 가리키면, 터치 = 첫 탭 · 같은 카드 다시 탭 = 실행). 칸 .tslot = 메트로 그림자.
+ *  갤럭시는 그림 칸 · 아래 칸이 display: contents 라 지금 카드 배치 그대로, 설명 전문도 카드에 (css/08-panels-modal.css).
+ *  tc = 등급색 대신 쓰는 카드 색 (문장 = 시너지 색 등, itemTone). 사는 카드(price, 투자 · 속보 · 합성 공방): 카드 전체 = 사기 단추, 값 = 아래 줄 오른쪽,
+ *  off = 못 삼 (산 것 · 값 부족 — 그림자 없음, 눌러도 엔진이 이유를 알린다 · 상세 팝오버는 그대로 보인다), 산 것은 값 자리에 계약함 같은 말.
+ *  번호(.mn-n) = 숫자키 — 창 밖(사는 카드)에는 숫자키가 없어 그리지 않는다 */
+function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; tc?: string; price?: string; off?: boolean; more?: string }) {
+  const more = o.more ?? `<b>${o.name}</b><small>${esc(o.mark)}${o.price ? ` · ${o.price}` : ''}</small><span>${o.desc}</span>`;
+  return `<span class="tslot mslot${o.off ? ' off' : ''}"><button class="card mn t${o.tier}${o.price ? ' buy' : ''}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.off ? ' aria-disabled="true"' : ''}${o.tc ? ` style="--tc:${o.tc}"` : ''}>`
+    + `<span class="mn-hd"><span class="mn-tl"><span>${esc(o.k)}</span><i aria-hidden="true"></i></span>${o.icon}${o.price ? '' : '<span class="mn-n" aria-hidden="true"></span>'}</span>`
+    + `<span class="mn-lo"><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span>${o.price ? `<span class="mn-pr">${o.price}</span>` : ''}</span></span>`
+    + `<span class="mn-more" hidden>${more}</span></button></span>`;
 }
 
 // ───────────────────────── 모달: 대기 중인 선택
@@ -352,9 +358,9 @@ export function pendingModal(run: RunState): string {
     // 엔지니어 포탑 장비: 3개 중 1개 → 모든 포탑 공통. 머리 = 제목 + 고른 수 칩, 카드 = 아이콘 · 이름 · 효과 (+ 모든 주요 능력치 칩)
     const had = run.turretMods?.length || 0;
     body = `<div class="tp-head"><h1>감시 포탑 장비 — 엔지니어 ${SYN_BY_ID.ENG.tiers[p.tier - 1] ?? ''}명</h1>${kvChip('장비', `<b>${had}</b>/${ENG_TUR.picks}`, '고른 포탑 장비 (모든 포탑 공통)')}</div>
-      <div class="cards mn-row">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return miniCard({ a: 'pick-turret', v: i, k: 'TURRET', tier: 'T', icon: itemIcon(id), name: esc(g?.name || id), desc: statIc(esc(g?.desc || '')), mark: '모든 포탑', cls: 'tp-card', title: g?.desc || '' }); }).join('')}</div>`;
+      <div class="cards mn-row">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return miniCard({ a: 'pick-turret', v: i, k: 'TURRET', tier: 'T', icon: itemIcon(id), name: esc(g?.name || id), desc: statIc(esc(g?.desc || '')), mark: '모든 포탑', cls: 'tp-card' }); }).join('')}</div>`;
   } else if (p.t === 'itemPick') {
-    body = `<h1>${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', title: it.desc, tc: itemTone(id) }); }).join('')}</div>`;
+    body = `<h1>${esc(p.title)}</h1><div class="cards mn-row">${p.options.map((id, i) => { const it = itemInfo(id), t = tierKey(id); return miniCard({ a: 'pick-item', v: i, k: 'ITEM', tier: t, icon: itemIcon(id), name: esc(it.name), desc: statIc(esc(it.desc)), mark: TIER_NAME[t] || '', tc: itemTone(id) }); }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     // 잠시 나감: 창을 접고 아래 화면(지도 · 파티 · 기물 상세)을 보다가 같은 자리 단추로 돌아온다 (고른 후보 · 새로고침 횟수 유지)
     if (app.recruitAway === p.options.join(',')) return `<button class="btn primary rc-back" data-a="rc-back">${p.syns ? '지정 소집' : '기물 영입'}으로 돌아가기</button>`;
@@ -399,7 +405,7 @@ export function pendingModal(run: RunState): string {
     return pilgrimScreen(run, p); // 성소 덮개 (상단 바 아래 전체, app/pilgrim.ts) — 창 틀을 쓰지 않는다
   } else if (p.t === 'blessing') {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
-      <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈', title: d.desc }); }).join('')}</div>`;
+      <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈' }); }).join('')}</div>`;
   } else if (p.t === 'notice') {
     mcls = 'notice';
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p>${p.rows?.length ? `<dl class="nt-rows">${p.rows.map(([k, v]) => `<dt>${ic(esc(k))}</dt><dd>${ic(esc(v))}</dd>`).join('')}</dl>` : ''}<button class="btn primary" data-a="notice-ok">확인</button>`;

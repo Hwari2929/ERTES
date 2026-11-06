@@ -23,6 +23,10 @@
 .kw:focus-visible { outline: 1px solid var(--c-select); outline-offset: 1px; border-radius: 2px; }
 .kw-tip { position: fixed; z-index: var(--z-kw); display: grid; gap: 4px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 22px color-mix(in srgb, var(--c-black) 55%, transparent); font-size: var(--fs-base); line-height: 1.5; pointer-events: none; border-color: var(--line); }
 .kw-tip b { display: inline-flex; align-items: center; gap: 4px; color: var(--c-text); }
+/* 미니 카드 상세 팝오버 (app/hover.ts mnTip — 메트로: 카드에는 이름 · 설명 한 줄만). 마우스로 띄운 것은 누름을 막지 않고, 터치로 고정한 것은 아래 카드에 누름이 새지 않게 받는다 */
+.mn-tip { position: fixed; z-index: var(--z-kw); display: grid; gap: 4px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 22px color-mix(in srgb, var(--c-black) 55%, transparent); font-size: var(--fs-base); line-height: 1.5; pointer-events: none; }
+.mn-tip.pin { pointer-events: auto; }
+.mn-tip b { color: var(--c-text); } .mn-tip .li { width: 14px; height: 14px; }
 .kw-tip b .li { width: 14px; height: 14px; }
 .ap-mech { color: var(--c-text-2); font-size: var(--fs-sm) !important; margin: -2px 0 8px !important; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .tln { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }

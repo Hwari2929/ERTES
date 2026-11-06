@@ -71,7 +71,7 @@
 .xp-gain b { color: var(--c-info); margin-left: auto; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 .tslot { display: contents; } /* 고르는 티켓 카드 칸 (app/modals.ts: 전역 증강 · 미니 카드 · 공명 증강 줄): 메트로만 그림자 · 실제 구멍 홈을 맡는다 */
-.mn-hd { display: contents; } .mn-ft { display: none; } /* 고르는 미니 카드 (app/modals.ts miniCard): 머리 칸 · 아래 표식은 메트로만 — 기본은 지금 카드 배치 그대로 */
+.mn-hd, .mn-lo { display: contents; } .mn-ft, .mn-tl, .mn-n { display: none; } /* 고르는 미니 카드 (app/modals.ts miniCard = 디자인 시스템 MiniCard): 그림 칸 · 아래 칸 · 아래 표식은 메트로만 — 기본은 지금 카드 배치 그대로 (설명 전문도 카드에) */
 /* 사는 미니 카드 (합성 공방 · 속보 · 투자): 아래 줄에 값만 (받는 것 표식은 메트로만), 못 사면 값 = 위험색 · 산 것 = 흐리게 */
 .card.mn.buy { grid-template-rows: auto auto 1fr auto; align-content: stretch; } /* 값 줄은 카드 바닥에 (설명 길이와 상관없이 같은 높이) */
 .card.mn.buy .mn-ft { display: flex; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--line-soft); }
@@ -82,7 +82,7 @@
 .card.mn .mn-pr small { color: var(--c-text-2); font: 700 var(--fs-xs)/1 var(--f-body); }
 .card.mn.poor .mn-pr { color: var(--c-bad); }
 .card.mn.sold { opacity: .45; } .card.mn.sold .mn-pr { color: var(--c-text-2); font: 700 var(--fs-sm)/1 var(--f-body); }
-.card.mn:disabled { cursor: default; } .card.mn:disabled:hover { border-color: var(--line); transform: none; }
+.card.mn[aria-disabled="true"] { cursor: default; } .card.mn[aria-disabled="true"]:hover { border-color: var(--line); transform: none; }
 .card.mn.buy.tS > b { color: var(--g-S); } .card.mn.buy.tC > b { color: var(--g-C); } .card.mn.buy.tG > b { color: var(--g-G); } .card.mn.buy.tA > b { color: var(--g-A); } .card.mn.buy.tL > b { color: var(--g-L); } .card.mn.buy.tT > b { color: var(--g-T); } /* 합성 공방 상품 이름 = 등급색 (메트로는 머리 칸 색) */
 .card { display: grid; gap: 6px; align-content: start; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px; cursor: pointer; min-height: 120px; }
 .card:hover { border-color: var(--c-select); transform: translateY(-2px); transition: transform .12s; }

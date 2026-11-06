@@ -75,7 +75,7 @@ import { fieldBrief, foeModal, newRunScreen, releaseModal, titleScreen } from '.
 import { CAN_HOVER, relicTok } from './app/unitparts';
 import { pilgrimAct } from './app/pilgrim';
 import { CR, ic, mapScreen, nodeHint, phaseBoss } from './app/map';
-import { devicePop, itemBrief, placeAt, placingSel, popKey, prepScreen, setTacShownPrev, setTouchPtr, tgTip, toolMark } from './app/prep';
+import { devicePop, itemBrief, placeAt, placingSel, popKey, prepScreen, setTacShownPrev, setTouchPtr, tgTip, toolMark, touchPtr } from './app/prep';
 import { detailHeadBind, foeItemTip, umCompactBind, unitModal } from './app/abilities';
 import { animateResult, applySpeed, battleScreen, craneOn, crateGroup, updateMeter } from './app/battle';
 import { advSync, goAfterOk, injectFx, investScreen, kvChip, menuModal, newsScreen, overScreen, pendingModal, recoModal, routeHold, setInjHold, shopScreen, useModal } from './app/modals';
@@ -87,7 +87,7 @@ import { codexScreen, cxScroll, setCxScroll } from './app/codex';
 import { listTutSave, setTutEpi, tutAway, tutEpi, tutFinish, tutSync } from './app/tutorial';
 import { TURRET_NO_GEAR, boardPlaceTap, cancelDrag, drag, initDrag, suppressClick } from './app/drag';
 import { HOTKEYS, autoFightOk, firstOn, keyScope, tlOver, uxAfterRender, uxPrefs } from './app/hotkeys';
-import { closeUmPop, hideKw, kwPinned, pinKw, placeSyn, restoredAt, setRestoredAt, showKw, showSyn, synFocus, synHl, tlPop } from './app/hover';
+import { closeUmPop, hideKw, kwPinned, pinKw, placeSyn, restoredAt, setRestoredAt, showKw, showSyn, synFocus, synHl, tlPop, mnHide, mnOn, mnTap, mnTip } from './app/hover';
 
 /** '전체 화면 유지'가 켜져 있으면 페이지를 연 뒤 첫 터치 · 클릭에서 다시 켠다 (한 번만) */
 if (typeof window !== 'undefined' && loadPrefs().fullscreen && canFullscreen()) {
@@ -757,6 +757,13 @@ root.addEventListener('click', (e) => {
 });
 document.addEventListener('pointerdown', (e) => { if (!(e.target as HTMLElement).closest('.tl-pop')) document.querySelector('.tl-pop')?.remove(); }, true);
 addEventListener('scroll', () => document.querySelector('.tl-pop')?.remove(), { passive: true, capture: true });
+document.addEventListener('mouseover', (e) => { // 미니 카드 상세 팝오버 (마우스): 가리키면 띄우고 떠나면 닫는다 (터치로 고정한 것은 그대로)
+  if (!CAN_HOVER || !mnOn() || document.querySelector('.mn-tip.pin')) return;
+  const c = (e.target as HTMLElement).closest<HTMLElement>('.card.mn');
+  if (c) mnTip(c); else if (document.querySelector('.mn-tip')) mnHide();
+});
+document.addEventListener('pointerdown', (e) => { if (document.querySelector('.mn-tip') && !(e.target as HTMLElement).closest('.mn-tip, .card.mn')) mnHide(); }, true);
+addEventListener('scroll', () => { if (document.querySelector('.mn-tip')) mnHide(); }, { passive: true, capture: true });
 document.addEventListener('mouseover', (e) => {
   if (!CAN_HOVER || kwPinned) return;
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-kw]');
@@ -790,6 +797,7 @@ document.addEventListener('keydown', (e) => {
   if ((e.target as HTMLElement).closest('input, textarea, select')) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   const sv = document.querySelector('.stand-view');
+  if (k === 'Escape' && document.querySelector('.mn-tip.pin')) { mnHide(); return; } // 터치로 띄운 미니 카드 상세만 닫는다
   if (k === 'Escape') {
     if (sv) sv.remove();
     else if (app.ask) act('ask', 'no');
@@ -853,6 +861,7 @@ root.addEventListener('click', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
   if (el.classList.contains('modal-bg') && (ev.target as HTMLElement).closest('.modal')) return; // 창 안쪽을 눌러도 닫지 않음
+  if (el.classList.contains('mn')) { if (touchPtr && mnOn() && mnTap(el)) return; mnHide(); } // 미니 카드: 터치 첫 탭 = 상세 팝오버 (같은 카드 다시 탭 = 실행), 마우스 = 바로
   if (el.dataset.a === 'item-info') { // 소모품을 고른 채로 장착 장비를 누르면 그 장비(또는 기물)에 사용, 아니면 장비 설명 말풍선
     if (app.sel?.k === 'item' && app.run && isConsumable(app.run.inventory[app.sel.idx])) act('use-eq', el.dataset.v || ''); else itemTip(el, el.dataset.v || '');
     return;

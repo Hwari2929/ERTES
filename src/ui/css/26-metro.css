@@ -595,47 +595,73 @@
   [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 25px; --gdi: 17px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 22px; height: 22px; }
   [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
 }
-/* ── 고르는 미니 카드 (디자인 시스템 MiniCard — 전리품 · 포탑 장비 · 축복, app/modals.ts miniCard): 머리 = 잉크 → 등급색 120° 그라디언트 · 종류 머리표(모노) · 큰 아이콘 · 순번(오른쪽 아래) /
-   절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과 / 아래 = 등급 표식 (모양 + 이름 — 색만으로 나누지 않는다, 10번). 순번 = 단축키라 모서리 키캡은 숨긴다 */
-[data-ui-theme="metro"] .mn-row { counter-reset: mn; gap: 16px; }
-[data-ui-theme="metro"] .card.mn { --tc: var(--g-C); --mh: 96px; counter-increment: mn; position: relative; grid-template-rows: auto auto 1fr auto; align-content: stretch; gap: 6px; padding: 0 0 12px; overflow: visible; }
+/* ── 고르는 미니 카드 = 디자인 시스템 MiniCard (ADMIT ONE components/MiniCard — 2026-11-06 사용자 결정: 토큰 재활용이 아니라 원본 구조 그대로, app/modals.ts miniCard).
+   목록 · 인벤토리용 작은 표 카드 (칸 150 ~ 176px): 그림 칸(5:4 · 잉크 → 카드 색 120° · 분류 머리표 + 점 · 큰 아이콘 · 번호 = 숫자키) / 절취선 + 양옆 홈 /
+   아래 칸(이름 · 설명 한 줄 = 말줄임 / 아래 줄 = 등급 표식(모양 + 이름 — 색만으로 나누지 않는다, 10번) | 값). 전체 내용 = 상세 팝오버 (.mn-tip — app/hover.ts mnTip).
+   홈 = 두 칸이 각자 모서리를 뚫는다 (그림 칸 아래 · 아래 칸 위 — 높이와 상관없이 경계에 맞는다) + 구멍 가장자리 고리 (윤곽색 --mnb 를 따라 가리킴 · 고름에 맞춰 바뀐다).
+   그림 칸 잉크는 테마와 무관하게 어두운 값 (원본 규칙). 그림자 = 칸 .tslot (가리킴 6px · 누름 0 · 고름 = 선택색 + 별 스티커 — 원본 is-selected) */
+[data-ui-theme="metro"] .mn-row { counter-reset: mn; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 176px)); justify-content: center; gap: 22px 18px; }
+[data-ui-theme="metro"] .card.mn { --tc: var(--g-C); --n: 7px; --mnb: var(--mt-edge); counter-increment: mn; position: relative; display: block; width: 100%; min-width: 0; min-height: 0; padding: 0; overflow: visible;
+  border: 0; border-radius: 0; background: none; color: var(--c-text); text-align: left; }
+[data-ui-theme="metro"] .card.mn:hover { transform: none; border-color: transparent; }
+[data-ui-theme="metro"] .card.mn:is(:hover, :focus-visible):not([aria-disabled="true"]) { --mnb: var(--mt-hover); }
+[data-ui-theme="metro"] .card.mn.on { --mnb: var(--c-select); }
 [data-ui-theme="metro"] .card.mn.tG { --tc: var(--g-G); } [data-ui-theme="metro"] .card.mn.tA { --tc: var(--g-A); } [data-ui-theme="metro"] .card.mn.tL { --tc: var(--g-L); } [data-ui-theme="metro"] .card.mn.tU { --tc: var(--g-U); }
 [data-ui-theme="metro"] .card.mn.tS { --tc: var(--g-S); } [data-ui-theme="metro"] .card.mn.tT { --tc: var(--g-T); } [data-ui-theme="metro"] .card.mn.tB { --tc: var(--el-holy); } /* 포탑 = 포탑 장비색 · 축복 = 신성 */
 [data-ui-theme="metro"] .card.mn[data-key]::before { content: none; }
-[data-ui-theme="metro"] .mn-hd { position: relative; display: grid; place-items: center; height: var(--mh); border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
-  background: linear-gradient(120deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--tc)) 72%, var(--tc) 100%); }
-[data-ui-theme="metro"] .mn-hd::before { content: attr(data-k); position: absolute; left: 11px; top: 9px; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
-[data-ui-theme="metro"] .mn-hd::after { content: counter(mn, decimal-leading-zero); position: absolute; right: 10px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-2xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
-[data-ui-theme="metro"] .mn-hd .item { width: 52px; height: 52px; cursor: inherit; }
-[data-ui-theme="metro"] .mn-hd > .li { width: 38px; height: 38px; color: var(--mt-paper); }
-[data-ui-theme="metro"] .card.mn { --ny: calc(var(--mh) - .75px); --nb: var(--panel); }
-[data-ui-theme="metro"] .card.mn > b { position: static; padding: 6px 14px 0; font-size: var(--fs-lg); letter-spacing: .02em; } /* 절취 홈 고리 = 이름 글자에 (카드 ::before 는 키캡 자리) */
-[data-ui-theme="metro"] .card.mn > .mn-desc { padding-inline: 14px; }
-[data-ui-theme="metro"] .mn-ft { display: flex; align-items: center; margin: 2px 14px 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 60%, transparent); }
-[data-ui-theme="metro"] .card.mn .mn-rk { display: inline-flex; align-items: center; gap: 7px; color: var(--c-text); font: 400 var(--fs-sm)/1 var(--f-display); letter-spacing: .06em; }
+[data-ui-theme="metro"] :is(.mn-hd, .mn-lo) { position: relative; display: block; border: 1.5px solid var(--mnb); transition: border-color .15s; }
+[data-ui-theme="metro"] :is(.mn-hd, .mn-lo)::after { content: ''; position: absolute; inset: -1.5px; z-index: 1; pointer-events: none; background-repeat: no-repeat; } /* 홈 가장자리 고리 */
+[data-ui-theme="metro"] .mn-hd { display: grid; place-items: center; aspect-ratio: 5 / 4; overflow: hidden; border-bottom: 0; border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
+  background: linear-gradient(120deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--tc)) 72%, var(--tc) 100%);
+  -webkit-mask: radial-gradient(circle at 0 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle at 0 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat; }
+[data-ui-theme="metro"] .mn-hd::after { background-image: radial-gradient(circle at 0 100%, transparent calc(var(--n) - .5px), var(--mnb) var(--n) calc(var(--n) + 1.5px), transparent calc(var(--n) + 2px)), radial-gradient(circle at 100% 100%, transparent calc(var(--n) - .5px), var(--mnb) var(--n) calc(var(--n) + 1.5px), transparent calc(var(--n) + 2px)); }
+[data-ui-theme="metro"] .mn-tl { position: absolute; top: 8px; left: 9px; right: 9px; display: flex; justify-content: space-between; align-items: center; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .mn-tl i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+[data-ui-theme="metro"] .mn-n { display: block; position: absolute; right: 8px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-3xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .mn-n::before { content: counter(mn, decimal-leading-zero); }
+[data-ui-theme="metro"] .mn-hd .item { width: 48px; height: 48px; cursor: inherit; }
+[data-ui-theme="metro"] .card.mn .mn-hd > .li { width: 34%; height: auto; aspect-ratio: 1; color: var(--mt-b); stroke-width: 1.5px; } /* 선 아이콘 = 원본 엠블럼처럼 가는 민트 선 */
+[data-ui-theme="metro"] .mn-lo { padding: 10px 11px 11px; border-top: 0; border-radius: 0 0 var(--mt-r-md) var(--mt-r-md); background: var(--panel);
+  -webkit-mask: radial-gradient(circle at 0 0, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 0, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle at 0 0, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 0, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat; }
+[data-ui-theme="metro"] .mn-lo::after { background-image: radial-gradient(circle at 0 0, transparent calc(var(--n) - .5px), var(--mnb) var(--n) calc(var(--n) + 1.5px), transparent calc(var(--n) + 2px)), radial-gradient(circle at 100% 0, transparent calc(var(--n) - .5px), var(--mnb) var(--n) calc(var(--n) + 1.5px), transparent calc(var(--n) + 2px)); }
+[data-ui-theme="metro"] .mn-lo::before { content: ''; position: absolute; top: 0; left: var(--n); right: var(--n); border-top: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 24%, transparent); } /* 절취선 */
+[data-ui-theme="metro"] .card.mn .mn-lo > b { display: block; overflow: hidden; color: var(--c-text); font: 400 var(--fs-lg)/1.2 var(--f-display); letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
+[data-ui-theme="metro"] .card.mn .mn-desc { display: block; overflow: hidden; color: var(--c-text-2); font: 400 var(--fs-sm)/1.45 var(--f-body); text-overflow: ellipsis; white-space: nowrap; }
+[data-ui-theme="metro"] .card.mn .mn-desc .li { width: 13px; height: 13px; }
+[data-ui-theme="metro"] .mn-ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+[data-ui-theme="metro"] .card.mn .mn-rk { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--c-text); font: 400 var(--fs-sm)/1 var(--f-display); letter-spacing: .06em; white-space: nowrap; }
 [data-ui-theme="metro"] .mn-rk i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--tc); } /* 재료 · 축복 = 원 */
 [data-ui-theme="metro"] .card.mn:is(.tG, .tA) .mn-rk i { border-radius: 0; rotate: 45deg; } /* 고급 · 희귀 = 마름모 */
 [data-ui-theme="metro"] .card.mn:is(.tL, .tU) .mn-rk i { width: 13px; height: 13px; border-radius: 0; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); } /* 전설 · 고유 = 별 */
 [data-ui-theme="metro"] .card.mn:is(.tT, .tS) .mn-rk i { border-radius: 0; } /* 포탑 · 합성 재료 = 네모 */
 [data-ui-theme="metro"] .card.mn:is(.tM, .tK) .mn-rk i { width: 11px; height: 10px; border-radius: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); } /* 개조부품(문장 · 신비 부품) · 소모품 = 육각 (색 = 카드 색 --tc, itemTone) */
-/* 사는 미니 카드 (합성 공방 · 속보 · 투자 — app/modals.ts miniCard price): 카드 전체 = 사기 단추, 아래 표식 줄 = 받는 것 | 값 (화폐 아이콘 + 큰 숫자).
-   못 사면 칸 그림자 없음 + 값 = 위험색 (가리키면 이유), 산 것 = 흐리게 + 값 자리에 계약함 · 교환함 · 판매됨. 창 밖이라 숫자키가 없어 순번은 그리지 않는다.
-   투자 = 크레딧색 · 속보 = 보라 (노드 머리표 색), 받는 것은 등급이 아니라 표식 모양 없이 말만 */
+[data-ui-theme="metro"] .card.mn.on::after { content: ''; position: absolute; top: -7px; left: -7px; z-index: var(--z-card-fx); width: 26px; height: 26px; background: var(--c-select); rotate: 8deg; pointer-events: none;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); } /* 고름 = 별 스티커 (원본 is-selected) */
+/* 사는 미니 카드 (합성 공방 · 속보 · 투자 — miniCard price): 카드 전체 = 사기 단추, 아래 줄 = 받는 것 | 값 (화폐 아이콘 + 큰 숫자). 번호 없음 (창 밖이라 숫자키가 없다).
+   못 사면 칸 그림자 없음 + 값 = 위험색, 산 것 = 잠김(그림 칸 빗금 — 원본 is-locked) + 값 자리에 계약함 · 교환함 · 판매됨. 투자 = 크레딧색 · 속보 = 보라 (노드 머리표 색) */
+[data-ui-theme="metro"] .mn-row.mn-buy { justify-content: start; }
+[data-ui-theme="metro"] .card.mn.buy .mn-ft { justify-content: space-between; padding-top: 0; border-top: 0; } [data-ui-theme="metro"] .card.mn.sold { opacity: 1; } /* 갤럭시 규칙 (값 줄 위 선 · 오른쪽 정렬 · 흐림) 을 덮는다 — 원본: 표식 | 값, 잠김 = 빗금 */
 [data-ui-theme="metro"] .card.mn.tI { --tc: var(--c-credit); } [data-ui-theme="metro"] .card.mn.tN { --tc: var(--mt-a); }
-[data-ui-theme="metro"] .card.mn.buy .mn-hd::after { content: none; }
 [data-ui-theme="metro"] .card.mn:is(.tI, .tN) .mn-rk i { display: none; }
-[data-ui-theme="metro"] .card.mn.buy .mn-ft { justify-content: space-between; gap: 8px; }
-[data-ui-theme="metro"] .card.mn.buy .mn-rk { min-width: 0; font: 700 var(--fs-xs)/1.2 var(--f-body); letter-spacing: .02em; }
-[data-ui-theme="metro"] .mn-pr { flex: none; display: inline-flex; align-items: center; gap: 4px; color: var(--c-credit); font: 400 var(--fs-xl)/1 var(--f-display); font-variant-numeric: tabular-nums; }
-[data-ui-theme="metro"] .mn-pr b { font-weight: 400; } [data-ui-theme="metro"] .mn-pr .li { width: 16px; height: 16px; }
+[data-ui-theme="metro"] .card.mn.buy .mn-rk { overflow: hidden; font: 700 var(--fs-xs)/1.2 var(--f-body); letter-spacing: .02em; text-overflow: ellipsis; }
+[data-ui-theme="metro"] .mn-pr { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--c-credit); font: 400 var(--fs-lg)/1 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .mn-pr b { font-weight: 400; } [data-ui-theme="metro"] .mn-pr .li { width: 15px; height: 15px; }
 [data-ui-theme="metro"] .mn-pr small { color: var(--c-text-2); font: 700 var(--fs-xs)/1 var(--f-body); letter-spacing: .02em; }
 [data-ui-theme="metro"] .card.mn.tN .mn-pr { color: var(--mt-a); }
 [data-ui-theme="metro"] .card.mn.poor .mn-pr { color: var(--c-bad); }
-[data-ui-theme="metro"] .card.mn.sold { opacity: .5; }
+[data-ui-theme="metro"] .card.mn.sold .mn-hd { background: repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--mt-edge) 80%, transparent) 7px 8.5px), var(--mt-ink); color: var(--c-text-2); }
+[data-ui-theme="metro"] .card.mn.sold .mn-hd .item { opacity: .5; }
+[data-ui-theme="metro"] .card.mn.sold :is(.mn-lo > b, .mn-desc) { color: var(--c-text-2); }
 [data-ui-theme="metro"] .card.mn.sold .mn-pr { color: var(--c-text-2); font: 700 var(--fs-sm)/1 var(--f-body); letter-spacing: .02em; }
-[data-ui-theme="metro"] .tslot.off { --cs: transparent; } /* 못 누름 = 그림자 없음 (35번 — 누를 수 없는 것은 평평하게) */
-[data-ui-theme="metro"] .card.mn:disabled { cursor: default; }
-@media (max-width: 640px), (max-height: 560px) { [data-ui-theme="metro"] .card.mn { --mh: 64px; } [data-ui-theme="metro"] .mn-hd .item { width: 40px; height: 40px; } [data-ui-theme="metro"] .mn-hd > .li { width: 28px; height: 28px; } [data-ui-theme="metro"] .mn-hd::after { font-size: var(--fs-xl); } }
+[data-ui-theme="metro"] .tslot.off { --cs: transparent; } /* 못 삼 = 그림자 없음 (35번 — 누를 수 없는 것은 평평하게) */
+[data-ui-theme="metro"] .card.mn[aria-disabled="true"] { cursor: default; }
+@media (max-height: 560px) { [data-ui-theme="metro"] .mn-hd { aspect-ratio: 2 / 1; } [data-ui-theme="metro"] .mn-hd .item { width: 36px; height: 36px; } [data-ui-theme="metro"] .card.mn .mn-hd > .li { width: 26%; } } /* 낮은 가로 화면: 그림 칸을 낮게 */
+/* 상세 팝오버 (app/hover.ts mnTip): 잉크 판 · 1.5px 윤곽 · 위 카드 색 띠 — 이름 · 등급 | 값 · 설명 전문 */
+[data-ui-theme="metro"] .mn-tip { border: 1.5px solid var(--mt-edge); border-top: 3px solid var(--tc, var(--mt-edge)); border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); }
+[data-ui-theme="metro"] .mn-tip > small { color: var(--c-text-2); font: 700 var(--fs-xs)/1.3 var(--f-body); letter-spacing: .02em; }
+[data-ui-theme="metro"] .mn-tip > b { font: 400 var(--fs-lg)/1.2 var(--f-display); letter-spacing: .02em; }
 /* ── 공명 등급 증강 = 스텁 줄 (디자인 시스템 Stub row): 아이콘 · 이름 · 효과 | 절취선 + 위아래 홈 | 오른쪽 스텁 = 순번(단축키) + 머리표. 고르면 스텁이 선택색, 전설 증강은 스텁이 전설 빨강 */
 [data-ui-theme="metro"] .aug-list:not(.sch-list) { counter-reset: ao; }
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) { --stc: color-mix(in srgb, var(--mt-a) 22%, var(--mt-ink)); --sti: var(--mt-paper); counter-increment: ao; position: relative; grid-template-columns: 48px minmax(0, 1fr) 62px; overflow: visible; padding-right: 0; }
@@ -815,15 +841,15 @@
    카드를 마스크로 뚫고 (구멍 반지름 9px, 중심 = 카드 바깥 테두리 위 · 절취선 높이 --ny), 구멍 가장자리에 카드 테두리와 같은 1.5px 고리 — 고리 색은 카드 테두리색을 물려받아 가리킴 · 고름도 따라가고, 카드 밖 반쪽은 마스크가 자른다.
    마스크는 카드 밖에 그리는 것을 모두 자르므로: 그림자 = 카드를 감싼 칸이 그린다 (.tslot = drop-shadow 라 구멍 모양 · 구멍 안 그림자까지 그대로 따른다, 절망 .dp-slot · 탑승권 .pslot = 구멍 뚫린 그림자 판, 특권 = 줄 drop-shadow),
    키보드 포커스 테두리 = 카드 안쪽, 등급 공개 빛 = 카드 안쪽 (ui/revealfx.ts masked). 알림 · 의뢰 성공 창 · 튜토리얼 이름표는 머리 높이가 글자에 따라 달라 가짜 홈 (바탕색 원 + 고리) 그대로 */
-[data-ui-theme="metro"] :is(.gcard, .card.mn, .dp-card) > b { border-color: inherit; }
-[data-ui-theme="metro"] :is(.gcard, .card.mn, .dp-card) {
+[data-ui-theme="metro"] :is(.gcard, .dp-card) > b { border-color: inherit; }
+[data-ui-theme="metro"] :is(.gcard, .dp-card) {
   -webkit-mask: radial-gradient(circle at 0 calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) left / 51% 100% no-repeat, radial-gradient(circle at 100% calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) right / 51% 100% no-repeat;
   mask: radial-gradient(circle at 0 calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) left / 51% 100% no-repeat, radial-gradient(circle at 100% calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) right / 51% 100% no-repeat; }
-[data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::before, [data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::after {
+[data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::before, [data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::after {
   content: ''; position: absolute; top: calc(var(--ny) - 10.5px); bottom: auto; z-index: 1; box-sizing: border-box; width: 21px; height: 21px; min-width: 0; padding: 0;
   border: 1.5px solid; border-color: inherit; border-radius: 50%; background: none; box-shadow: none; pointer-events: none; }
 [data-ui-theme="metro"] .gslot > .gcard > b::before, [data-ui-theme="metro"] .gslot > .gcard > b::after { z-index: var(--z-card-fx); } /* 전역 증강: 뒷면(.cback) 위 — 스캔 전에도 홈 둘레 고리가 보인다 */
-[data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::before { left: -12px; right: auto; } [data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::after { right: -12px; left: auto; }
+[data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::before { left: -12px; right: auto; } [data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::after { right: -12px; left: auto; }
 /* 칸(.tslot) = 그림자: drop-shadow (거리 --so: 기본 4 · 가리킴 6 · 누름 0 · 고름 6 · 색 --cs) — 카드 자신의 상자 그림자는 마스크에 잘리므로 끈다 */
 [data-ui-theme="metro"] .tslot { --so: 4px; --cs: var(--mt-sh); display: grid; filter: drop-shadow(var(--so) var(--so) 0 var(--cs)); transition: --so .09s cubic-bezier(.2, .9, .2, 1); }
 [data-ui-theme="metro"] .tslot > :is(.gcard, .card, .aug-opt) { box-shadow: none; }
@@ -850,16 +876,12 @@
 /* ── 티켓형 고르기 카드 크기 고정 (2026-11-06 사용자 결정: 표마다 높이 · 너비가 들쭉날쭉하지 않게 — 넓고 높은 화면만, 터치 화면은 자르지 않고 최소 높이 · 줄마다 같은 높이). 넘치는 설명은 줄 수를 자르고 전문은 카드에 가리키면 (title) — 절망 증강 중 긴 것은 카드용 짧은 문구 (data/despair.ts brief) */
 @media (min-width: 1024px) and (min-height: 561px) { /* 넓고 높은 화면만 (폰 가로 844×390 에서 두 줄로 밀려 3번째 카드 · 새로고침에 닿지 못했다). 카드는 한 줄로 흐르고 각 칸은 최대 너비 안에서 줄어든다 → 1024px 에서도 한 줄 */
   [data-ui-theme="metro"] .gc-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 284px); justify-content: center; }
-  [data-ui-theme="metro"] .mn-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 248px); justify-content: center; }
-  [data-ui-theme="metro"] .mn-row.mn-buy { display: flex; flex-wrap: wrap; justify-content: flex-start; } [data-ui-theme="metro"] .mn-buy > .tslot { flex: 1 1 200px; max-width: 248px; } /* 사는 카드: 왼쪽부터, 많으면 (속보 6장) 칸을 200px 까지 줄여 한 줄 · 그래도 넘치면 줄바꿈 */
   [data-ui-theme="metro"] .dp-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 320px); justify-content: center; }
   [data-ui-theme="metro"] .pv-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 264px); justify-content: center; }
 }
 @media (min-width: 1024px) and (min-height: 561px) and (hover: hover) { /* 마우스: 높이 고정 + 설명 줄 자르기, 전문 = 카드에 가리키면 (title). 자르는 상자는 늘이지 않는다 (늘면 말줄임 뒤 6번째 줄이 비친다) */
   [data-ui-theme="metro"] .gcard { height: 306px; min-height: 0; }
   [data-ui-theme="metro"] .gc-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
-  [data-ui-theme="metro"] .card.mn { height: 304px; min-height: 0; }
-  [data-ui-theme="metro"] .card.mn > .mn-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; align-self: start; }
   [data-ui-theme="metro"] .dp-card { height: 316px; }
   [data-ui-theme="metro"] .dp-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
   [data-ui-theme="metro"] .dp-quip { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
@@ -867,7 +889,7 @@
   [data-ui-theme="metro"] .pv-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; align-self: start; }
 }
 @media (min-width: 1024px) and (min-height: 561px) and (hover: none) { /* 터치(태블릿): 가리킬 수 없어 title 을 못 본다 → 자르지 않고 최소 높이만. 한 줄의 카드는 격자가 가장 긴 카드에 맞춰 같은 높이로 늘린다 */
-  [data-ui-theme="metro"] .gcard { min-height: 306px; } [data-ui-theme="metro"] .card.mn { min-height: 304px; }
+  [data-ui-theme="metro"] .gcard { min-height: 306px; }
   [data-ui-theme="metro"] .dp-card { min-height: 316px; } [data-ui-theme="metro"] .pv-card { min-height: 280px; }
 }
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
