@@ -82,6 +82,11 @@
   --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
   --mt-sh: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
   --mt-sh-p: var(--c-select);          /* 주 동작 그림자 = 선택색(복숭아): 모양은 일반 단추와 같고 그림자 색 하나만 다르다 — 다음 행동 = 강조색 (2026-11-06 피드백: 전투 시작 · 맵으로가 계산값까지 같았다) */
+  /* 별 하늘 (2026-11-06 피드백 '별이 부족하다'): 크기 · 색이 다른 별 네 층 — 바둑판처럼 보이지 않게 타일 크기를 서로 소수로 둔다. 잉크 면(급행 차창 · 게이트 막대 · 잉크 패널)에 깐다 */
+  --mt-sky: radial-gradient(circle at 18% 22%, var(--mt-paper) 0 1px, transparent 1.6px) 0 0 / 97px 71px,
+    radial-gradient(circle at 63% 58%, color-mix(in srgb, var(--mt-paper) 55%, transparent) 0 .8px, transparent 1.3px) 0 0 / 61px 53px,
+    radial-gradient(circle at 41% 79%, color-mix(in srgb, var(--mt-b) 85%, transparent) 0 1.2px, transparent 1.8px) 0 0 / 151px 113px,
+    radial-gradient(circle at 82% 31%, color-mix(in srgb, var(--mt-a) 90%, transparent) 0 1.3px, transparent 1.9px) 0 0 / 173px 131px;
   --mt-sh-pass: var(--mt-sh);          /* 탑승권(기물 카드) 그림자 — 같은 잿빛, 우하단으로 옅어지는 망점 */
   --st-dot: #cfe35a;                   /* 지속 피해 = 라임 (기본 #ff9a5a 는 복숭아 선택색과 같은 색) */
   --gx-select: #f2a93b; --gx-select-ink: #1a1206; --gx-brand: #f2a93b; --gx-credit: #f2a93b; /* 타이틀(메트로 제외 구역)은 갤럭시 색 그대로 */

@@ -120,7 +120,10 @@ function gateIn(ghost: HTMLElement, st: Stop): Ride {
   const el = document.createElement('div');
   el.className = 'mt-gate';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = `<div class="gt-bars">${BARS.map((g) => `<i style="flex-grow:${g}"></i>`).join('')}</div><i class="gt-scan"></i>
+  const bTot = BARS.reduce((a, g) => a + g, 0);
+  let bAcc = 0;
+  const bars = BARS.map((g) => { const x = (bAcc / bTot) * 100; bAcc += g; return `<i style="flex-grow:${g};--bx:${x.toFixed(3)}vw"></i>`; }).join(''); // --bx = 막대 왼쪽 위치 → 별 하늘이 막대를 건너 이어진다
+  el.innerHTML = `<div class="gt-bars">${bars}</div><i class="gt-scan"></i>
     <div class="gt-rd"><span class="gt-row"><b class="gt-gate">GATE ∞</b><span class="gt-st">SCANNING</span></span>${tkHtml(st.kick, st.name, st.en)}<span class="mt-bd-stops"></span></div>`;
   document.body.appendChild(el);
   const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
@@ -461,7 +464,7 @@ function starLayer(level: FxLevel): Layer {
 
 // ───────────────────────── 메트로: 창밖 별빛 (본문 뒤)
 // 달리는 열차의 창밖처럼 별이 오른쪽에서 왼쪽으로 흐른다 (먼 별은 느리고 가까운 별은 빠르다). 가까운 층은 네 갈래 반짝이 별(보라 · 민트 · 흰).
-// 켜기에서는 가끔 먼 선로 위로 빛 열차(노선색 칸이 이어진 점선)가 지나간다. 전투 중엔 층을 내린다
+// 켜기에서는 가끔 먼 선로 위로 빛 열차(노선색 칸이 이어진 점선)가 지나간다. 전투 중엔 흐름을 멈추고 어둡게 둔다
 // [타일 폭, 높이, [점 · 작은 점 · 반짝이 수], 흐름 속도 px/s, 반짝임 주기 ms]
 const WIN_TILES: [number, number, number[], number, number][] = [[560, 300, [12, 5, 0], 9, 0], [720, 400, [0, 7, 2], 24, 0], [640, 420, [0, 0, 4], 15, 2600]];
 const WIN_C = ['#d9d4ff', '#c4f2e4', '#fff6dc'];
@@ -520,6 +523,6 @@ function metroLayer(level: FxLevel): Layer {
       }
     },
     stop() { stopTrain(); anims.forEach((x) => x.cancel()); el.remove(); },
-    setBusy(b) { isBusy = b; el.hidden = b; anims.forEach((x) => (b ? x.pause() : x.play())); },
+    setBusy(b) { isBusy = b; el.classList.toggle('busy', b); anims.forEach((x) => (b ? x.pause() : x.play())); }, // 전투 중: 숨기지 않고 멈춘 채 어둡게 (보드 둘레에도 별 — 2026-11-06 피드백)
   };
 }

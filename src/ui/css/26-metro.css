@@ -11,6 +11,7 @@
 [data-ui-theme="metro"] .title-screen { --c-select: var(--gx-select); --c-select-ink: var(--gx-select-ink); --c-brand: var(--gx-brand); --c-credit: var(--gx-credit); } /* 타이틀 = 메트로 제외 구역: 갤럭시 색 */
 [data-ui-theme="metro"] .pref input { accent-color: var(--mt-b); } /* 체크 = 민트 (기본 규칙의 선택색을 덮는다) */
 .mt-win > i { position: absolute; }
+.mt-win.busy { opacity: .6; } /* 전투 중: 멈춘 별 (themefx setBusy) */
 .mt-lt { height: 3px; opacity: 0; border-radius: var(--r-pill);
   background: repeating-linear-gradient(90deg, var(--mt-a) 0 34px, transparent 34px 40px, var(--mt-b) 40px 74px, transparent 74px 80px); }
 /* 큰 화면 전환 (themefx.ts): 런 출발 = 바코드 게이트 · 보스 = 빨간 급행 · 상점 = MARKET 패널 (아래 전투 진입과 같은 부품). 덮는 동안만 누름을 막는다 */
@@ -26,7 +27,7 @@
    판독기 = 브루탈리즘 판 (잉크 바탕 · 굵은 종이 윤곽 · 흐림 없는 민트 그림자 · 각진 모서리) 위에 탑승권 */
 .mt-gate { --go-a: var(--mt-a); --go-b: var(--mt-b); display: grid; place-items: center; }
 .gt-bars { position: absolute; inset: 0; display: flex; }
-.gt-bars i { flex: 1 1 0; margin-right: -1px; background: var(--mt-ink); transform: scaleY(0); transform-origin: 50% 0; }
+.gt-bars i { flex: 1 1 0; margin-right: -1px; background: var(--mt-sky), var(--mt-ink); background-position: calc(0px - var(--bx, 0px)) 0; transform: scaleY(0); transform-origin: 50% 0; } /* 잉크 막대 = 이어지는 밤하늘 (떨어지는 동안 별이 세로로 늘어진다) */
 .gt-bars i:nth-child(3n) { background: var(--mt-a); }
 .gt-bars i:nth-child(5n) { background: var(--mt-b); }
 .gt-scan { position: absolute; left: 0; right: 0; top: 0; height: 72px; opacity: 0; pointer-events: none;
@@ -51,12 +52,16 @@
 .ex-car::after { content: 'EXPRESS ∞ METRO · NO STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
 .ex-win { --ww: 34vw; --wp: 2.6vw; position: absolute; left: 3vw; right: 4vw; top: 7%; height: 45%; background: var(--mt-ink); }
 .ex-view { position: absolute; inset: 7% 0; overflow: hidden;
-  background: radial-gradient(circle, color-mix(in srgb, var(--mt-d) 34%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 7px 7px, linear-gradient(var(--mt-paper) 28%, color-mix(in srgb, var(--mt-d) 42%, var(--mt-paper)));
+  background: var(--mt-sky), radial-gradient(22px 1px at 50% 50%, color-mix(in srgb, var(--mt-paper) 55%, transparent), transparent) 0 0 / 230px 41px,
+    radial-gradient(120% 70% at 50% 118%, color-mix(in srgb, var(--mt-d) 78%, transparent), transparent 72%) 0 0 / 100% 100%, linear-gradient(var(--mt-ink) 35%, color-mix(in srgb, var(--mt-d) 30%, var(--mt-ink))) 0 0 / 100% 100%;
+  animation: ex-sky .9s linear infinite; /* 창 너머 별이 흐른다 (가까운 층일수록 빠르다 — 급행은 서지 않는다) */
   --wo: calc(57vw - var(--ww) * 1.5 + var(--wp) / 2); /* 창 하나가 화면 가운데 (차창 안 좌표 57vw = 화면 50vw) */
   -webkit-mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x;
-  mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x; } /* 창 = 각진 큰 창 · 너머 = 경보로 밝은 하늘 */
+  mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x; } /* 창 = 각진 큰 창 · 너머 = 별 하늘 (아래는 경보로 붉다) */
+@keyframes ex-sky { to { background-position: 194px 0, 122px 0, 151px 0, 346px 0, 690px 0, 0 0, 0 0; } }
 .ex-boss { position: absolute; left: 57vw; top: 5%; width: 0; height: 140%; transform-origin: 0 30%; } /* 보스 실루엣 자리: 화면 가운데 (차창 안 좌표), 머리부터 허벅지까지 */
-.ex-boss img { position: absolute; left: 0; top: 0; height: 100%; width: auto; max-width: none; translate: -50% 0; filter: brightness(0); } /* 그림의 모양만 (잉크 실루엣) */
+.ex-boss img { position: absolute; left: 0; top: 0; height: 100%; width: auto; max-width: none; translate: -50% 0;
+  filter: brightness(0) drop-shadow(2px 0 0 var(--mt-d)) drop-shadow(-2px 0 0 var(--mt-d)) drop-shadow(0 2px 0 var(--mt-d)) drop-shadow(0 -2px 0 var(--mt-d)); } /* 그림의 모양만 (잉크 실루엣 + 빨간 윤곽 — 어두운 별 하늘에서도 읽힌다) */
 .ex-lv { position: absolute; left: 0; right: 0; top: 55%; height: 4.4vmin; background: linear-gradient(var(--mt-ink) 0 58%, transparent 58% 76%, var(--mt-paper) 76%); } /* 노선 띠 */
 .ex-word { position: absolute; left: 6vw; top: 61%; color: transparent; -webkit-text-stroke: 2px color-mix(in srgb, var(--mt-ink) 34%, transparent); font: 400 var(--mt-fs-mega)/.86 var(--f-display); letter-spacing: -.01em; white-space: nowrap; }
 .ex-skirt { position: absolute; left: 0; right: 0; bottom: 0; height: 7%; border-top: 3px solid var(--mt-ink); background: linear-gradient(-45deg, var(--mt-d) 25%, var(--mt-ink) 25% 50%, var(--mt-d) 50% 75%, var(--mt-ink) 75%) 0 0 / 3.4vmin 3.4vmin; } /* 경고 빗금 치마 */
@@ -94,8 +99,8 @@
 .mk-tag { right: 7vw; top: 9%; width: 48vmin; height: 25vmin; background: radial-gradient(circle at 16% 50%, var(--mt-ink) 0 2.6vmin, transparent 2.7vmin), var(--go-b);
   clip-path: polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%); } /* 가격표 (구멍 · 뾰족한 머리) */
 .mk-tag::after { content: '∞'; position: absolute; right: 9%; top: 50%; translate: 0 -50%; color: var(--mt-on); font: 400 var(--mt-fs-hero)/1 var(--f-display); }
-.mk-dots { right: 0; bottom: 0; width: 64vmin; height: 64vmin; background: var(--go-c);
-  -webkit-mask: var(--mt-dot-tl) center / 100% 100% no-repeat; mask: var(--mt-dot-tl) center / 100% 100% no-repeat; rotate: 180deg; } /* 우하단으로 짙어지는 큰 망점 */
+.mk-dots { right: 2vmin; bottom: 2vmin; width: 60vmin; height: 60vmin; background: var(--go-c); --cn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='black' stroke='black' stroke-linecap='round'%3E%3Cpath fill='none' stroke-width='.45' d='M12 70 L30 52 L47 58 L58 36 L80 24 M58 36 L70 62 L88 74 M30 52 L22 30'/%3E%3Ccircle cx='12' cy='70' r='1.6'/%3E%3Ccircle cx='30' cy='52' r='2'/%3E%3Ccircle cx='47' cy='58' r='1.5'/%3E%3Ccircle cx='70' cy='62' r='1.7'/%3E%3Ccircle cx='88' cy='74' r='1.4'/%3E%3Ccircle cx='80' cy='24' r='1.8'/%3E%3Ccircle cx='22' cy='30' r='1.3'/%3E%3Cpath stroke='none' d='M58 28 Q58 36 66 36 Q58 36 58 44 Q58 36 50 36 Q58 36 58 28Z'/%3E%3C/svg%3E");
+  -webkit-mask: var(--cn) center / 100% 100% no-repeat; mask: var(--cn) center / 100% 100% no-repeat; } /* 우하단 별자리 (별 + 잇는 선, 가운데 네 갈래 별 — 망점은 그림자 판 · 등급 표시에만) */
 .mk-shelf { position: relative; display: flex; gap: 1.6vmin; padding: 1.4vmin; border-radius: var(--mt-r-sm); background: var(--mt-ink); border: 1.5px solid color-mix(in srgb, var(--mt-paper) 28%, transparent); } /* 진열칸 (신호등 자리) */
 .mk-shelf i { position: relative; width: 7vmin; height: 7vmin; border-radius: var(--mt-r-sm); background: color-mix(in srgb, var(--mt-paper) 7%, var(--mt-ink)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--mt-paper) 24%, transparent); }
 .mk-shelf b { position: absolute; inset: 16%; border-radius: var(--r-sm); background: var(--go-a); opacity: 0; }
@@ -104,8 +109,8 @@
 .mg-pan.p1 { background: var(--go-b); }
 .mg-pan.p2 { margin-left: 4vw; background: var(--go-a); }
 .mg-pan.p3 { margin-left: 8vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 8%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px,
-    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--mt-ink); }
+  background: var(--mt-sky),
+    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--mt-ink); } /* 잉크 패널 = 모눈 위 별 하늘 */
 .mg-stage { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 4vmin; opacity: 0; }
 .mg-shapes { position: absolute; inset: 0; overflow: hidden; }
 .mg-shapes > i { position: absolute; display: block; }
