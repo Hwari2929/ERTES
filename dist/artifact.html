@@ -6198,7 +6198,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
    노선 띠 · 큰 윤곽 글자 · 경고 빗금 치마 · 잉크 꼬리판. 경고 패널 = 종이 판 + 굵은 잉크 윤곽 + 흐림 없는 잉크 그림자 + 흐르는 빗금 + ! 판 */
 .ex-car { position: absolute; top: 0; bottom: 0; left: -10vw; width: 130vw; background: var(--mt-d); transform: translateX(110vw); clip-path: polygon(0 34%, 8vw 0, 100% 0, 100% 100%, 0 100%); }
 .ex-car::before { content: ''; position: absolute; left: 1.2vw; top: 62%; width: 4vw; height: 2.4vmin; background: var(--mt-paper); box-shadow: 0 3.4vmin 0 var(--mt-ink); } /* 전조등 · 앞 범퍼 */
-.ex-car::after { content: 'EXPRESS ∞ ERRANTES METRO · NO STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
+.ex-car::after { content: 'EXPRESS ∞ METRO · NO STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
 .ex-win { --ww: 34vw; --wp: 2.6vw; position: absolute; left: 3vw; right: 4vw; top: 7%; height: 45%; background: var(--mt-ink); }
 .ex-view { position: absolute; inset: 7% 0; overflow: hidden;
   background: radial-gradient(circle, color-mix(in srgb, var(--mt-d) 34%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 7px 7px, linear-gradient(var(--mt-paper) 28%, color-mix(in srgb, var(--mt-d) 42%, var(--mt-paper)));
@@ -6534,7 +6534,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
     linear-gradient(118deg, transparent 0 56%, var(--mt-b) 56% 66%, transparent 66% 69%, color-mix(in srgb, var(--mt-b) 45%, transparent) 69% 73%, transparent 73%) 0 0 / 100% 70% no-repeat, /* 사선은 위쪽에서 끝난다 (아래 글씨를 지나지 않게) */
     radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); }
 [data-ui-theme="metro"] .sup-card .cback::before { content: '∞'; position: absolute; left: 26%; top: 30%; translate: -50% -52%; color: var(--mt-paper); font: 400 var(--fs-2xl)/1 var(--f-display); }
-[data-ui-theme="metro"] .sup-card .cback::after { content: 'ERRANTES METRO\A SUPPLY ' counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 11px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
+[data-ui-theme="metro"] .sup-card .cback::after { content: 'METRO\A SUPPLY ' counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 11px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
   color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .12em; line-height: 1.5; text-align: left; white-space: pre; overflow: hidden; } /* 일련번호 두 줄 (좁은 카드 폭에 맞게) */
 [data-ui-theme="metro"] .card.sup-card.open { --kc: var(--g-C); --sdw: 112px; --sdo: .38; isolation: isolate; grid-template-rows: 52% auto 1fr 26px; align-content: stretch; gap: 8px; padding: 0 12px; box-shadow: none; border-color: color-mix(in srgb, var(--kc) 55%, var(--mt-edge));
   background: linear-gradient(150deg, color-mix(in srgb, var(--kc) 34%, var(--mt-ink)), var(--mt-ink) 75%) 0 0 / 100% 52% no-repeat, var(--panel); }
@@ -6737,7 +6737,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .gcard .cback::before { content: '∞'; position: absolute; left: 50%; top: calc((100% - 62px) / 2); translate: -50% -50%; display: grid; place-items: center; box-sizing: border-box; width: 78px; height: 78px;
   border: 1.5px solid color-mix(in srgb, var(--mt-paper) 32%, transparent); border-radius: 50%; background: var(--mt-ink);
   box-shadow: 0 0 0 6px var(--mt-ink), 0 0 0 7.5px color-mix(in srgb, var(--mt-paper) 14%, transparent); color: color-mix(in srgb, var(--mt-paper) 75%, transparent); font: 400 var(--fs-2xl)/1 var(--f-display); } /* 가는 테 두 겹 동전 */
-[data-ui-theme="metro"] .gcard .cback::after { content: 'ERRANTES METRO\A GLOBAL PASS ' counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
+[data-ui-theme="metro"] .gcard .cback::after { content: 'METRO\A GLOBAL PASS ' counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
   color: color-mix(in srgb, var(--mt-paper) 50%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
 @media (max-width: 640px) {
   [data-ui-theme="metro"] .gslot { --gh: 64px; } [data-ui-theme="metro"] .gcard { --gds: 44px; padding-bottom: 14px; } [data-ui-theme="metro"] .gcard.gt-R { --gds: 54px; } [data-ui-theme="metro"] .gcard.gt-L { --gds: 64px; }
