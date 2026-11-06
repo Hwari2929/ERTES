@@ -98,7 +98,7 @@ export function mapScreen(run: RunState) {
       </section>
       <section class="st-pane" role="tabpanel" aria-label="기록">
       <h2>기록</h2>
-      <ul class="log">${run.log.slice(0, 40).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+      <ul class="log">${run.log.slice(0, 40).map((l) => { const k = l.indexOf(': '); return `<li>${k > 0 && k <= 16 ? `<b>${esc(l.slice(0, k))}</b> ${esc(l.slice(k + 2))}` : esc(l)}</li>`; }).join('')}</ul>
       </section>
       </div></div>
     </aside>

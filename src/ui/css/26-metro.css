@@ -620,6 +620,92 @@
 [data-ui-theme="metro"] .aug-opt.lg:not(.sch-opt) kbd::after { content: 'LEGEND'; }
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before, [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { content: ''; position: absolute; right: calc(62px - 9px); width: 18px; height: 18px; border-radius: 50%; background: var(--panel); z-index: 1; } /* 스텁 경계 홈 (위 · 아래) */
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::before { top: -10px; } [data-ui-theme="metro"] .aug-opt:not(.sch-opt)::after { bottom: -10px; }
+/* ── 분기점 · 전환 = 환승 안내판 (2026-11-06 시안 2): 노선색 머리 띠(아이콘 · 화살표 · n번 승강장) · 큰 역 이름 · 이름 + 값 줄.
+   띠 색 = 차례대로 보라 · 민트 · 복숭아, 전환은 휴식 민트 · 도전 위험 빨강 · 합성 신비학자 색. 승강장 번호 = 단축키라 모서리 키캡은 숨긴다 */
+[data-ui-theme="metro"] .cards:has(> .br-card) { counter-reset: br; gap: 16px; }
+[data-ui-theme="metro"] .card.br-card { --lc: var(--mt-a); counter-increment: br; align-content: start; align-items: stretch; justify-items: stretch; text-align: left; gap: 8px; padding: 0 0 14px; overflow: hidden; border-color: color-mix(in srgb, var(--lc) 55%, var(--mt-edge)); }
+[data-ui-theme="metro"] .card.br-card:nth-child(2) { --lc: var(--mt-b); } [data-ui-theme="metro"] .card.br-card:nth-child(3) { --lc: var(--mt-c); }
+[data-ui-theme="metro"] .card.br-card[data-v="rest"] { --lc: var(--mt-b); } [data-ui-theme="metro"] .card.br-card[data-v="challenge"] { --lc: var(--c-bad); } [data-ui-theme="metro"] .card.br-card[data-v="synth"] { --lc: var(--c); }
+[data-ui-theme="metro"] .card.br-card[data-key]::before { content: none; }
+[data-ui-theme="metro"] .br-card .br-ic { display: flex; align-items: center; gap: 10px; width: auto; height: 52px; margin: 0; padding: 0 14px; border: 0; border-radius: 0; background: var(--lc); color: var(--mt-on); }
+[data-ui-theme="metro"] .br-card .br-ic > :is(svg, span) { width: 26px; height: 26px; }
+[data-ui-theme="metro"] .br-card .br-ic::after { content: '→'; order: 1; margin-left: auto; font: 400 var(--fs-2xl)/1 var(--f-display); }
+[data-ui-theme="metro"] .br-card:first-child .br-ic::after { content: '←'; }
+[data-ui-theme="metro"] .br-card .br-ic::before { content: counter(br, decimal-leading-zero) '번 승강장'; order: 2; font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .08em; }
+[data-ui-theme="metro"] .card.br-card > b { padding: 4px 14px 0; font-size: var(--fs-2xl); }
+[data-ui-theme="metro"] .card.br-card > :is(.fk-rows, span:last-child) { width: auto; margin-inline: 14px; text-align: left; }
+[data-ui-theme="metro"] .fk-rows { gap: 0 12px; }
+[data-ui-theme="metro"] .fk-rows > * { padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
+[data-ui-theme="metro"] .fk-rows dt { font: 600 var(--fs-2xs)/1.9 var(--f-mono); letter-spacing: .1em; }
+/* ── 절망 증강 = 붉은 미니 카드 (2026-11-06 시안 2): 미니 카드 문법 — 머리 = 잉크 → 절망 진홍 그라디언트 · DESPAIR 머리표 · 아이콘 · 순번 / 절취선 + 양옆 홈 / 이름 · 효과 · 한마디 / 아래 기록 줄.
+   붉은 막 · 무겁게 떨어지는 등장은 그대로, 가리킴 · 누름은 고르는 카드 문법 (번지는 붉은 빛 대신 선명한 그림자) */
+[data-ui-theme="metro"] .dp-row { counter-reset: dp; gap: 18px; }
+[data-ui-theme="metro"] .dp-card[data-key]::before { content: none; } /* 단축키 = 머리 순번 */
+[data-ui-theme="metro"] .dp-card { --dh: 96px; counter-increment: dp; position: relative; gap: 8px; min-height: 0; padding: 0 0 14px; border: 1.5px solid color-mix(in srgb, var(--c-despair) 50%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: 4px 4px 0 var(--mt-sh); overflow: visible; }
+[data-ui-theme="metro"] .dp-card:is(:hover, :focus-visible) { translate: -2px -2px; filter: none; box-shadow: 6px 6px 0 var(--c-despair); }
+[data-ui-theme="metro"] .dp-card:active { translate: 4px 4px; box-shadow: 0 0 0 var(--c-despair); }
+[data-ui-theme="metro"] .dp-sigil { position: relative; display: grid; place-items: center; height: var(--dh); border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
+  background: linear-gradient(120deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--c-despair)) 72%, var(--c-despair) 100%); }
+[data-ui-theme="metro"] .dp-sigil .li { width: 38px; height: 38px; }
+[data-ui-theme="metro"] .dp-sigil::before { content: 'DESPAIR'; position: absolute; left: 11px; top: 9px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .dp-sigil::after { content: counter(dp, decimal-leading-zero); position: absolute; right: 10px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-2xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .dp-card > b { position: static; padding: 2px 14px 0; }
+[data-ui-theme="metro"] .dp-card > b::before, [data-ui-theme="metro"] .dp-card > b::after { content: ''; position: absolute; top: calc(var(--dh) - 10px); width: 20px; height: 20px; border-radius: 50%; background: color-mix(in srgb, var(--c-despair-deep) 90%, var(--c-black)); } /* 절취 홈 = 붉은 막 색 */
+[data-ui-theme="metro"] .dp-card > b::before { left: -11.5px; } [data-ui-theme="metro"] .dp-card > b::after { right: -11.5px; }
+[data-ui-theme="metro"] .dp-card > :is(.dp-desc, .dp-quip) { padding-inline: 14px; }
+[data-ui-theme="metro"] .dp-rec { display: flex; align-items: center; gap: 7px; margin: auto 14px 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 70%, transparent); }
+[data-ui-theme="metro"] .dp-rec::before { content: ''; flex: none; width: 9px; height: 9px; background: var(--c-despair); rotate: 45deg; }
+[data-ui-theme="metro"] .dp-held b { border-radius: var(--r-sm); border-width: 1.5px; }
+@media (max-width: 700px) { [data-ui-theme="metro"] .dp-card { --dh: 64px; } }
+/* ── 전장 카드 (전장 브리핑 · 지도 환경 탭, app/modals.ts fieldCard) = 디자인 시스템 정보 패널: 머리 = 잉크 → 전장색 띠 (전장색 원판 위 아이콘 · 머리표 = 지역 · 큰 이름) /
+   조건 = 전장색 네모 표식 줄 / 출현 · 정예 · 보스 = 이름 + 값 줄 (위 실선) / 주요 적 = 정보 화면과 같은 줄. 환경 탭의 카드는 브리핑을 다시 여는 단추라 선명한 그림자 */
+[data-ui-theme="metro"] .field-card { gap: 0; padding: 0 0 6px; overflow: hidden; border: 1.5px solid color-mix(in srgb, var(--c) 45%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); }
+[data-ui-theme="metro"] .fc-head { gap: 12px; padding: 12px 14px; border-bottom: 1.5px solid color-mix(in srgb, var(--c) 40%, var(--mt-edge)); background: linear-gradient(120deg, var(--mt-ink) 0 50%, color-mix(in srgb, var(--mt-ink) 50%, var(--c)) 100%); }
+[data-ui-theme="metro"] .fc-ic { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--c); color: var(--mt-on); font-size: var(--fs-xl); }
+[data-ui-theme="metro"] .fc-head > div { display: flex; flex-direction: column-reverse; gap: 4px; min-width: 0; }
+[data-ui-theme="metro"] .fc-head b { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-xl); letter-spacing: .02em; }
+[data-ui-theme="metro"] .fc-head .muted { color: color-mix(in srgb, var(--mt-paper) 70%, transparent); font: 600 var(--fs-2xs)/1.2 var(--f-mono); letter-spacing: .12em; } /* 지역 = 머리표 */
+[data-ui-theme="metro"] .field-card > :not(.fc-head) { margin-inline: 14px; }
+[data-ui-theme="metro"] .field-card > p { margin-top: 10px; }
+[data-ui-theme="metro"] .fc-rules { display: grid; gap: 6px; padding: 10px 0 8px; list-style: none; }
+[data-ui-theme="metro"] .fc-rules li { display: flex; gap: 9px; }
+[data-ui-theme="metro"] .fc-rules li::before { content: ''; flex: none; width: 8px; height: 8px; margin-top: .5em; background: var(--c); }
+[data-ui-theme="metro"] .fc-row { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
+[data-ui-theme="metro"] .fc-k { font: 600 var(--fs-2xs)/1.9 var(--f-mono); letter-spacing: .12em; }
+[data-ui-theme="metro"] .field-card .mu-box { margin-top: 4px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
+[data-ui-theme="metro"] .field-card .mu-k { font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .12em; }
+[data-ui-theme="metro"] .field-btn { border-radius: var(--mt-r-md); }
+[data-ui-theme="metro"] .field-btn .field-card { box-shadow: 4px 4px 0 var(--mt-sh); transition: translate .12s, box-shadow .12s; }
+[data-ui-theme="metro"] .field-btn:is(:hover, :focus-visible) .field-card { translate: -2px -2px; box-shadow: 6px 6px 0 var(--mt-sh); border-color: var(--mt-hover); }
+[data-ui-theme="metro"] .field-btn:active .field-card { translate: 4px 4px; box-shadow: 0 0 0 var(--mt-sh); }
+/* ── 알림 · 의뢰 성공 = 디자인 시스템 확인 창 (Modal): 머리 = 종이 → 보라 그라디언트 띠 · 머리표(NOTICE / MISSION COMPLETE) · 큰 제목 / 경계 양옆 홈 / 몸통 = 글 · 이름 + 값 줄 · 단추.
+   의뢰 성공은 머리 오른쪽에 VALID 도장 (전투 결과 도장과 같은 문법). 창의 노선 띠는 머리 띠가 대신한다 */
+[data-ui-theme="metro"] .modal:is(.notice, .victory) { --mhd: 20px; position: relative; padding: 0 var(--mhd) 20px; background-image: none; }
+[data-ui-theme="metro"] .modal:is(.notice, .victory)::before { content: 'NOTICE ● 안내'; position: absolute; left: var(--mhd); top: 14px; z-index: 1; color: var(--mt-on); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .modal.victory::before { content: 'MISSION COMPLETE ● 의뢰 완료'; }
+[data-ui-theme="metro"] .modal:is(.notice, .victory) > h1 { position: relative; margin: 0 calc(-1 * var(--mhd)) 4px; padding: 34px var(--mhd) 16px; color: var(--mt-on);
+  background: linear-gradient(100deg, var(--mt-paper) 0 42%, color-mix(in srgb, var(--mt-paper) 45%, var(--mt-a)) 74%, var(--mt-a)); }
+[data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::before, [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::after { content: ''; position: absolute; bottom: -10px; width: 20px; height: 20px; border-radius: 50%; background: var(--mt-ink); } /* 경계 홈: 창 밖 반쪽은 창이 자른다 */
+[data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::before { left: -10px; } [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::after { right: -10px; }
+[data-ui-theme="metro"] .modal.victory::after { content: 'VALID'; position: absolute; right: 22px; top: 12px; z-index: 1; display: grid; place-items: center; width: 62px; height: 62px; border: 2.5px solid var(--mt-ink); border-radius: 50%;
+  box-shadow: inset 0 0 0 3px var(--mt-a), inset 0 0 0 4.5px var(--mt-ink); color: var(--mt-ink); font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .12em; rotate: -12deg; }
+[data-ui-theme="metro"] .modal.notice > .btn.primary { justify-self: end; min-width: 120px; }
+/* ── 지도 기록 탭 = 정차역 목록: 세로 노선 선 · 역 점 (맨 위 = 지금 역, 선택색) · 앞말(무엇)은 굵게 */
+[data-ui-theme="metro"] .st-pane .log { gap: 0; padding-left: 6px; }
+[data-ui-theme="metro"] .st-pane .log li { position: relative; padding: 5px 0 9px 22px; border-left: 3px solid color-mix(in srgb, var(--mt-b) 55%, var(--mt-edge)); }
+[data-ui-theme="metro"] .st-pane .log li:last-child { border-left-color: transparent; }
+[data-ui-theme="metro"] .st-pane .log li::before { content: ''; position: absolute; left: -9px; top: 6px; box-sizing: border-box; width: 15px; height: 15px; border: 3px solid var(--mt-b); border-radius: 50%; background: var(--mt-ink); }
+[data-ui-theme="metro"] .st-pane .log li:first-child::before { border-color: var(--c-select); background: var(--c-select); }
+[data-ui-theme="metro"] .st-pane .log li:first-child { color: var(--c-text); }
+[data-ui-theme="metro"] .st-pane .log b { color: var(--c-text); font-weight: 600; }
+/* ── 기물 전체 상세 (.um) 안쪽: 구획 제목 = 정보 화면 문법 (제목 글꼴 + 민트 네모), 그림 칸 = 디자인 시스템 상세 보기 왼쪽 칸 (AGENT 머리표 · 1.5px 윤곽 · 아래 보라 그라디언트),
+   요약 머리표 = 모노. 막대(.mbar) · 공명 등급(.xp)은 이미 눈금 게이지 */
+[data-ui-theme="metro"] .um-col > h3 { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .um-col > h3::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); }
+[data-ui-theme="metro"] .um-art { position: relative; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(160deg, var(--mt-ink) 0 55%, color-mix(in srgb, var(--mt-ink) 55%, var(--mt-a)) 100%); }
+[data-ui-theme="metro"] .um-art::before { content: 'AGENT'; position: absolute; left: 10px; top: 9px; z-index: 1; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .um-art::after { content: ''; position: absolute; inset: 55% 0 0; pointer-events: none; background: linear-gradient(transparent, color-mix(in srgb, var(--mt-a) 26%, transparent)); }
+[data-ui-theme="metro"] .um-sum :is(.us-k, .us-gk) { color: var(--mt-b); font: 600 var(--fs-2xs)/1.6 var(--f-mono); letter-spacing: .12em; }
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
    누를 것(단추 · 고르는 카드 · 분대 줄 · 함선 관리)만 선명한 그림자, 담는 판은 평평 (35번). 항로도 그림은 그대로 둔다 */
 /* 구획 제목: 큰 제목 글꼴 + 노선색 네모 표식 */

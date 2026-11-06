@@ -148,8 +148,9 @@ export function fieldCard(run: RunState, compact = false) {
     <div class="fc-head"><span class="fc-ic">${f.icon}</span><div><b>${esc(f.name)}</b><div class="muted small">${esc(f.region)}</div></div></div>
     ${compact ? '' : `<p class="small">${esc(f.desc)}</p>`}
     <ul class="fc-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-    <div class="small muted">출현: ${f.pool.map(nm).join(' · ')} · 정예 ${fieldElites(f).map(nm).join(' · ')}</div>
-    <div class="small"><span class="accent">보스</span> ${f.bosses.map((id) => (id === bossNow ? `<b>${nm(id)}</b>` : nm(id))).join(' → ')} <span class="muted">(페이즈마다 순환)</span></div>
+    <div class="fc-row small"><span class="fc-k">출현</span><span class="muted">${f.pool.map(nm).join(' · ')}</span></div>
+    <div class="fc-row small"><span class="fc-k">정예</span><span class="muted">${fieldElites(f).map(nm).join(' · ')}</span></div>
+    <div class="fc-row small"><span class="fc-k accent">보스</span><span>${f.bosses.map((id) => (id === bossNow ? `<b>${nm(id)}</b>` : nm(id))).join(' → ')} <span class="muted">(페이즈마다 순환)</span></span></div>
     ${compact ? '' : matchupHtml(f.id)}
   </div>`;
 }
@@ -267,6 +268,7 @@ export function pendingModal(run: RunState): string {
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
+    mcls = 'victory';
     body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${effDiffLabel(run.diff, runHeat(run))}${despairsOf(run).length ? ` · 절망 증강 ${despairNames(run)}` : ''}${OATH.oathResult(run, true)})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
       <div class="row-btns"><button class="btn primary" data-a="victory-end">귀환 (의뢰 완료)</button><button class="btn" data-a="victory-endless">무한 모드로 계속</button></div>`;
@@ -369,11 +371,14 @@ export function pendingModal(run: RunState): string {
   } else if (p.t === 'muster') {
     body = musterModal(run);
   } else if (p.t === 'fork') {
+    // 전환: 카드마다 이름 + 값 줄 (판단에 쓰는 수치를 문장에서 꺼낸다 — UI.md 1번). 메트로 = 환승 안내판 (css/26-metro.css)
     const xp = Math.round(CFG.xpPool(run.phase) * CFG.forkRestXp);
+    const ot = R.occultTier(run), off = ot ? OCCULT_SYNTH.disc[ot - 1] : 0;
+    const rows = (r: [string, string][]) => `<dl class="fk-rows">${r.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     body = `<h1>전환</h1><p class="muted small">페이즈의 갈림길입니다. 숨을 고를지, 한 걸음 앞서 나갈지 고르세요.</p><div class="cards">
-      <button class="card br-card n-supply" data-a="pick-fork" data-v="rest"><span class="br-ic">${NODE_ICON.supply}</span><b>휴식</b><span class="small muted">${ic(`체력 +${CFG.forkRestHp + Math.floor((run.maxHp - run.hp) * CFG.forkRestLost)} (기본 ${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) · 공명도 풀 ${xp} 분배`)}</span></button>
-      <button class="card br-card n-adversity" data-a="pick-fork" data-v="challenge"><span class="br-ic">${NODE_ICON.challenge}</span><b>도전</b><span class="small muted">${ic(`다음 페이즈(${run.phase + 1}) 역경 수준의 전투. 승리하면 대량의 공명도와 남은 역경 · 사건 · 보급 · 보스 보상을 한꺼번에 받고 ${run.phase >= CFG.victoryPhase ? '곧바로 보스로 향합니다' : '바로 다음 페이즈로 넘어갑니다'}. 패배하면 역경 패배와 같은 체력 피해.`)}</span></button>
-      ${R.occultTier(run) ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic">${synIcon('OCCULT') || '✶'}</span><b>합성</b><span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다 (상품 ${OCCULT_SYNTH.base + R.occultTier(run)}개${OCCULT_SYNTH.disc[R.occultTier(run) - 1] ? `, 가격 -${Math.round(OCCULT_SYNTH.disc[R.occultTier(run) - 1] * 100)}%` : ''}).</span></button>` : ''}
+      <button class="card br-card n-supply" data-a="pick-fork" data-v="rest"><span class="br-ic">${NODE_ICON.supply}</span><b>휴식</b>${rows([['체력', `+${CFG.forkRestHp + Math.floor((run.maxHp - run.hp) * CFG.forkRestLost)} <small>기본 ${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%</small>`], [ic('공명도'), `풀 ${xp} 분배`]])}</button>
+      <button class="card br-card n-adversity" data-a="pick-fork" data-v="challenge"><span class="br-ic">${NODE_ICON.challenge}</span><b>도전</b>${rows([['전투', `다음 페이즈(${run.phase + 1}) 역경 수준`], ['승리', ic(`대량의 공명도 + 남은 역경 · 사건 · 보급 · 보스 보상 → ${run.phase >= CFG.victoryPhase ? '곧바로 보스' : '바로 다음 페이즈'}`)], ['패배', '역경 패배와 같은 체력 피해']])}</button>
+      ${ot ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic">${synIcon('OCCULT') || '✶'}</span><b>합성</b>${rows([['상품', `${OCCULT_SYNTH.base + ot}개`], ...(off ? [['가격', `−${Math.round(off * 100)}%`] as [string, string]] : [])])}<span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다.</span></button>` : ''}
     </div>`;
   } else if (p.t === 'supply') {
     body = supplyHtml(p);
@@ -384,6 +389,7 @@ export function pendingModal(run: RunState): string {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards mn-row">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return miniCard({ a: 'pick-blessing', v: id, k: 'BLESSING', tier: 'B', icon: lineIcon('e.holy', 'li'), name: esc(d.name), desc: ic(esc(d.desc)), mark: '이번 페이즈' }); }).join('')}</div>`;
   } else if (p.t === 'notice') {
+    mcls = 'notice';
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p>${p.rows?.length ? `<dl class="nt-rows">${p.rows.map(([k, v]) => `<dt>${ic(esc(k))}</dt><dd>${ic(esc(v))}</dd>`).join('')}</dl>` : ''}<button class="btn primary" data-a="notice-ok">확인</button>`;
   }
   SND.reveal(p); // 증강 · 보상 카드 공개음 (등급별 3단계, 같은 카드 묶음은 한 번)

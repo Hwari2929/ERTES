@@ -338,6 +338,10 @@ button.pill.cr { font: inherit; color: var(--c-text); cursor: pointer; }
 .br-card { align-items: center; text-align: center; }
 .br-card .br-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); margin: 0 auto 4px; }
 .br-card .br-ic svg { width: 24px; height: 24px; }
+.fk-rows { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; width: 100%; margin: 2px 0 0; text-align: left; font-size: var(--fs-sm); } /* 전환 카드: 이름 + 값 줄 (app/modals.ts fork) */
+.fk-rows dt { color: var(--c-text-2); white-space: nowrap; }
+.fk-rows dd { margin: 0; color: var(--c-text); }
+.fk-rows small { color: var(--c-text-2); font-size: var(--fs-xs); }
 
 /* 전투 중 상세 정보 */
 .battle .board .u { cursor: pointer; }
