@@ -6707,7 +6707,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
 [data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }
 /* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 (점 격자 없음 — 점 격자는 뒷면만, 스캔이 지나가면 사라진다) / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과.
-   등급색 = 일반 흰(--g-C) · 희귀 파랑(--g-A) · 전설 빨강(--g-L) — 원판 · 머리 좌하단 망점 · 그림자 판(.gslot::before). 뒷면(카드 돌리기 전) = 교통카드 뒷면과 같은 문법 + GLOBAL 일련번호 */
+   등급색 = 일반 흰(--g-C) · 희귀 파랑(--g-A) · 전설 빨강(--g-L) — 원판 · 머리 좌하단 망점 · 그림자 판(.gslot::before). 뒷면(스캔 전) = 길로셰 무늬 + 가는 테 ∞ 동전 + GLOBAL 일련번호 */
 [data-ui-theme="metro"] .gc-row { counter-reset: gc; gap: 22px; }
 [data-ui-theme="metro"] .gslot { --gh: 124px; } /* 머리 높이 = 칸에서 정한다 (카드 · 그림자 판이 함께 읽는다, 폰 64px) */
 [data-ui-theme="metro"] .gcard { --tc: var(--g-C); --gds: 84px; --gdo: .4; counter-increment: gc; align-items: stretch; gap: 10px; padding: 0 0 22px; overflow: visible; text-align: left;
@@ -6735,15 +6735,19 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .gcard > b { padding: 4px 16px 0; font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
 [data-ui-theme="metro"] .gc-desc { padding-inline: 16px; }
 [data-ui-theme="metro"] .gcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden;
-  background: radial-gradient(circle at 50% 36%, var(--mt-ink) 0 13%, transparent 13.4%), radial-gradient(circle at 50% 36%, var(--mt-b) 0 30%, transparent 30.4%),
-    linear-gradient(118deg, transparent 0 56%, var(--mt-a) 56% 64%, transparent 64% 67%, color-mix(in srgb, var(--mt-a) 45%, transparent) 67% 71%, transparent 71%) 0 0 / 100% 72% no-repeat,
-    radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 뒷면 = 교통카드 문법 */
-[data-ui-theme="metro"] .gcard .cback::before { content: '∞'; position: absolute; left: 50%; top: 36%; translate: -50% -54%; color: var(--mt-paper); font: 400 var(--fs-2xl)/1 var(--f-display); }
+  background: linear-gradient(var(--mt-ink), var(--mt-ink)) bottom / 100% 62px no-repeat,
+    repeating-radial-gradient(circle at 0 100%, transparent 0 6px, color-mix(in srgb, var(--mt-a) 24%, transparent) 6px 7px),
+    repeating-radial-gradient(circle at 100% 0, transparent 0 6px, color-mix(in srgb, var(--mt-b) 17%, transparent) 6px 7px), var(--mt-ink); }
+  /* 뒷면 = 길로셰 (2026-11-06 사용자 결정 — 뒷면 시안 5, 색 약하게): 왼쪽 아래 · 오른쪽 위 모서리에서 퍼지는 가는 동심선(보라 · 민트 아주 옅게)이 겹쳐 물결 무늬. 아래 글자 칸은 무늬 없이 */
+[data-ui-theme="metro"] .gcard .cback::before { content: '∞'; position: absolute; left: 50%; top: calc((100% - 62px) / 2); translate: -50% -50%; display: grid; place-items: center; box-sizing: border-box; width: 78px; height: 78px;
+  border: 1.5px solid color-mix(in srgb, var(--mt-paper) 32%, transparent); border-radius: 50%; background: var(--mt-ink);
+  box-shadow: 0 0 0 6px var(--mt-ink), 0 0 0 7.5px color-mix(in srgb, var(--mt-paper) 14%, transparent); color: color-mix(in srgb, var(--mt-paper) 75%, transparent); font: 400 var(--fs-2xl)/1 var(--f-display); } /* 가는 테 두 겹 동전 */
 [data-ui-theme="metro"] .gcard .cback::after { content: 'ERRANTES METRO\A GLOBAL PASS ' counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
-  color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
+  color: color-mix(in srgb, var(--mt-paper) 50%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
 @media (max-width: 640px) {
   [data-ui-theme="metro"] .gslot { --gh: 64px; } [data-ui-theme="metro"] .gcard { --gds: 44px; padding-bottom: 14px; } [data-ui-theme="metro"] .gcard.gt-R { --gds: 54px; } [data-ui-theme="metro"] .gcard.gt-L { --gds: 64px; }
   [data-ui-theme="metro"] .gc-sigil { flex-basis: 100%; width: auto; height: var(--gh); margin: 0; font-size: var(--fs-xl); }
+  [data-ui-theme="metro"] .gcard .cback::before { width: 58px; height: 58px; box-shadow: 0 0 0 5px var(--mt-ink), 0 0 0 6.5px color-mix(in srgb, var(--mt-paper) 14%, transparent); } /* 폰: 낮은 카드 → 작은 동전 (무늬 영역 가운데) */
   [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 25px; --gdi: 17px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 22px; height: 22px; }
   [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
 }
