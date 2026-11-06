@@ -1,10 +1,11 @@
 // 테마 연출 (설정 → 테마 연출: 켜기 · 줄이기 · 끄기). 외부 이미지 없이 canvas · CSS 로만 그린다.
 //   · 갤럭시: 화면 뒤(본문 아래) 별빛 층 — 천천히 흐르는 별 3층 · 반짝임 · 가끔 유성
 //   · 메트로 인피니티 패스: 화면 뒤 '창밖 별빛' — 달리는 열차 창밖처럼 별이 오른쪽에서 왼쪽으로 흐르는 3층 · 가끔 지나가는 빛 열차.
-//     런 출발 · 보스 · 상점에 들어갈 때만 열차가 들어와 화면을 덮고, 다음 역 안내판(새 화면의 그림이 다 받아질 때까지 · 받은 그림 수 = 역 점)을 보인 뒤 떠나며 다음 화면을 드러낸다.
+//     큰 화면 전환은 세 곳에서만 화면을 덮는다 (새 화면의 그림이 다 받아질 때까지 · 받은 그림 수 = 역 점): 런 출발 = 바코드 게이트,
+//     보스 노드 = 빨간 급행(차창 너머 보스 실루엣 · 경고 패널), 상점 = MARKET 패널.
 //     전투 진입은 노선색 사선 패널이 덮고 신호등이 켜졌다 꺼지면(출발) 걷히며 전투가 시작된다 (banner).
-// 움직임은 모두 Web Animations 의 transform · opacity 라 합성기에서 돌고 메인 스레드는 거의 쓰지 않는다
-// (별 타일은 시작할 때 canvas 로 한 번만 그린다). 배경 층은 pointer-events: none 이라 입력을 막지 않는다 (열차가 덮는 동안만 막는다).
+// 움직임은 모두 Web Animations 의 transform · opacity (판독기 열림만 clip-path) 라 합성기에서 돌고 메인 스레드는 거의 쓰지 않는다
+// (별 타일은 시작할 때 canvas 로 한 번만 그린다). 배경 층은 pointer-events: none 이라 입력을 막지 않는다 (전환이 덮는 동안만 막는다).
 // 움직임 줄이기 설정이면 정지 화면 · 기본 배너. 전투 중에는 배경 층을 내린다 (onScreen).
 
 export type FxLevel = 'on' | 'low' | 'off';
@@ -33,18 +34,20 @@ export function setThemeFx(theme: string, level: FxLevel) {
 }
 const metroOn = () => cur.theme === 'metro' && cur.level !== 'off';
 
-// ───────────────────────── 메트로: 큰 화면 전환 (열차 · 다음 역 안내판)
-// 인게임 화면끼리만 (바 · 계약 · 타이틀 · 도감은 제외). 명부 → 지도 = 런 출발. 전투 진입은 banner 가 맡는다
-/** 열차가 서는 정거장: 런 출발(명부 → 지도) · 보스 노드 진입 · 상점 진입만 (main.ts render 의 mtStop 이 정한다, 나머지 전환은 그대로 컷).
- *  안내판: 머리표(영문 대문자 모노) · 역 이름(그 순간의 대상: 전장 · 보스 이름 · 상점) · 영문 부제 */
-export interface Stop { kick: string; name: string; en: string; tone?: 'boss' | 'market' }
+// ───────────────────────── 메트로: 큰 화면 전환 (런 출발 · 보스 · 상점)
+// 인게임 화면끼리만 (바 · 계약 · 타이틀 · 도감은 제외). 전투 진입은 banner 가 맡는다
+/** 큰 전환이 서는 정거장 (main.ts render 의 mtStop 이 정한다, 나머지 화면 전환은 그대로 컷):
+ *  depart = 런 출발(명부 → 지도) 바코드 게이트 · boss = 보스 노드 진입 빨간 급행 · market = 상점 진입 MARKET 패널.
+ *  머리표(영문 대문자 모노) · 이름(그 순간의 대상: 전장 · 보스 이름 · 상점) · 영문 부제 · img = 보스 스탠딩 (급행 차창 너머 실루엣) */
+export interface Stop { kick: string; name: string; en: string; tone: 'depart' | 'boss' | 'market'; img?: string }
 let lastStop: Stop | null = null;
 /** 전투 진입 직전 화면의 얼린 사본 (패널이 다 덮으면 걷는다) · 이번 세션 전투 진입 횟수 (반복되면 연출을 줄인다, UI.md 22) */
 let goGhost: HTMLElement | null = null;
 let goSeen = 0;
-/** 열차 시간 (ms): 들어옴 · 안내판을 읽을 최소 시간 · 떠남 · 그림을 기다리는 최대 시간 */
-const RIDE = { in: 300, hold: 170, out: 360, cap: 4000 };
-type Ride = { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean; hold: number; leave: (r: Ride) => void };
+/** 새 화면 그림을 기다리는 최대 시간 (ms) */
+const CAP = 4000;
+/** 큰 전환 하나: 덮개(el) · 얼린 화면(ghost) · 다 덮인 때(covered) · 덮인 뒤 최소로 머무는 시간(hold) · 걷기(leave) · 덮개가 걷힐 때까지 멈춰 둔 아래 화면 등장 연출(held) */
+type Ride = { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean; hold: number; leave: (r: Ride) => void; held: Animation[] };
 let ride: Ride | null = null;
 
 /** 지금 화면을 얼려 둔 사본 (열차가 다 덮으면 걷는다) */
@@ -77,21 +80,11 @@ export function beforeScreen(prev: string, next: string, app: HTMLElement, stop:
   if (!lastStop || cur.level !== 'on' || reduced()) return;
   endRide();
   const ghost = freeze(app);
-  if (lastStop.tone === 'market') { const r = marketIn(ghost, lastStop); ride = r; void r.covered.then(() => { r.ghost?.remove(); r.ghost = null; }); return; } // 덮이면 얼린 사본을 걷는다 (안 걷으면 사본이 입력을 막는다)
-  const el = document.createElement('div');
-  el.className = `mt-ride${lastStop.tone ? ` ${lastStop.tone}` : ''}`;
-  el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = `<div class="mt-car"><i class="mt-car-win"></i><i class="mt-car-lv"></i><span class="mt-car-id">ERRANTES METRO · INFINITY PASS</span>
-    <div class="mt-board"><span class="mt-bd-k"><i class="mt-bd-line">∞</i><span>${esc(lastStop.kick)}</span></span>
-      <b class="mt-bd-name">${esc(lastStop.name)}</b><span class="mt-bd-en">${esc(lastStop.en)}</span><span class="mt-bd-stops"></span></div></div>`;
-  document.body.appendChild(el);
-  const car = el.firstElementChild as HTMLElement;
-  const a = car.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: RIDE.in, easing: 'cubic-bezier(.2, .75, .25, 1)', fill: 'both' });
-  const r: Ride = { el, ghost, fresh: true, covered: a.finished.then(() => {}, () => {}), anims: [a], gone: false, hold: RIDE.hold, leave: rideLeave };
+  const r = (lastStop.tone === 'market' ? marketIn : lastStop.tone === 'boss' ? expressIn : gateIn)(ghost, lastStop);
   ride = r;
-  void r.covered.then(() => { r.ghost?.remove(); r.ghost = null; });
+  void r.covered.then(() => { r.ghost?.remove(); r.ghost = null; }); // 다 덮이면 얼린 사본을 걷는다 (안 걷으면 사본이 입력을 막는다)
 }
-/** 새 화면의 그림이 다 받아지면(최대 4초) 열차가 떠난다. 역 점 = 기다리는 그림 하나씩 (받으면 채워진다) */
+/** 새 화면의 그림이 다 받아지면(최대 4초, 덮인 뒤 최소 hold) 덮개가 걷힌다. 역 점 = 기다리는 그림 하나씩 (받으면 채워진다) */
 function rideTrack(r: Ride) {
   const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('#app img')).filter((im) => !im.complete).slice(0, 12);
   const stops = r.el.querySelector<HTMLElement>('.mt-bd-stops');
@@ -102,18 +95,109 @@ function rideTrack(r: Ride) {
     im.addEventListener('load', done, { once: true }); im.addEventListener('error', done, { once: true });
   }));
   const minHold = r.covered.then(() => new Promise((res) => setTimeout(res, r.hold)));
-  void Promise.race([Promise.all([Promise.all(loads), minHold]), new Promise((res) => setTimeout(res, RIDE.cap))]).then(() => r.leave(r));
+  void Promise.race([Promise.all([Promise.all(loads), minHold]), new Promise((res) => setTimeout(res, CAP))]).then(() => r.leave(r));
 }
-function rideLeave(r: Ride) {
+/** 덮개 아래에서 먼저 돌아 버리면 안 보이는 등장 연출(런 출발 특권 창의 머리 글씨 · 카드 세 장)은 멈춰 두었다가, 덮개가 걷히기 시작할 때 이어서 돈다.
+ *  스크린도어(막)는 덮인 동안 닫혀 둔다 → 걷히면 문이 닫힌 승강장에 카드가 놓인다. at = 멈춘 연출을 이 시각(ms)부터 잇는다 (지연을 그만큼 건너뛴다) */
+function holdUnder(r: Ride) {
+  r.held = Array.from(document.querySelectorAll('.pv-bg:not(.played) :is(.pv-body, .pv-card)')).flatMap((e) => e.getAnimations());
+  r.held.forEach((a) => a.pause());
+}
+function release(r: Ride, at = 0) {
+  for (const a of r.held) { try { a.currentTime = Math.max(Number(a.currentTime) || 0, at); a.play(); } catch { /* 이미 끝난 연출 */ } }
+  r.held = [];
+}
+function endRide() { if (!ride) return; release(ride); ride.anims.forEach((x) => x.cancel()); ride.el.remove(); ride.ghost?.remove(); ride = null; }
+const done = (r: Ride, ms: number, after?: () => void) => setTimeout(() => { r.el.remove(); if (ride === r) ride = null; after?.(); }, ms);
+
+/** 런 출발 = 바코드 게이트 (디자인 시스템 barcode 전환 — '메뉴에서 게임으로 진입'). 잉크 · 보라 · 민트 막대 24개(디자인 시스템 굵기 비율)가
+ *  왼쪽부터 차례로 떨어져 화면을 덮고(막대 지연 i × 덮기 × .022 · 길이 덮기 × .55 · ease-slam), 복숭아 판독선이 위에서 아래로 한 번 훑는다.
+ *  가운데 잉크 판독기(굵은 종이 윤곽 · 단단한 민트 그림자 = 브루탈리즘 판)가 위아래로 열리고 DEPARTURE 탑승권(전장 이름 · PHASE)이 도장처럼 찍힌다 (판이 덜컥 흔들린다).
+ *  아래 칸 = 역 점 (새 화면 그림 하나씩). 그림이 받아지면 표에 구멍이 뚫리고(GATE OPEN) 판독기가 내려가며 막대가 왼쪽부터 아래로 빠져 지도가 드러난다 → 오른쪽 위 반짝 */
+const BARS = [2, 1, 1, 3, 3, 1, 1, 2, 1, 3, 3, 1, 2, 1, 1, 3, 2, 1, 3, 1, 1, 2, 3, 1];
+const GT = { cover: 420, hold: 800, reveal: 480 };
+function gateIn(ghost: HTMLElement, st: Stop): Ride {
+  const el = document.createElement('div');
+  el.className = 'mt-gate';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `<div class="gt-bars">${BARS.map((g) => `<i style="flex-grow:${g}"></i>`).join('')}</div><i class="gt-scan"></i>
+    <div class="gt-rd"><span class="gt-row"><b class="gt-gate">GATE ∞</b><span class="gt-st">SCANNING</span></span>${tkHtml(st.kick, st.name, st.en)}<span class="mt-bd-stops"></span></div>`;
+  document.body.appendChild(el);
+  const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
+  const C = GT.cover, T = 1600;
+  const anims: Animation[] = [];
+  el.querySelectorAll('.gt-bars i').forEach((b, i) => anims.push(b.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: C * 0.55, delay: i * C * 0.022, easing: SLAM, fill: 'both' })));
+  anims.push(tl($('.gt-scan'), T, [[C * 0.85, { transform: 'translateY(-72px)', opacity: 0 }, 'cubic-bezier(.45, 0, .55, 1)'], [C * 0.85 + 1, { opacity: 1 }], [C * 0.85 + 440, { transform: 'translateY(100vh)', opacity: 1 }], [C * 0.85 + 450, { opacity: 0 }]]));
+  anims.push(tl($('.gt-rd'), T, [[C, { clipPath: 'inset(50% -24px 50% -24px)', opacity: 0 }], [C + 1, { opacity: 1 }, SLAM], [C + 190, { clipPath: 'inset(-24px -24px -24px -24px)', opacity: 1 }]]));
+  anims.push(tl($('.mg-tk'), T, [[C + 150, { transform: 'scale(1.3) rotate(-2deg)', opacity: 0 }, POP], [C + 350, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }]]));
+  anims.push($('.gt-rd').animate([{ translate: '0 0' }, { translate: '-5px 3px' }, { translate: '4px -3px' }, { translate: '-2px 2px' }, { translate: '0 0' }], { duration: 240, delay: C + 340, easing: 'steps(4)' })); // 도장이 찍히는 순간 판이 덜컥 (디자인 시스템 shake)
+  return { el, ghost, fresh: true, covered: new Promise<void>((res) => setTimeout(res, (BARS.length - 1) * C * 0.022 + C * 0.55)), anims, gone: false, hold: GT.hold, leave: gateLeave, held: [] };
+}
+function gateLeave(r: Ride) {
   if (r.gone) return;
   r.gone = true;
-  r.el.classList.add('open'); // 떠나기 시작하면 누름은 아래 화면으로
-  const car = r.el.firstElementChild as HTMLElement;
-  const a = car.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-104%)' }], { duration: RIDE.out, easing: 'cubic-bezier(.55, 0, .8, .35)', fill: 'both' });
-  r.anims.push(a);
-  void a.finished.then(() => { r.el.remove(); if (ride === r) ride = null; }, () => {});
+  const el = r.el, R = GT.reveal, T = 720;
+  el.classList.add('open'); // 걷히기 시작하면 누름은 아래 화면으로
+  el.querySelector('.gt-st')!.textContent = 'GATE OPEN';
+  release(r, 600);
+  r.anims.push(tl(el.querySelector('.mg-punch')!, T, [[0, { transform: 'scale(0)' }, POP], [100, { transform: 'scale(1)' }]]));
+  r.anims.push(tl(el.querySelector('.gt-rd')!, T, [[110, { transform: 'translateY(0)', opacity: 1 }, OUTE], [300, { transform: 'translateY(16vh)', opacity: 0 }]]));
+  el.querySelectorAll<HTMLElement>('.gt-bars i').forEach((b, i) => {
+    b.style.transformOrigin = '50% 100%';
+    r.anims.push(b.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(0)' }], { duration: R * 0.55, delay: 120 + i * R * 0.022, easing: SLAM, fill: 'both' }));
+  });
+  done(r, 120 + (BARS.length - 1) * R * 0.022 + R * 0.55 + 30, glint);
 }
-function endRide() { if (!ride) return; ride.anims.forEach((x) => x.cancel()); ride.el.remove(); ride.ghost?.remove(); ride = null; }
+/** 전환이 끝나면 오른쪽 위에 네 갈래 반짝이가 잠깐 뜬다 (디자인 시스템 glint) */
+function glint() {
+  const g = document.createElement('i');
+  g.className = 'mt-glint';
+  g.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(g);
+  g.animate([{ transform: 'scale(.2) rotate(-30deg)', opacity: 0 }, { transform: 'scale(1.1) rotate(0deg)', opacity: 1, offset: 0.45 }, { transform: 'scale(.9) rotate(12deg)', opacity: 0 }], { duration: 420, easing: POP, fill: 'both' });
+  setTimeout(() => g.remove(), 460);
+}
+
+/** 보스 노드 = 빨간 급행 (EXPRESS): 신호 빨강 급행 차체가 오른쪽 밖에서 거세게 들어와 화면을 덮고 멈추며 한 번 덜컥인다 (비스듬히 깎인 앞코는 멈추면 화면 왼쪽 밖).
+ *  차창 띠 너머 = 경보로 밝은 하늘 · 보스 실루엣 — 실루엣은 그 자리에 서 있고 창틀만 지나간다 (차체와 반대로 같은 거리를 움직여 상쇄), 멈춘 동안 천천히 다가온다.
+ *  안내판 대신 큰 경고 패널: 종이 판 · 굵은 잉크 윤곽 · 단단한 잉크 그림자 · 흐르는 경고 빗금 · ! 판 · 보스 이름(흔들림) · PHASE · TERMINAL · 역 점.
+ *  새 화면 그림이 받아지면 한 번 덜컥 물러섰다가 왼쪽으로 가속해 빠지고, 꼬리가 지나가며 편성 화면이 드러난다 */
+const EX = { in: 420, hold: 900, out: 560 };
+function expressIn(ghost: HTMLElement, st: Stop): Ride {
+  const el = document.createElement('div');
+  el.className = 'mt-ex';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `<div class="ex-car"><div class="ex-win"><div class="ex-view">${st.img ? `<i class="ex-boss"><img alt="" decoding="async" src="${esc(st.img)}" onerror="this.remove()"></i>` : ''}</div></div>
+    <i class="ex-lv"></i><b class="ex-word">${'EXPRESS ∞ NO STOP · '.repeat(4)}</b><i class="ex-skirt"></i><i class="ex-tail"></i>
+    <div class="ex-panel"><i class="ex-hz"><i></i></i><b class="ex-ic">!</b><span class="ex-k">${esc(st.kick)}</span><b class="ex-t">${esc(st.name)}</b><span class="ex-en">${esc(st.en)}</span><span class="mt-bd-stops"></span></div></div>`;
+  document.body.appendChild(el);
+  const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
+  const boss = el.querySelector<HTMLElement>('.ex-boss');
+  const anims: Animation[] = [];
+  const T = EX.in + 170;
+  // 차체(vw): 오른쪽 밖 → 0 (거세게 들어와 멈춘다) → 한 번 덜컥. 실루엣은 같은 시각에 반대로 움직여 제자리
+  const pts: [number, number, string?][] = [[0, 110, 'cubic-bezier(.12, .72, .28, 1)'], [EX.in, -1.2, 'ease-out'], [EX.in + 90, 0.5, 'ease-in-out'], [T, 0]];
+  anims.push(tl($('.ex-car'), T, pts.map(([t, x, ez]) => [t, { transform: `translateX(${x}vw)` }, ez])));
+  if (boss) {
+    anims.push(tl(boss, T, pts.map(([t, x, ez]) => [t, { translate: `${-x}vw 0` }, ez])));
+    anims.push(boss.animate([{ scale: '1' }, { scale: '1.07' }], { duration: 2600, delay: EX.in, easing: 'cubic-bezier(.2, .6, .3, 1)', fill: 'both' })); // 멈춘 동안 천천히 다가온다
+  }
+  anims.push(tl($('.ex-panel'), 1400, [[EX.in - 60, { transform: 'scale(1.25) rotate(-1.5deg)', opacity: 0 }, POP], [EX.in + 150, { transform: 'scale(1) rotate(-1.5deg)', opacity: 1 }]]));
+  anims.push(tl($('.ex-t'), 1400, [[EX.in + 200, { transform: 'none' }], [EX.in + 240, { transform: 'translateX(-6px)' }], [EX.in + 280, { transform: 'translateX(6px)' }], [EX.in + 320, { transform: 'translateX(-3px)' }], [EX.in + 360, { transform: 'none' }]]));
+  anims.push($('.ex-hz > i').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-24px)' }], { duration: 420, iterations: Infinity })); // 경고 빗금이 계속 흐른다 (빗금 한 칸 = 24px)
+  return { el, ghost, fresh: true, covered: new Promise<void>((res) => setTimeout(res, EX.in)), anims, gone: false, hold: EX.hold, leave: expressLeave, held: [] };
+}
+function expressLeave(r: Ride) {
+  if (r.gone) return;
+  r.gone = true;
+  const el = r.el, O = EX.out, boss = el.querySelector<HTMLElement>('.ex-boss');
+  el.classList.add('open');
+  release(r, 600);
+  const pts: [number, number, string?][] = [[0, 0, 'ease-out'], [90, 0.8, 'cubic-bezier(.5, 0, .9, .45)'], [O, -126]]; // 한 번 물러섰다가 가속해서 빠진다 (차체 130vw)
+  r.anims.push(tl(el.querySelector('.ex-car')!, O, pts.map(([t, x, ez]) => [t, { transform: `translateX(${x}vw)` }, ez])));
+  if (boss) r.anims.push(tl(boss, O, pts.map(([t, x, ez]) => [t, { translate: `${-x}vw 0` }, ez])));
+  done(r, O + 40);
+}
 
 /** 상점 = 전투 진입과 같은 밀도의 큰 면 전환 (MARKET): 복숭아 · 민트 · 잉크 사선 패널이 덮고, 잉크 위에 큰 동전 원판(∞) · 가격표 · 흘러가는 MARKET 글자 띠 두 줄 ·
  *  망점 · 바코드 기둥 · 진열칸 5개(하나씩 불이 들어온다) + 다음 역 탑승권. 새 화면 그림이 받아지면(최소 MK.hold) 패널이 같은 방향으로 빠지며 상점이 드러난다 */
@@ -127,7 +211,7 @@ function marketIn(ghost: HTMLElement, st: Stop): Ride {
       <div class="mg-shapes"><b class="mk-word w1">${'MARKET · '.repeat(10)}</b><b class="mk-word w2">${'OPEN ∞ 상점 · '.repeat(10)}</b>
         <i class="mk-dots"></i><i class="mk-coin"><b>∞</b></i><i class="mk-tag"></i><i class="mg-bars"></i></div>
       <div class="mk-shelf">${'<i><b></b></i>'.repeat(5)}</div>
-      <div class="mg-tk"><div class="mg-tk-a"><span class="mg-k"><b>ADMIT ONE</b><i></i><span>${esc(st.kick)}</span></span><b class="mg-t">${esc(st.name)}</b><span class="mg-r"><span>TO</span><b>${esc(st.en)}</b><i></i></span></div><span class="mg-code"></span><i class="mg-punch"></i></div>
+      ${tkHtml(st.kick, st.name, st.en)}
     </div>`;
   document.body.appendChild(el);
   const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
@@ -144,7 +228,7 @@ function marketIn(ghost: HTMLElement, st: Stop): Ride {
   anims.push(tl($('.mg-bars'), T, [[380, { transform: 'scaleY(0)' }, SLAM], [600, { transform: 'scaleY(1)' }]]));
   anims.push(tl($('.mg-tk'), T, [[340, { transform: 'scale(1.22) rotate(-2deg)', opacity: 0 }, POP], [540, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }]]));
   el.querySelectorAll('.mk-shelf b').forEach((b, k) => anims.push(tl(b, T, [[440 + k * 70, { opacity: 0, transform: 'scale(.3) rotate(-45deg)' }, POP], [540 + k * 70, { opacity: 1, transform: 'scale(1) rotate(0deg)' }]])));
-  return { el, ghost, fresh: true, covered: anims[pans.length - 1].ready.then(() => new Promise<void>((res) => setTimeout(res, MK.cover))), anims, gone: false, hold: MK.hold, leave: marketLeave };
+  return { el, ghost, fresh: true, covered: anims[pans.length - 1].ready.then(() => new Promise<void>((res) => setTimeout(res, MK.cover))), anims, gone: false, hold: MK.hold, leave: marketLeave, held: [] };
 }
 /** 상점 전환 걷기: 표에 구멍이 뚫리고(펀치) 잉크 · 민트 · 복숭아 순서로 패널이 왼쪽으로 빠진다 */
 function marketLeave(r: Ride) {
@@ -157,7 +241,8 @@ function marketLeave(r: Ride) {
   r.anims.push(tl(el.querySelector('.mg-tk')!, T, [[110, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }, OUTE], [330, { transform: 'translateX(-46vw) skewX(18deg) rotate(-2deg)', opacity: 0 }]]));
   r.anims.push(tl(el.querySelector('.mg-stage')!, T, [[150, { opacity: 1 }], [250, { opacity: 0 }]]));
   el.querySelectorAll('.mg-pan').forEach((p, k) => { const at = 120 + (2 - k) * 55; r.anims.push(tl(p, T, [[at, { transform: `translateX(-44vw) ${SK}` }, OUTE], [at + 360, { transform: `translateX(-250vw) ${SK}` }]])); });
-  setTimeout(() => { el.remove(); if (ride === r) ride = null; }, T + 40);
+  release(r, 600);
+  done(r, T + 40);
 }
 
 /** render() 가 화면을 그린 뒤: 전투 여부 · (메트로) 큰 화면 전환 */
@@ -166,9 +251,10 @@ export function onScreen(prev: string, next: string) {
   if (b !== busy) { busy = b; cur.layer?.setBusy(b); }
   if (ride?.fresh) {
     ride.fresh = false;
-    // 사건 장면 · 역경 선택은 제 막 연출이 있다 → 열차는 그리기 전에 거둔다.
-    // 런 출발의 특권 막(메트로 = 닫히는 열차 문)은 그대로 둔다: 열차가 떠나면 문이 닫힌 승강장에서 카드가 놓인다
+    // 사건 장면 · 역경 선택은 제 막 연출이 있다 → 덮개는 그리기 전에 거둔다.
+    // 런 출발의 특권 막(메트로 = 닫히는 스크린도어)은 그대로 둔다: 덮인 동안 문이 닫히고, 걷히면 닫힌 승강장에 카드가 놓인다 (holdUnder)
     if (document.querySelector('.adv, .dp-bg:not(.played)')) { endRide(); return; }
+    holdUnder(ride);
     rideTrack(ride);
     return;
   }
@@ -212,7 +298,8 @@ export function banner(kind: BannerKind, title: string, sub = ''): number {
   document.querySelector('.mt-go')?.remove();
   return cur.level === 'low' ? goLow(kind, title, sub) : goFull(kind, title, sub);
 }
-const tkHtml = (kind: BannerKind, title: string, sub: string) => `<div class="mg-tk"><div class="mg-tk-a"><span class="mg-k"><b>ADMIT ONE</b><i></i><span>${KICK[kind]}</span></span><b class="mg-t">${esc(title)}</b>${sub ? `<span class="mg-r"><span>TO</span><b>${esc(sub)}</b><i></i></span>` : ''}</div><span class="mg-code"></span><i class="mg-punch"></i></div>`;
+/** 탑승권 (전투 진입 · 상점 · 런 출발 게이트): ADMIT ONE · 머리표 / 이름 / TO 부제 · 세로 바코드 · 걷힐 때 뚫리는 구멍 */
+const tkHtml = (kick: string, title: string, sub: string) => `<div class="mg-tk"><div class="mg-tk-a"><span class="mg-k"><b>ADMIT ONE</b><i></i><span>${esc(kick)}</span></span><b class="mg-t">${esc(title)}</b>${sub ? `<span class="mg-r"><span>TO</span><b>${esc(sub)}</b><i></i></span>` : ''}</div><span class="mg-code"></span><i class="mg-punch"></i></div>`;
 function goFull(kind: BannerKind, title: string, sub: string) {
   const boss = kind === 'boss', phase = kind === 'phase', warn = boss || kind === 'adversity';
   const short = !boss && !phase && ++goSeen > 2; // 반복되는 의식은 처음에만 길다: 세 번째 전투부터 짧게 (보스 · 페이즈는 그대로)
@@ -227,7 +314,7 @@ function goFull(kind: BannerKind, title: string, sub: string) {
     <div class="mg-stage">
       <div class="mg-shapes" aria-hidden="true"><i class="mg-disc"></i><i class="mg-quarter"></i><i class="mg-chev"></i><i class="mg-dots"></i><i class="mg-bars"></i>${warn ? '<i class="mg-hz t"></i><i class="mg-hz b"></i>' : ''}</div>
       ${phase ? `<b class="mg-num" aria-hidden="true">${num}</b>` : `<div class="mg-lights" aria-hidden="true">${'<i><b></b></i>'.repeat(5)}</div>`}
-      ${tkHtml(kind, title, sub)}
+      ${tkHtml(KICK[kind], title, sub)}
     </div>`;
   document.body.appendChild(el);
   if (goGhost) { const g = goGhost; goGhost = null; setTimeout(() => g.remove(), 420); } // 패널 3장이 다 덮은 뒤 얼린 화면을 걷는다
@@ -267,7 +354,7 @@ function goLow(kind: BannerKind, title: string, sub: string) {
   el.className = `mt-go mt-go-${kind} low`;
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
-  el.innerHTML = `<div class="mg-band"></div>${tkHtml(kind, title, sub)}`;
+  el.innerHTML = `<div class="mg-band"></div>${tkHtml(KICK[kind], title, sub)}`;
   document.body.appendChild(el);
   tl(el.querySelector('.mg-band')!, T, [[0, { transform: 'scaleY(0)' }, SLAM], [180, { transform: 'scaleY(1)' }], [T - 220, { transform: 'scaleY(1)' }, OUTE], [T, { transform: 'scaleY(0)' }]]);
   tl(el.querySelector('.mg-tk')!, T, [[60, { transform: 'translateX(40vw)', opacity: 0 }, SLAM], [300, { transform: 'none', opacity: 1 }], [T - 260, { transform: 'none', opacity: 1 }, OUTE], [T - 40, { transform: 'translateX(-40vw)', opacity: 0 }]]);

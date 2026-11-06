@@ -4,7 +4,7 @@
        창 · 패널 · 노드 표 · 열린 보급 카드 = 평평한 판 (1.5px 윤곽 + 위 노선 띠, 그림자 없음)
        보조 단추 = 평평한 단추 (윤곽 · 둥글기 6 · 같은 높이), 주 동작 = 양 끝 반원 홈이 파인 티켓 (한 화면에 하나)
        고르는 카드 = 아래 두께 (누르면 내려앉는다), 가리키면 밝은 회색 윤곽(--mt-hover), 고른 것은 선택색
-   · 연출(themefx.ts): 창밖 별빛 · 런 출발 · 보스 · 상점 열차 · 전투 진입(노선색 패널 와이프 + 신호등) */
+   · 연출(themefx.ts): 창밖 별빛 · 런 출발 바코드 게이트 · 보스 빨간 급행 · 상점 MARKET · 전투 진입(노선색 패널 와이프 + 신호등) */
 [data-ui-theme="metro"] body { background: var(--mt-floor); }
 [data-ui-theme="metro"] .sticky-actions, [data-ui-theme="metro"] .prep .board-head { background: var(--mt-floor); } /* 화면에 붙는 띠: 같은 고정 바닥 → 모눈 위에 네모가 드러나지 않는다 */
 [data-ui-theme="metro"] .title-screen { --c-select: var(--gx-select); --c-select-ink: var(--gx-select-ink); --c-brand: var(--gx-brand); --c-credit: var(--gx-credit); } /* 타이틀 = 메트로 제외 구역: 갤럭시 색 */
@@ -12,38 +12,69 @@
 .mt-win > i { position: absolute; }
 .mt-lt { height: 3px; opacity: 0; border-radius: var(--r-pill);
   background: repeating-linear-gradient(90deg, var(--mt-a) 0 34px, transparent 34px 40px, var(--mt-b) 40px 74px, transparent 74px 80px); }
-/* 큰 화면 전환: 열차 */
-.mt-ride { position: fixed; inset: 0; z-index: var(--z-banner); overflow: hidden; touch-action: none; }
-.mt-ride.open { pointer-events: none; touch-action: auto; }
-.mt-car { position: absolute; inset: 0 -4px 0 0; background: var(--mt-ink); border-radius: var(--mt-r-xl) 0 0 var(--mt-r-xl); transform: translateX(100%); }
-.mt-car::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 12px; border-radius: var(--mt-r-xl) 0 0 var(--mt-r-xl); background: linear-gradient(var(--mt-a), var(--mt-b)); } /* 앞코 노선색 */
-.mt-car-win { position: absolute; left: 7%; right: 0; top: 12%; height: 16%;
-  background: radial-gradient(circle, var(--mt-paper) 0 1px, transparent 1.6px) 0 0 / 37px 29px, radial-gradient(circle, var(--mt-b) 0 1px, transparent 1.6px) 13px 17px / 53px 41px,
-    radial-gradient(circle, var(--mt-a) 0 1.2px, transparent 1.8px) 29px 7px / 71px 47px, color-mix(in srgb, var(--mt-a) 16%, var(--mt-ink));
-  -webkit-mask: repeating-linear-gradient(90deg, var(--c-black) 0 170px, transparent 170px 196px); mask: repeating-linear-gradient(90deg, var(--c-black) 0 170px, transparent 170px 196px); } /* 창 = 창밖 별빛 */
-.mt-car-lv { position: absolute; left: 0; right: 0; top: 78%; height: 24px;
-  background: linear-gradient(var(--mt-a) 0 10px, transparent 10px 14px, var(--mt-b) 14px 20px, transparent 20px 22px, var(--mt-c) 22px 24px); } /* 노선 띠 */
-.mt-car-id { position: absolute; left: 7%; top: calc(78% - 26px); color: color-mix(in srgb, var(--mt-paper) 55%, transparent); font: 600 var(--fs-xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 차체 노선 표기 */
-.mt-board { position: absolute; left: 50%; top: 52%; translate: -50% -50%; width: min(440px, calc(100% - 48px)); display: grid; gap: 6px; justify-items: start; padding: 16px 22px 20px;
-  background: var(--mt-paper); color: var(--mt-on); border-radius: var(--mt-r); box-shadow: 8px 8px 0 var(--mt-a); }
-.mt-bd-k { display: flex; align-items: center; gap: 8px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
-.mt-bd-line { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--mt-a); color: var(--mt-on); font: 700 var(--fs-lg)/1 var(--f-mono); font-style: normal; letter-spacing: 0; }
-.mt-bd-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.mt-bd-name { font: 400 var(--mt-fs-hero)/1.05 var(--f-display); letter-spacing: .02em; }
-.mt-bd-en { font: 600 var(--fs-xs)/1 var(--f-mono); letter-spacing: .22em; opacity: .62; }
-.mt-bd-stops { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 14px; margin-top: 10px; background: linear-gradient(var(--mt-on), var(--mt-on)) center / 100% 2px no-repeat; } /* 역 점 = 기다리는 그림 하나씩 */
-.mt-bd-stops i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--mt-on); background: var(--mt-paper); transition: background .15s ease; }
+/* 큰 화면 전환 (themefx.ts): 런 출발 = 바코드 게이트 · 보스 = 빨간 급행 · 상점 = MARKET 패널 (아래 전투 진입과 같은 부품). 덮는 동안만 누름을 막는다 */
+.mt-gate, .mt-ex { position: fixed; inset: 0; z-index: var(--z-banner); overflow: hidden; touch-action: none; }
+.mt-gate.open, .mt-ex.open { pointer-events: none; touch-action: auto; }
+.mt-bd-stops { display: flex; align-items: center; gap: 6px; } /* 역 점 = 기다리는 그림 하나씩 (받으면 채워진다) — 각진 칸 */
+.mt-bd-stops i { width: 12px; height: 12px; border: 2px solid currentColor; transition: background .15s ease; }
 .mt-bd-stops i.on { background: var(--mt-b); }
 .mt-bd-stops[hidden] { display: none; }
+/* 런 출발 = 바코드 게이트: 막대 24개(디자인 시스템 barcode — 잉크, 3번째마다 보라, 5번째마다 민트) · 복숭아 판독선 ·
+   판독기 = 브루탈리즘 판 (잉크 바탕 · 굵은 종이 윤곽 · 흐림 없는 민트 그림자 · 각진 모서리) 위에 탑승권 */
+.mt-gate { --go-a: var(--mt-a); --go-b: var(--mt-b); display: grid; place-items: center; }
+.gt-bars { position: absolute; inset: 0; display: flex; }
+.gt-bars i { flex: 1 1 0; margin-right: -1px; background: var(--mt-ink); transform: scaleY(0); transform-origin: 50% 0; }
+.gt-bars i:nth-child(3n) { background: var(--mt-a); }
+.gt-bars i:nth-child(5n) { background: var(--mt-b); }
+.gt-scan { position: absolute; left: 0; right: 0; top: 0; height: 72px; opacity: 0; pointer-events: none;
+  background: linear-gradient(transparent 0 36%, color-mix(in srgb, var(--mt-c) 14%, transparent) 36% 68%, color-mix(in srgb, var(--mt-c) 30%, transparent) 68% calc(100% - 3px), var(--mt-c) calc(100% - 3px)); } /* 판독선: 아래 끝 3px 실선 + 지나온 자리 각진 계단 띠 (흐림 없음) */
+.gt-rd { position: relative; display: grid; gap: 16px; justify-items: center; width: min(680px, calc(100vw - 32px)); padding: 16px 22px 26px; box-sizing: border-box;
+  background: var(--mt-ink); border: 3px solid var(--mt-paper); box-shadow: 14px 14px 0 var(--mt-b); color: var(--mt-paper); opacity: 0; }
+.gt-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.gt-gate { padding: 6px 10px; background: var(--mt-paper); color: var(--mt-on); font: 800 var(--fs-sm)/1 var(--f-mono); letter-spacing: .14em; }
+.gt-st { display: inline-flex; align-items: center; gap: 8px; color: var(--mt-c); font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .18em; }
+.gt-st::before { content: ''; width: 9px; height: 9px; background: currentColor; animation: gt-blink .4s steps(1) infinite; } /* 판독 상태등 (각진 · 읽는 동안 깜빡인다) */
+@keyframes gt-blink { 50% { opacity: 0; } }
+.mt-gate.open .gt-st { color: var(--mt-b); }
+.mt-gate.open .gt-st::before { animation: none; }
+.gt-rd .mg-tk { width: calc(100% - 20px); }
+.gt-rd .mt-bd-stops { justify-self: start; }
+.mt-glint { position: fixed; right: 8%; top: 10%; z-index: var(--z-banner); width: 56px; height: 56px; pointer-events: none; background: var(--mt-b); opacity: 0;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); } /* 전환 끝 반짝 (디자인 시스템 glint) */
+/* 보스 = 빨간 급행: 차체 130vw (앞코 10vw · 꼬리 20vw 는 멈추면 화면 밖) — 비스듬히 깎인 앞코 · 지붕 표기 · 차창 띠(잉크 창틀, 창 너머 밝은 하늘 + 보스 실루엣) ·
+   노선 띠 · 큰 윤곽 글자 · 경고 빗금 치마 · 잉크 꼬리판. 경고 패널 = 종이 판 + 굵은 잉크 윤곽 + 흐림 없는 잉크 그림자 + 흐르는 빗금 + ! 판 */
+.ex-car { position: absolute; top: 0; bottom: 0; left: -10vw; width: 130vw; background: var(--mt-d); transform: translateX(110vw); clip-path: polygon(0 34%, 8vw 0, 100% 0, 100% 100%, 0 100%); }
+.ex-car::before { content: ''; position: absolute; left: 1.2vw; top: 62%; width: 4vw; height: 2.4vmin; background: var(--mt-paper); box-shadow: 0 3.4vmin 0 var(--mt-ink); } /* 전조등 · 앞 범퍼 */
+.ex-car::after { content: 'EXPRESS ∞ ERRANTES METRO · NO STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
+.ex-win { --ww: 34vw; --wp: 2.6vw; position: absolute; left: 3vw; right: 4vw; top: 7%; height: 45%; background: var(--mt-ink); }
+.ex-view { position: absolute; inset: 7% 0; overflow: hidden;
+  background: radial-gradient(circle, color-mix(in srgb, var(--mt-d) 34%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 7px 7px, linear-gradient(var(--mt-paper) 28%, color-mix(in srgb, var(--mt-d) 42%, var(--mt-paper)));
+  --wo: calc(57vw - var(--ww) * 1.5 + var(--wp) / 2); /* 창 하나가 화면 가운데 (차창 안 좌표 57vw = 화면 50vw) */
+  -webkit-mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x;
+  mask: linear-gradient(90deg, var(--c-black) calc(100% - var(--wp)), transparent 0) var(--wo) 0 / var(--ww) 100% repeat-x; } /* 창 = 각진 큰 창 · 너머 = 경보로 밝은 하늘 */
+.ex-boss { position: absolute; left: 57vw; top: 5%; width: 0; height: 140%; transform-origin: 0 30%; } /* 보스 실루엣 자리: 화면 가운데 (차창 안 좌표), 머리부터 허벅지까지 */
+.ex-boss img { position: absolute; left: 0; top: 0; height: 100%; width: auto; max-width: none; translate: -50% 0; filter: brightness(0); } /* 그림의 모양만 (잉크 실루엣) */
+.ex-lv { position: absolute; left: 0; right: 0; top: 55%; height: 4.4vmin; background: linear-gradient(var(--mt-ink) 0 58%, transparent 58% 76%, var(--mt-paper) 76%); } /* 노선 띠 */
+.ex-word { position: absolute; left: 6vw; top: 61%; color: transparent; -webkit-text-stroke: 2px color-mix(in srgb, var(--mt-ink) 34%, transparent); font: 400 var(--mt-fs-mega)/.86 var(--f-display); letter-spacing: -.01em; white-space: nowrap; }
+.ex-skirt { position: absolute; left: 0; right: 0; bottom: 0; height: 7%; border-top: 3px solid var(--mt-ink); background: linear-gradient(-45deg, var(--mt-d) 25%, var(--mt-ink) 25% 50%, var(--mt-d) 50% 75%, var(--mt-ink) 75%) 0 0 / 3.4vmin 3.4vmin; } /* 경고 빗금 치마 */
+.ex-tail { position: absolute; right: 0; top: 0; bottom: 0; width: 3vw; background: var(--mt-ink); }
+.ex-tail::before { content: ''; position: absolute; left: -2.4vw; top: 62%; width: 1.4vw; height: 3vmin; background: var(--mt-c); } /* 꼬리등 */
+.ex-panel { position: absolute; left: 60vw; top: 60%; translate: -50% 0; display: grid; grid-template-columns: 104px minmax(0, 1fr); width: min(760px, calc(100vw - 40px)); box-sizing: border-box;
+  background: var(--mt-paper); color: var(--mt-on); border: 3px solid var(--mt-ink); box-shadow: 12px 12px 0 var(--mt-ink); opacity: 0; }
+.ex-hz { grid-column: 1 / -1; position: relative; height: 18px; overflow: hidden; border-bottom: 3px solid var(--mt-ink); }
+.ex-hz > i { position: absolute; inset: 0 -24px 0 0; background: linear-gradient(-45deg, var(--mt-d) 25%, var(--mt-ink) 25% 50%, var(--mt-d) 50% 75%, var(--mt-ink) 75%) 0 0 / 24px 24px; } /* 흐르는 경고 빗금 (한 칸 24px) */
+.ex-ic { grid-column: 1; grid-row: 2 / span 4; display: grid; place-items: center; border-right: 3px solid var(--mt-ink); background: var(--mt-ink); color: var(--mt-d); font: 400 var(--mt-fs-boss)/1 var(--f-display); }
+.ex-k, .ex-t, .ex-en, .ex-panel .mt-bd-stops { grid-column: 2; padding: 0 20px; }
+.ex-k { padding-top: 14px; font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+.ex-t { padding-top: 6px; font: 400 var(--mt-fs-boss)/1 var(--f-display); letter-spacing: .02em; overflow-wrap: anywhere; text-wrap: balance; }
+.ex-en { padding-top: 8px; padding-bottom: 16px; font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .2em; }
+.ex-panel .mt-bd-stops { padding-bottom: 16px; margin-top: -6px; }
+@media (max-width: 640px) { .ex-win { --ww: 66vw; } .ex-panel { grid-template-columns: 64px minmax(0, 1fr); } .ex-t { font-size: var(--mt-fs-hero); } .ex-k, .ex-t, .ex-en, .ex-panel .mt-bd-stops { padding-left: 14px; padding-right: 14px; } .gt-rd { padding: 12px 14px 20px; } }
+@media (max-height: 560px) { .ex-win { top: 5%; height: 40%; } .ex-lv { top: 47%; } .ex-panel { top: 52%; } .ex-word { top: 54%; } .ex-t { font-size: var(--mt-fs-hero); } .ex-k { padding-top: 10px; } .ex-en { padding-bottom: 12px; } }
 .mt-sweep { position: fixed; inset: 0; z-index: var(--z-banner); pointer-events: none; overflow: hidden; }
 .mt-sweep i { position: absolute; top: -10%; bottom: -10%; left: 0; width: 13vw; background: var(--mt-a); }
 .mt-sweep i:nth-child(2) { width: 5vw; background: var(--mt-b); }
 .mt-sweep i:nth-child(3) { width: 1.6vw; background: var(--mt-c); }
-/* 메트로: 보스 역 열차 = 신호 주황 */
-.mt-ride.boss .mt-car::before { background: linear-gradient(var(--mt-d), var(--mt-a)); }
-.mt-ride.boss .mt-bd-line { background: var(--mt-d); }
-.mt-ride.boss .mt-board { box-shadow: 8px 8px 0 var(--mt-d); }
-.mt-ride.boss .mt-car-lv { background: linear-gradient(var(--mt-d) 0 10px, transparent 10px 14px, var(--mt-a) 14px 20px, transparent 20px 22px, var(--mt-c) 22px 24px); }
 /* ── 전투 진입 · 페이즈 (themefx.ts goFull · goLow): 노선색 사선 패널 3장 + 잉크 패널 위 큰 도형 · 신호등 · 탑승권 */
 .mt-go { --go-a: var(--mt-a); --go-b: var(--mt-b); --go-c: var(--mt-c); --go-lamp: var(--mt-b); position: fixed; inset: 0; z-index: var(--z-banner); overflow: hidden; pointer-events: none; display: grid; place-items: center; }
 .mt-go-boss { --go-a: var(--mt-d); --go-b: var(--mt-a); --go-lamp: var(--mt-d); }

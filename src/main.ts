@@ -52,7 +52,7 @@ import './data/voicelines';
 import { RELIC_BY_ID } from './data/relics';
 import { deleteSave, importCode, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaClear, metaDeed, metaEvent, metaTutEnd, tutOver } from './ui/meta';
-import { loadArtPack, prefetchArt, standImg } from './ui/portraits';
+import { loadArtPack, prefetchArt, standImg, standURL } from './ui/portraits';
 import './ui/adv';
 import * as SND from './ui/sound';
 import * as OATH from './ui/oath';
@@ -154,12 +154,13 @@ if (typeof document !== 'undefined') {
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { if (app.screen === 'title' || app.menu) render(); });
 window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop, .ask-pop')) layoutPanels(); }, { passive: true });
 
-/** 메트로 열차가 서는 정거장 (themefx.ts Stop): 런 출발(명부 → 지도) · 지도에서 보스 노드 · 상점으로 들어갈 때만. 나머지 화면 전환은 그대로 컷 */
+/** 메트로 큰 전환이 서는 정거장 (themefx.ts Stop): 런 출발(명부 → 지도) = 바코드 게이트 · 지도에서 보스 노드 = 빨간 급행(차창 너머 보스 실루엣) · 상점 = MARKET.
+ *  나머지 화면 전환은 그대로 컷 */
 function mtStop(run: RunState | null, prev: string, next: string): TFX.Stop | null {
   if (!run || prev === next) return null;
-  if (prev === 'newrun' && next === 'map') return { kick: 'DEPARTURE · 출발', name: fieldOf(run.field).name, en: `PHASE ${run.phase} · LINE ∞` };
+  if (prev === 'newrun' && next === 'map') return { kick: 'DEPARTURE · 출발', name: fieldOf(run.field).name, en: `PHASE ${run.phase} · LINE ∞`, tone: 'depart' };
   if (prev !== 'map') return null;
-  if (next === 'prep' && run.node?.type === 'boss') return { kick: 'EXPRESS · 보스 역', name: phaseBoss(run)?.name || '보스', en: `PHASE ${run.phase} · TERMINAL`, tone: 'boss' };
+  if (next === 'prep' && run.node?.type === 'boss') { const b = phaseBoss(run); return { kick: 'EXPRESS · 보스 역', name: b?.name || '보스', en: `PHASE ${run.phase} · TERMINAL`, tone: 'boss', img: (b && standURL(`en_${b.id}`)) || undefined }; }
   if (next === 'shop') return { kick: 'NEXT STATION · 다음 역', name: '상점', en: 'MARKET', tone: 'market' };
   return null;
 }
