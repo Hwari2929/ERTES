@@ -86,7 +86,8 @@
   .modal { max-height: calc(100vh - 16px); overflow-y: auto; }
   .stat-pop.sheet { max-height: 80vh; }
   /* 영입 · 계약: 화면 높이를 꽉 쓰고, 카드 시너지는 위쪽 한 줄 */
-  .modal.recruit { height: calc(100dvh - 16px); max-height: none; overflow: hidden; padding: 10px 14px; gap: 6px; }
+  .modal.recruit { gap: 6px; padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); } /* 전체 화면 (09-recruit.css) — 낮은 화면은 여백만 줄인다 */
+  .rc-foot { height: 42px; }
   .modal.recruit h1 { font-size: var(--fs-xl); }
   .rc-head p { font-size: var(--fs-xs); }
   .rc-track, .car-track { grid-auto-columns: clamp(140px, 19vw, 180px); }

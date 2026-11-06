@@ -206,6 +206,7 @@
 /* ── 창 · 판: 누를 수 없는 것 = 평평한 판 (1.5px 윤곽 · 위 노선 띠 · 그림자 없음). 덮개 = 망점 */
 [data-ui-theme="metro"] .modal:not(.privilege, .despair) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); box-shadow: none;
   background-image: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%); background-size: 100% 5px; background-repeat: no-repeat; }
+[data-ui-theme="metro"] .modal.recruit { border-width: 0; border-radius: 0; } /* 영입 창 = 전체 화면 (위 노선 띠는 그대로) */
 [data-ui-theme="metro"] .um { border: 1.5px solid var(--mt-edge); box-shadow: none; }
 [data-ui-theme="metro"] .um::after { content: ''; position: absolute; inset: 0; z-index: var(--z-float); border-radius: inherit; pointer-events: none; background: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%) top / 100% 5px no-repeat; } /* 노선 띠: 오른쪽 칸 바탕에 가리지 않게 맨 위 층 */
 [data-ui-theme="metro"] .modal-bg:not(.pv-bg, .dp-bg, .res-bg:not(.win)) { background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 1px, transparent 1.6px) 0 0 / 6px 6px, var(--overlay); }
