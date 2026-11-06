@@ -6795,9 +6795,10 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   -webkit-mask: radial-gradient(circle at 0 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat;
   mask: radial-gradient(circle at 0 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) left / 51% 100% no-repeat, radial-gradient(circle at 100% 100%, transparent calc(var(--n) - .5px), var(--c-black) var(--n)) right / 51% 100% no-repeat; }
 [data-ui-theme="metro"] .mn-hd::after { background-image: radial-gradient(circle at 0 100%, transparent calc(var(--n) - .5px), var(--mnb) var(--n) calc(var(--n) + 1.5px), transparent calc(var(--n) + 2px)), radial-gradient(circle at 100% 100%, transparent calc(var(--n) - .5px), var(--mnb) var(--n) calc(var(--n) + 1.5px), transparent calc(var(--n) + 2px)); }
-[data-ui-theme="metro"] .mn-tl { position: absolute; top: 8px; left: 9px; right: 9px; display: flex; justify-content: space-between; align-items: center; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
-[data-ui-theme="metro"] .mn-tl i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-[data-ui-theme="metro"] .mn-n { display: block; position: absolute; right: 8px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-3xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .card.mn .mn-tl { position: absolute; top: 8px; left: 9px; right: 9px; display: flex; justify-content: space-between; align-items: center; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .card.mn .mn-tl > span { font: inherit; color: inherit; } /* 공용 .card span 글자 규칙을 덮는다 */
+[data-ui-theme="metro"] .card.mn .mn-tl i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+[data-ui-theme="metro"] .card.mn .mn-n { display: block; position: absolute; right: 8px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-3xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .mn-n::before { content: counter(mn, decimal-leading-zero); }
 [data-ui-theme="metro"] .mn-hd .item { width: 48px; height: 48px; cursor: inherit; }
 [data-ui-theme="metro"] .card.mn .mn-hd > .li { width: 34%; height: auto; aspect-ratio: 1; color: var(--mt-b); stroke-width: 1.5px; } /* 선 아이콘 = 원본 엠블럼처럼 가는 민트 선 */
