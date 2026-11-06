@@ -102,6 +102,9 @@ export function breadNote(run: RunState, i: number) {
 }
 /** 소모품 육각형 테두리 색: 전설급 = 전설 장비 색 · 셰프 = 셰프 시너지 색 · 합성품 = 신비학자 색 · 그 밖 (전투 보상 · 상점) 청록 */
 export const consColor = (id: string) => (id === 'K_scope' ? SYN_BY_ID.NAV.color : isLegendConsumable(id) ? 'var(--g-L)' : id === 'K_bread_stale' ? '#8c8478' : CONSUMABLES[id]?.chef ? SYN_BY_ID.CHEF.color : CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color);
+/** 등급색 대신 쓰는 카드 색 (--tc — 상인 진열 카드 윗띠 · 미니 카드 머리 · 표식): 소모품 = 그 소모품 색, 문장 = 그 시너지 색, 신비 부품 = 신비학자 색.
+ *  나머지 (재료 · 고급 · 희귀 · 전설 부품) 는 빈 값 — 등급 클래스 tS/tC/tG/tA/tL 이 정한다 */
+export const itemTone = (id: string) => (isConsumable(id) ? consColor(id) : isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : '') || '';
 /** 신비 개조부품 · 소모품 아이콘 */
 export const SPECIAL_GLYPH: Record<string, string> = {
   O_reach: 'a.range', O_feast: 'a.heal', O_ward_phys: 'e.phys', O_ward_psy: 'e.psy', O_ward_chem: 'e.chem', O_ward_elec: 'e.elec', O_ward_holy: 'e.holy',

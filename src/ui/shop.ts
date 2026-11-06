@@ -4,8 +4,7 @@
 // 엔진 규칙 (진열 · 할인 · 새로고침 · 교환 · 티켓)은 engine/run.ts, 상인 · 대사는 data/merchants.ts 에서 읽는다.
 import { CFG } from '../config';
 import * as R from '../engine/run';
-import { CONSUMABLES, emblemOf, isConsumable, isEmblem, isOccultMod, itemInfo } from '../data/items';
-import { SYN_BY_ID } from '../data/synergies';
+import { CONSUMABLES, itemInfo } from '../data/items';
 import { CATWHEEL } from '../data/despair';
 import { isPlaceable } from '../data/devices';
 import { MERCHANT_BY_ID, PETRA_AD, PETRA_ADS, type MerchantDef, type TalkKey } from '../data/merchants';
@@ -18,6 +17,8 @@ export interface ShopDeps {
   itemIcon(id: string | null, attrs?: string): string;
   /** 소모품 색 (app/common.ts consColor — 보관함 육각 아이콘과 같은 색) */
   consColor(id: string): string;
+  /** 카드 색 (app/common.ts itemTone — 소모품 · 문장 · 신비 부품) */
+  itemTone(id: string): string;
   itemBrief(id: string): { stats: string; eff: string };
   statIc(html: string): string;
   devicePop(run: RunState, id: string): string;
@@ -107,7 +108,7 @@ function selTalk(s: ShopSlot): TalkKey {
 const tierCls = (id: string) => (CONSUMABLES[id]?.legend ? 'L' : itemInfo(id).tier);
 /** 진열 카드 윗띠 색 (메트로 .sg-card --tc): 소모품 = 그 소모품 색 (전설 · 합성품 · 전투 보상 · 셰프), 문장 = 그 시너지 색, 신비 부품 = 신비학자 색.
  *  나머지 (재료 · 고급 · 희귀 · 전설 부품) 는 등급 클래스 tS/tC/tG/tA/tL 이 정한다 */
-const bandColor = (id: string) => (isConsumable(id) ? D.consColor(id) : isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : '') || '';
+const bandColor = (id: string) => D.itemTone(id);
 /** 칸의 짧은 성질 한 줄 (넓은 화면만): 능력치 줄이 있으면 그것, 없으면 효과 문장 */
 function cardEff(id: string) {
   const { stats, eff } = D.itemBrief(id);

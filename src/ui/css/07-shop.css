@@ -1,10 +1,5 @@
-/* ── 상점 · 합성 공방 + 장비 칸 (보관함 · 장비 아이콘 · 장비 말풍선 · 보관 물품 팝업 공용)
+/* ── 상점 + 장비 칸 (보관함 · 장비 아이콘 · 장비 말풍선 · 보관 물품 팝업 공용). 합성 공방 · 속보 · 투자 상품 = 사는 미니 카드 (app/modals.ts miniCard, css/08 · 26)
    장비 색은 희귀도(--g-*) 데이터 색, 개조부품은 시너지 색(--sc). 호박색은 고른 칸에만 */
-.shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.shop-item { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px; }
-.shop-item > div { flex: 1; min-width: 0; }
-.shop-item.sold { opacity: .4; }
-.shop-item.tS b { color: var(--g-S); } .shop-item.tC b { color: var(--g-C); } .shop-item.tG b { color: var(--g-G); } .shop-item.tA b { color: var(--g-A); } .shop-item.tL b { color: var(--g-L); } .shop-item.tT b { color: var(--g-T); }
 
 /* ═════ 상인 상점 덮개 (src/ui/shop.ts): 상단 바 아래 전체. 왼쪽 30% 상인 (스탠딩 · 말풍선 · 이름), 오른쪽 진열대 (머리 칩 · 3×3 · 상세 · 단추)
    --c = 상인 색 (data/merchants.ts). 고른 칸 = 호박 실선 + 옅은 면 (정적), 할인 = 분홍 꼬리표 (모양 따로), 품절 = 흐림 + 도장 */

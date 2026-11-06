@@ -234,7 +234,6 @@
 [data-ui-theme="metro"] :is(.aug-opt, .card, .sg-card, .pil-card, .stat-pick):is(.on, .took) { --cs: var(--c-select); border-color: var(--c-select); --so: 6px; } /* 고른 것 = 선택색 그림자 (스티커처럼 커진다) */
 [data-ui-theme="metro"] :is(.card[disabled], .card.open, .sg-card.sold, .pil-card.off, .stat-pick:disabled) { box-shadow: none; translate: none; }
 [data-ui-theme="metro"] .card[disabled] { box-shadow: none; }
-[data-ui-theme="metro"] .shop-item { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); } /* 물품 줄은 판 (사는 것은 가격표 단추) */
 /* 게이지 (공명도): 굵은 테두리 · 민트 막대 · 10칸 눈금 */
 [data-ui-theme="metro"] .xp { border: 1.5px solid var(--mt-edge); border-radius: var(--r-sm);
   background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), color-mix(in srgb, var(--mt-paper) 14%, transparent) calc(10% - 1px) 10%), var(--panel-2); }
@@ -510,33 +509,12 @@
 @media (max-width: 640px) { [data-ui-theme="metro"] .mt-stamp { right: 20px; width: 58px; height: 58px; margin-top: -29px; } [data-ui-theme="metro"] .mt-stamp i { width: 22px; height: 22px; } }
 
 /* ── 노드 화면 (상점 · 속보 · 투자 · 순례) = 역 매표소. 머리 = 머리표(영문 모노) + 제목 + 상태 칩 / 담는 판 = 평평한 판 + 위 노선 띠 (35번) /
-   사는 것 = 쿠폰: 왼쪽 내용 | 절취선 | 오른쪽 뜯는 칸(= 값 · 사기 단추), 절취선 위아래 홈 (노드 쿠폰과 같은 1px 고리) */
+   합성 공방 · 속보 · 투자 상품 = 사는 미니 카드 (2026-11-06 사용자 결정: 쿠폰 줄 → MiniCard 나열 — 아래 '사는 미니 카드') */
 [data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .screen-head h1::before, [data-ui-theme="metro"] .so-hd h1::before, [data-ui-theme="metro"] .pil-head h1::before {
   display: block; flex-basis: 100%; margin-bottom: 6px; color: var(--kk, var(--mt-b)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .nd-news { --kc: var(--mt-a); --kk: var(--mt-a); } [data-ui-theme="metro"] .nd-news .screen-head h1::before { content: 'PRESS · BREAKING NEWS'; }
 [data-ui-theme="metro"] .nd-invest { --kc: var(--c-credit); --kk: var(--c-credit); } [data-ui-theme="metro"] .nd-invest .screen-head h1::before { content: 'HOISUN HOLDINGS · INVEST DESK'; }
 [data-ui-theme="metro"] .nd-shop { --kc: var(--c-credit); } [data-ui-theme="metro"] .nd-shop .screen-head h1::before { content: 'WORKSHOP · 공방'; }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop { gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item { --stw: 96px; --hr: 9px; position: relative; align-items: stretch; gap: 12px; min-height: 84px; padding: 0 0 0 14px;
-  border: 1px solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(90deg, var(--kc) 0 50%, var(--mt-b) 50%) top / 100% 3px no-repeat, var(--panel);
-  -webkit-mask: radial-gradient(circle at calc(100% - var(--stw) - .5px) 0, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) top / 100% 51% no-repeat,
-    radial-gradient(circle at calc(100% - var(--stw) - .5px) 100%, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) bottom / 100% 51% no-repeat;
-  mask: radial-gradient(circle at calc(100% - var(--stw) - .5px) 0, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) top / 100% 51% no-repeat,
-    radial-gradient(circle at calc(100% - var(--stw) - .5px) 100%, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) bottom / 100% 51% no-repeat; }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::before, [data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::after { content: ''; position: absolute; right: calc(var(--stw) - .5px - var(--hr));
-  box-sizing: border-box; width: calc(var(--hr) * 2); height: calc(var(--hr) * 2); border: 1px solid var(--mt-edge); border-radius: 50%; pointer-events: none; } /* 홈 고리 */
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::before { top: calc(-1px - var(--hr)); } [data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::after { bottom: calc(-1px - var(--hr)); }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .item { align-self: center; }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > div { align-self: center; padding-block: 14px 12px; }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn { flex: none; display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 4px; width: var(--stw); height: auto; min-height: 0; margin: 3px 0 0; padding: 6px 8px; white-space: normal;
-  border: 0; border-left: var(--mt-perf) var(--mt-edge); border-radius: 0 var(--mt-r-sm) var(--mt-r-sm) 0; background-color: color-mix(in srgb, var(--kc) 14%, var(--mt-ink));
-  color: color-mix(in srgb, var(--kc) var(--data-mix), var(--c-text)); font: 400 var(--fs-lg)/1.1 var(--f-display); } /* 뜯는 칸 = 값 · 사기 */
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn, [data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn:is(:hover, :active) { filter: none; translate: none; } /* 쿠폰의 뜯는 칸 = 판의 일부 (그림자 없음) */
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn:hover:not(:disabled) { border-color: var(--mt-edge); background-color: color-mix(in srgb, var(--kc) 28%, var(--mt-ink)); }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn:disabled { border-color: var(--mt-edge); color: var(--c-text-2); }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item.sold { opacity: 1; }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item.sold > :not(.btn) { opacity: .4; }
-[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item.sold > .btn { color: var(--mt-paper); font-family: var(--f-mono); font-size: var(--fs-xs); letter-spacing: .12em; } /* 쓴 쿠폰: 뜯는 칸만 남는다 */
 /* 상인 상점 */
 [data-ui-theme="metro"] .shop-ov { background: linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--bg); }
 [data-ui-theme="metro"] .so-npc { border-right: 1.5px solid var(--mt-edge); }
@@ -639,7 +617,25 @@
 [data-ui-theme="metro"] .card.mn:is(.tG, .tA) .mn-rk i { border-radius: 0; rotate: 45deg; } /* 고급 · 희귀 = 마름모 */
 [data-ui-theme="metro"] .card.mn:is(.tL, .tU) .mn-rk i { width: 13px; height: 13px; border-radius: 0; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); } /* 전설 · 고유 = 별 */
 [data-ui-theme="metro"] .card.mn:is(.tT, .tS) .mn-rk i { border-radius: 0; } /* 포탑 · 합성 재료 = 네모 */
-@media (max-width: 640px) { [data-ui-theme="metro"] .card.mn { --mh: 64px; } [data-ui-theme="metro"] .mn-hd .item { width: 40px; height: 40px; } [data-ui-theme="metro"] .mn-hd > .li { width: 28px; height: 28px; } [data-ui-theme="metro"] .mn-hd::after { font-size: var(--fs-xl); } }
+[data-ui-theme="metro"] .card.mn:is(.tM, .tK) .mn-rk i { width: 11px; height: 10px; border-radius: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); } /* 개조부품(문장 · 신비 부품) · 소모품 = 육각 (색 = 카드 색 --tc, itemTone) */
+/* 사는 미니 카드 (합성 공방 · 속보 · 투자 — app/modals.ts miniCard price): 카드 전체 = 사기 단추, 아래 표식 줄 = 받는 것 | 값 (화폐 아이콘 + 큰 숫자).
+   못 사면 칸 그림자 없음 + 값 = 위험색 (가리키면 이유), 산 것 = 흐리게 + 값 자리에 계약함 · 교환함 · 판매됨. 창 밖이라 숫자키가 없어 순번은 그리지 않는다.
+   투자 = 크레딧색 · 속보 = 보라 (노드 머리표 색), 받는 것은 등급이 아니라 표식 모양 없이 말만 */
+[data-ui-theme="metro"] .card.mn.tI { --tc: var(--c-credit); } [data-ui-theme="metro"] .card.mn.tN { --tc: var(--mt-a); }
+[data-ui-theme="metro"] .card.mn.buy .mn-hd::after { content: none; }
+[data-ui-theme="metro"] .card.mn:is(.tI, .tN) .mn-rk i { display: none; }
+[data-ui-theme="metro"] .card.mn.buy .mn-ft { justify-content: space-between; gap: 8px; }
+[data-ui-theme="metro"] .card.mn.buy .mn-rk { min-width: 0; font: 700 var(--fs-xs)/1.2 var(--f-body); letter-spacing: .02em; }
+[data-ui-theme="metro"] .mn-pr { flex: none; display: inline-flex; align-items: center; gap: 4px; color: var(--c-credit); font: 400 var(--fs-xl)/1 var(--f-display); font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] .mn-pr b { font-weight: 400; } [data-ui-theme="metro"] .mn-pr .li { width: 16px; height: 16px; }
+[data-ui-theme="metro"] .mn-pr small { color: var(--c-text-2); font: 700 var(--fs-xs)/1 var(--f-body); letter-spacing: .02em; }
+[data-ui-theme="metro"] .card.mn.tN .mn-pr { color: var(--mt-a); }
+[data-ui-theme="metro"] .card.mn.poor .mn-pr { color: var(--c-bad); }
+[data-ui-theme="metro"] .card.mn.sold { opacity: .5; }
+[data-ui-theme="metro"] .card.mn.sold .mn-pr { color: var(--c-text-2); font: 700 var(--fs-sm)/1 var(--f-body); letter-spacing: .02em; }
+[data-ui-theme="metro"] .tslot.off { --cs: transparent; } /* 못 누름 = 그림자 없음 (35번 — 누를 수 없는 것은 평평하게) */
+[data-ui-theme="metro"] .card.mn:disabled { cursor: default; }
+@media (max-width: 640px), (max-height: 560px) { [data-ui-theme="metro"] .card.mn { --mh: 64px; } [data-ui-theme="metro"] .mn-hd .item { width: 40px; height: 40px; } [data-ui-theme="metro"] .mn-hd > .li { width: 28px; height: 28px; } [data-ui-theme="metro"] .mn-hd::after { font-size: var(--fs-xl); } }
 /* ── 공명 등급 증강 = 스텁 줄 (디자인 시스템 Stub row): 아이콘 · 이름 · 효과 | 절취선 + 위아래 홈 | 오른쪽 스텁 = 순번(단축키) + 머리표. 고르면 스텁이 선택색, 전설 증강은 스텁이 전설 빨강 */
 [data-ui-theme="metro"] .aug-list:not(.sch-list) { counter-reset: ao; }
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) { --stc: color-mix(in srgb, var(--mt-a) 22%, var(--mt-ink)); --sti: var(--mt-paper); counter-increment: ao; position: relative; grid-template-columns: 48px minmax(0, 1fr) 62px; overflow: visible; padding-right: 0; }
@@ -855,6 +851,7 @@
 @media (min-width: 1024px) and (min-height: 561px) { /* 넓고 높은 화면만 (폰 가로 844×390 에서 두 줄로 밀려 3번째 카드 · 새로고침에 닿지 못했다). 카드는 한 줄로 흐르고 각 칸은 최대 너비 안에서 줄어든다 → 1024px 에서도 한 줄 */
   [data-ui-theme="metro"] .gc-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 284px); justify-content: center; }
   [data-ui-theme="metro"] .mn-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 248px); justify-content: center; }
+  [data-ui-theme="metro"] .mn-row.mn-buy { display: flex; flex-wrap: wrap; justify-content: flex-start; } [data-ui-theme="metro"] .mn-buy > .tslot { flex: 1 1 200px; max-width: 248px; } /* 사는 카드: 왼쪽부터, 많으면 (속보 6장) 칸을 200px 까지 줄여 한 줄 · 그래도 넘치면 줄바꿈 */
   [data-ui-theme="metro"] .dp-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 320px); justify-content: center; }
   [data-ui-theme="metro"] .pv-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 264px); justify-content: center; }
 }
