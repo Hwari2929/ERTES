@@ -28,7 +28,7 @@ export function routeMapOn(run: RunState): boolean {
 }
 
 // ── 색: 테마 토큰을 읽어 #rrggbb 로 (섞기 · 보간용)
-type Pal = { bg: string; panel: string; panel2: string; line: string; soft: string; text: string; t2: string; t3: string; sel: string; streak: string; bad: string; divine: string; info: string; metro: boolean; lanes: string[]; signal: string };
+type Pal = { bg: string; panel: string; panel2: string; line: string; soft: string; text: string; t2: string; t3: string; sel: string; streak: string; bad: string; divine: string; info: string };
 function hexOf(v: string): string {
   const p = document.createElement('i');
   p.style.color = v; p.style.display = 'none';
@@ -43,10 +43,7 @@ const mix = (a: string, b: string, k: number) => { const A = rgb(a), B = rgb(b);
 function palette(): Pal {
   const cs = getComputedStyle(document.documentElement), t = (n: string) => hexOf(cs.getPropertyValue(n).trim() || 'currentColor');
   const bg = t('--bg'), line = t('--line'), t2 = t('--c-text-2');
-  const metro = document.documentElement.dataset.uiTheme === 'metro';
-  // 메트로 노선도: 갈래 노선색 = 보라 · 민트 · 정보 파랑 (복숭아 = 지나온 길 · 선택이라 노선에서 뺀다), 보스로 가는 노선 = 신호 빨강
-  const lanes = metro ? [t('--mt-a'), t('--mt-b'), t('--c-info')] : [];
-  return { bg, panel: t('--panel'), panel2: t('--panel-2'), line, soft: mix(line, bg, .4), text: t('--c-text'), t2, t3: mix(t2, bg, .38), sel: t('--c-select'), streak: t('--c-streak'), bad: t('--c-bad'), divine: t('--c-divine'), info: t('--c-info'), metro, lanes, signal: metro ? t('--mt-d') : t('--c-bad') };
+  return { bg, panel: t('--panel'), panel2: t('--panel-2'), line, soft: mix(line, bg, .4), text: t('--c-text'), t2, t3: mix(t2, bg, .38), sel: t('--c-select'), streak: t('--c-streak'), bad: t('--c-bad'), divine: t('--c-divine'), info: t('--c-info') };
 }
 
 // ── SVG 도우미
@@ -206,10 +203,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     return o;
   }
   function apply(k: Tok, v: St) {
-    k.ring.setAttribute('r', String(v.r));
-    // 메트로 = 역 표지: 테두리를 종이색으로 굵게 (현재 = 선택색 · 지난 = 회색), 아이콘은 노드 유형 색 그대로
-    if (C.metro) { k.ring.setAttribute('stroke', v.kind === 'cur' ? v.col : v.kind === 'past' ? C.t3 : mix(C.text, v.col, .25)); k.ring.setAttribute('stroke-width', String(v.sw + 1.4)); }
-    else { k.ring.setAttribute('stroke', v.col); k.ring.setAttribute('stroke-width', String(v.sw)); }
+    k.ring.setAttribute('r', String(v.r)); k.ring.setAttribute('stroke', v.col); k.ring.setAttribute('stroke-width', String(v.sw));
     k.ic.style.color = v.col; k.ic.firstElementChild?.setAttribute('stroke-width', String(v.isw));
     k.sg.setAttribute('transform', `scale(${v.sc})`);
     k.num.setAttribute('y', String(v.ny)); k.num.setAttribute('fill', v.ncol); k.num.style.opacity = String(v.op);
@@ -1531,15 +1525,6 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const trailC = o.casing && o.casingLayer ? el('polyline', { fill: 'none', stroke: C.bg, 'stroke-width': tW + o.casing, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, o.casingLayer) : null;
     const trailEl = el('polyline', { fill: 'none', stroke: tS, 'stroke-width': tW, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, o.edgeLayer); // 표시기가 지나며 칠하는 길
     const toks = rows.map((row, i) => row.map((t, j) => { const k = token(o.nodeLayer, i, t); k.g.dataset.j = String(j); if (!reduce) k.g.style.transition = 'opacity .5s'; const [x, y] = o.nodeAt(i, j); k.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); return k; }));
-    if (C.metro) { // 환승 고리: 들어오거나 나가는 갈래가 둘 이상인 노드 = 환승역 (바깥 고리 하나 더)
-      const indeg = rows.map((row) => row.map(() => 0));
-      for (const ed of edges) indeg[ed.i + 1][ed.k]++;
-      rows.forEach((row, i) => row.forEach((_, j) => {
-        if ((L[i]?.[j]?.length || 0) < 2 && indeg[i][j] < 2) return;
-        const k = toks[i][j];
-        k.sg.insertBefore(el('circle', { r: 25, fill: C.bg, stroke: C.text, 'stroke-width': 1.6, class: 'rm-xfer' }), k.ring);
-      }));
-    }
     // 항로 표지: 지나간 연결선 가운데에 하나씩 (지나면 켜진다) + 고른 노드로 가는 연결선 (꺼진 채 점멸)
     const beacons = new Map<Edge, { wave: SVGElement; dia: SVGElement; dot: SVGElement; lab: SVGElement; on: boolean; at: number; g: SVGElement }>();
     const beacon = (ed: Edge) => {
@@ -1596,15 +1581,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const toPick = ed.i + 1 === step && ed.j === prev && ed.k === pj && !S0.r.node;
         if (ed.i + 1 === step && ed.j === prev && ed.k === pj) pickEdge = ed;
         const mine = ed === trail || (ed.i >= step && S0.mine[ed.i].has(ed.j) && S0.mine[ed.i + 1].has(ed.k)), alt = ed.i >= step ? S0.all[ed.i].has(ed.j) && S0.all[ed.i + 1].has(ed.k) : ed.i + 1 === step && ed.j === prev && S0.opts.includes(ed.k);
-        const kind = taken ? 'taken' : toPick ? 'toPick' : mine ? 'mine' : alt ? 'alt' : 'none';
-        let [stroke, sw, op, dash] = o.style[kind];
-        if (C.metro && kind !== 'none') { // 메트로 노선도: 갈래마다 노선색 (보스로 가는 노선 = 신호 빨강), 지나온 길 = 선택색, 굵기로 상태
-          const lc = rows[ed.i + 1][ed.k] === 'boss' ? C.signal : C.lanes[ed.k % C.lanes.length];
-          if (kind === 'taken') { stroke = C.sel; sw = Math.max(sw * 1.8, 4.5); op = 1; }
-          else if (kind === 'toPick') { stroke = lc; sw = Math.max(sw * 2, 4); }
-          else if (kind === 'mine') { stroke = lc; sw = Math.max(sw * 2.2, 4.5); op = 1; }
-          else { stroke = lc; sw = Math.max(sw * 1.6, 2.6); op = .5; }
-        }
+        const kind = taken ? 'taken' : toPick ? 'toPick' : mine ? 'mine' : alt ? 'alt' : 'none', [stroke, sw, op, dash] = o.style[kind];
         ed.e.style.stroke = stroke; ed.e.style.strokeWidth = String(sw); ed.e.style.opacity = String(op);
         if (ed.c) { ed.c.style.strokeWidth = String(sw + (o.casing || 0)); ed.c.style.opacity = String(op); }
         if (dash) ed.e.setAttribute('stroke-dasharray', dash); else ed.e.removeAttribute('stroke-dasharray');
