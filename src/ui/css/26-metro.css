@@ -550,7 +550,7 @@
 
 [data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
 [data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }
-/* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 · 아주 옅은 점 격자 / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과.
+/* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 (점 격자 없음 — 점 격자는 뒷면만, 스캔이 지나가면 사라진다) / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과.
    등급색 = 일반 흰(--g-C) · 희귀 파랑(--g-A) · 전설 빨강(--g-L) — 원판 · 머리 좌하단 망점 · 그림자 판(.gslot::before). 뒷면(카드 돌리기 전) = 교통카드 뒷면과 같은 문법 + GLOBAL 일련번호 */
 [data-ui-theme="metro"] .gc-row { counter-reset: gc; gap: 22px; }
 [data-ui-theme="metro"] .gslot { --gh: 124px; } /* 머리 높이 = 칸에서 정한다 (카드 · 그림자 판이 함께 읽는다, 폰 64px) */
@@ -564,11 +564,11 @@
   border-radius: var(--mt-r) var(--mt-r) 0 0; color: var(--mt-paper); font-size: var(--fs-2xl);
   background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 24px, transparent 24.5px), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 44px, transparent 44.5px),
     linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
-    radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 머리: 원판 위 문장 */
+    var(--mt-ink); } /* 머리: 원판 위 문장 */
 [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 44px; --gdi: 30px;
   background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 var(--gdi), transparent calc(var(--gdi) + .5px)), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 var(--gd), transparent calc(var(--gd) + .5px)),
     linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
-    radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 아이콘이 있으면 원판 안 잉크 동전을 키운다 (뒷면 ∞ 자리와 같은 동전) */
+    var(--mt-ink); } /* 아이콘이 있으면 원판 안 잉크 동전을 키운다 (뒷면 ∞ 자리와 같은 동전) */
 [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 36px; height: 36px; transform: none; } /* 전역 증강 아이콘 = 종이색 선 (ui/gicons.ts) */
 [data-ui-theme="metro"] .gc-kind::before { content: counter(gc, decimal-leading-zero) ' · '; } /* 순번 */
 [data-ui-theme="metro"] .gcard::before, [data-ui-theme="metro"] .gcard[data-key]::before { content: ''; position: absolute; left: 0; top: calc(var(--gh) - var(--gds)); z-index: 1; width: var(--gds); height: var(--gds); border-radius: var(--mt-r) 0 0 0; pointer-events: none;
@@ -799,6 +799,7 @@
 [data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::before, [data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::after {
   content: ''; position: absolute; top: calc(var(--ny) - 10.5px); bottom: auto; z-index: 1; box-sizing: border-box; width: 21px; height: 21px; min-width: 0; padding: 0;
   border: 1.5px solid; border-color: inherit; border-radius: 50%; background: none; box-shadow: none; pointer-events: none; }
+[data-ui-theme="metro"] .gslot > .gcard > b::before, [data-ui-theme="metro"] .gslot > .gcard > b::after { z-index: var(--z-card-fx); } /* 전역 증강: 뒷면(.cback) 위 — 스캔 전에도 홈 둘레 고리가 보인다 */
 [data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::before { left: -12px; right: auto; } [data-ui-theme="metro"] :is(.gcard > b, .card.mn > b, .dp-card > b)::after { right: -12px; left: auto; }
 /* 칸(.tslot) = 그림자: drop-shadow (거리 --so: 기본 4 · 가리킴 6 · 누름 0 · 고름 6 · 색 --cs) — 카드 자신의 상자 그림자는 마스크에 잘리므로 끈다 */
 [data-ui-theme="metro"] .tslot { --so: 4px; --cs: var(--mt-sh); display: grid; filter: drop-shadow(var(--so) var(--so) 0 var(--cs)); transition: --so .09s cubic-bezier(.2, .9, .2, 1); }
@@ -1019,3 +1020,5 @@
 @keyframes mt-gc-scanfade { 0% { opacity: 0; } 5% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes mt-gc-flash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes mt-gc-beep { from { border-color: var(--tc); } } /* 카드 테두리 → 홈 고리(border-color: inherit)도 함께 */
+[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard > b::before, [data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard > b::after { animation: mt-gc-ringflash .55s ease-out; animation-delay: calc(var(--t0) + var(--sd)); }
+@keyframes mt-gc-ringflash { from { border-color: var(--tc); box-shadow: 0 0 0 1.5px var(--tc), 0 0 14px 3px color-mix(in srgb, var(--tc) 45%, transparent); } } /* '삑' 홈 고리 = 테두리 고리와 같은 3px + 카드 쪽 번짐 (고리 안쪽은 구멍이라 비친다) */
