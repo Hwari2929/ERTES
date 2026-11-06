@@ -991,7 +991,7 @@
 [data-ui-theme="metro"] .nt-rows dd { font-family: var(--f-mono); }
 /* 전역 증강 등장 (메트로 전용, deal-box · flip = app/carousel.ts revealCards): 뒤집기 대신 승차권 발권 —
    ① 뒷면(교통카드)이 아래에서 표처럼 솟아오르고 ② 일러스트를 기다린 뒤 ∞ 동전 자리에 구멍이 뚫려(디자인 시스템 punch) 벌어지며 앞면이 드러나고
-   ③ 등급 망점이 계단식으로 찍힌다 (희귀 · 전설일수록 넓고 진하다), 전설은 한 번 쿵 내려앉는다. 움직임 줄이기 = 0.01초 (12-banner-mobile.css) */
+   전설은 한 번 쿵 내려앉는다. 머리 등급 망점은 앞면의 일부라 처음부터 있다 (따로 찍지 않는다, 2026-11-06 사용자 결정). 움직임 줄이기 = 0.01초 (12-banner-mobile.css) */
 @property --ph { syntax: '<length>'; inherits: false; initial-value: 0px; }
 [data-ui-theme="metro"] .gcard .cback { -webkit-mask: radial-gradient(circle at 50% 36%, transparent var(--ph), var(--c-black) calc(var(--ph) + .5px)); mask: radial-gradient(circle at 50% 36%, transparent var(--ph), var(--c-black) calc(var(--ph) + .5px)); }
 [data-ui-theme="metro"] .deal-box > .gslot { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both; animation-delay: calc(var(--i, 0) * .08s); } /* 솟기 · 쿵 = 칸 (그림자 판이 카드와 함께) */
@@ -1004,5 +1004,3 @@
 @keyframes mt-gc-live { from { pointer-events: none; } to { pointer-events: auto; } }
 @keyframes mt-gc-slam { from { transform: scale(1.06); } to { transform: none; } }
 @keyframes mt-gc-punch { 0% { --ph: 0px; animation-timing-function: cubic-bezier(.3, 1.5, .5, 1); } 22% { --ph: 16px; } 36% { --ph: 16px; animation-timing-function: cubic-bezier(.7, 0, .2, 1); } 100% { --ph: 380px; } }
-@media (prefers-reduced-motion: no-preference) { [data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard::before { animation: mt-gc-dots .5s steps(5) both; animation-delay: calc(var(--i, 0) * .14s + .34s); } }
-@keyframes mt-gc-dots { from { opacity: 0; } }
