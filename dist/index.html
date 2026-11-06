@@ -6858,6 +6858,49 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .um-art::before { content: 'AGENT'; position: absolute; left: 10px; top: 9px; z-index: 1; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
 [data-ui-theme="metro"] .um-art::after { content: ''; position: absolute; inset: 55% 0 0; pointer-events: none; background: linear-gradient(transparent, color-mix(in srgb, var(--mt-a) 26%, transparent)); }
 [data-ui-theme="metro"] .um-sum :is(.us-k, .us-gk) { color: var(--mt-b); font: 600 var(--fs-2xs)/1.6 var(--f-mono); letter-spacing: .12em; }
+/* ── 메뉴 · 설정 (디자인 시스템 Tabs · Controls): 메뉴 / 설정 = 서류철 탭 (순번 01 · 02 모노 · 고른 탭 = 종이 면), 구획 제목 = 민트 네모,
+   고르기 줄(.seg) = 세그먼트 (붙은 칸 · 고른 칸 = 종이 면), 슬라이더 = 눈금 자 위 네모 손잡이, 숫자 칸 = 1.5px 모노 칸 */
+[data-ui-theme="metro"] .menu-tabs { counter-reset: mtab; gap: 4px; margin-bottom: 4px; border-bottom: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] .menu-tabs > .btn { --sh: transparent; counter-increment: mtab; min-height: 34px; margin-bottom: -1.5px; padding-inline: 14px; border: 1.5px solid var(--mt-edge); border-bottom: 0; border-radius: var(--mt-r-sm) var(--mt-r-sm) 0 0;
+  background: var(--panel-2); color: var(--c-text-2); box-shadow: none; translate: none; filter: none; }
+[data-ui-theme="metro"] .menu-tabs > .btn::before { content: counter(mtab, decimal-leading-zero); margin-right: 7px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .1em; opacity: .75; }
+[data-ui-theme="metro"] .menu-tabs > .btn:not(.on):hover { border-color: var(--mt-hover); color: var(--c-text); }
+[data-ui-theme="metro"] .menu-tabs > .btn.on { background: var(--mt-paper); border-color: var(--mt-paper); color: var(--mt-on); }
+[data-ui-theme="metro"] .modal:has(> .menu-tabs) > h3 { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
+[data-ui-theme="metro"] .modal:has(> .menu-tabs) > h3::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); }
+[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) { gap: 0; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); overflow: hidden; background: var(--mt-ink); }
+[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn { --sh: transparent; margin: 0; border: 0; border-radius: 0; background: none; color: var(--c-text-2); box-shadow: none; translate: none; filter: none; }
+[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn + .btn { border-left: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn:not(.on):hover { background: color-mix(in srgb, var(--mt-paper) 8%, transparent); color: var(--c-text); }
+[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn.on { background: var(--mt-paper); color: var(--mt-on); }
+[data-ui-theme="metro"] .meter-tabs { display: grid; grid-template-columns: 1fr 1fr; } /* 미터 탭 4개 = 2 × 2 세그먼트 (좁은 패널에서 한 칸만 줄바꿈되지 않게) */
+[data-ui-theme="metro"] .meter-tabs > .btn + .btn { border-left: 0; }
+[data-ui-theme="metro"] .meter-tabs > .btn:nth-child(even) { border-left: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] .meter-tabs > .btn:nth-child(n + 3) { border-top: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] .board-head .speed > .btn[data-key]::before { top: -9px; } /* 키캡은 세그먼트 밖으로 (overflow 로 잘리지 않게 위로) */
+[data-ui-theme="metro"] .board-head .speed:not(:has(input)) { overflow: visible; }
+[data-ui-theme="metro"] .modal input[type="range"] { -webkit-appearance: none; appearance: none; height: 24px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--mt-paper) 32%, transparent) 0 1px, transparent 1px 10%) bottom / 100% 6px no-repeat,
+  linear-gradient(var(--mt-edge), var(--mt-edge)) 0 9px / 100% 2px no-repeat; cursor: pointer; }
+[data-ui-theme="metro"] .modal input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 20px; margin-top: -2px; border: 1.5px solid var(--mt-ink); border-radius: var(--r-sm); background: var(--mt-paper); box-shadow: 2px 2px 0 var(--mt-sh); }
+[data-ui-theme="metro"] .modal input[type="range"]::-moz-range-thumb { width: 14px; height: 20px; border: 1.5px solid var(--mt-ink); border-radius: var(--r-sm); background: var(--mt-paper); box-shadow: 2px 2px 0 var(--mt-sh); }
+[data-ui-theme="metro"] .modal input[type="range"]:focus-visible { outline: 2px solid var(--mt-a); outline-offset: 3px; }
+[data-ui-theme="metro"] .pref .pn input { border: 1.5px solid var(--mt-edge); border-radius: var(--r-sm); background: var(--mt-ink); font-variant-numeric: tabular-nums; }
+/* ── 지정 소집 = 펀치 (디자인 시스템 PUNCH): 고른 칸 줄 = PUNCH 머리표 + 고리 (빈 칸 = 뚫리지 않은 고리 · 고르면 시너지색으로 뚫린 구멍 + 이름),
+   시너지 칸 = 각진 칸 · 누르는 것이라 작은 그림자, 고른 칸 = 오른쪽 위 펀치 구멍 · 선택색 그림자, 더 고를 수 없는 칸 = 빗금 (잠김) */
+[data-ui-theme="metro"] .ms-picks { align-items: center; gap: 8px; }
+[data-ui-theme="metro"] .ms-picks::before { content: 'PUNCH'; color: var(--c-text-2); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .ms-pick:not(.on) { min-width: 0; width: 26px; height: 26px; padding: 0; border: 1.5px solid color-mix(in srgb, var(--mt-paper) 40%, var(--mt-edge)); border-radius: 50%; background: none; font: 600 var(--fs-2xs)/1 var(--f-mono); }
+[data-ui-theme="metro"] .ms-pick.on { height: 28px; padding: 0 10px 0 3px; border: 1.5px solid var(--c); border-radius: var(--r-pill); background: var(--mt-ink); }
+[data-ui-theme="metro"] .ms-pick.on .syn-dia { width: 20px; height: 20px; transform: none; border: 0; border-radius: 50%; background: var(--c); color: var(--mt-on); }
+[data-ui-theme="metro"] .ms-pick.on .syn-dia > i { transform: none; }
+[data-ui-theme="metro"] .ms-syn { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 3px 3px 0 var(--mt-sh); transition: translate .09s, box-shadow .09s, border-color .15s; }
+[data-ui-theme="metro"] .ms-syn.own { border-color: color-mix(in srgb, var(--c) 50%, var(--mt-edge)); }
+[data-ui-theme="metro"] .ms-syn:not(:disabled, .on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--mt-sh); }
+[data-ui-theme="metro"] .ms-syn:not(:disabled):active { translate: 3px 3px; box-shadow: 0 0 0 var(--mt-sh); }
+[data-ui-theme="metro"] .ms-syn.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--mt-ink)); box-shadow: 4px 4px 0 var(--c-select); }
+[data-ui-theme="metro"] .ms-syn.on::after { content: ''; position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--mt-ink), 0 0 0 3.5px var(--c); } /* 펀치 구멍 */
+[data-ui-theme="metro"] .ms-syn:disabled { box-shadow: none; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--mt-paper) 9%, transparent) 6px 7.5px), var(--mt-ink); }
+[data-ui-theme="metro"] .ms-syn.ms-demo { box-shadow: none; }
 /* ══ 정보 화면 (편성 · 전투 · 지도 옆 패널 · 메뉴 · 설정): 디자인 시스템 '오래 보는 화면' — 평평한 면 · 1.5px 선 · 모노 머리표 · 탭 정렬 숫자.
    누를 것(단추 · 고르는 카드 · 분대 줄 · 함선 관리)만 선명한 그림자, 담는 판은 평평 (35번). 항로도 그림은 그대로 둔다 */
 /* 구획 제목: 큰 제목 글꼴 + 노선색 네모 표식 */
