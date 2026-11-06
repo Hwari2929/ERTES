@@ -263,10 +263,12 @@ export function routeHold(run: RunState): boolean {
  *  tc = 등급색 대신 쓰는 카드 색 (문장 = 시너지 색 등, itemTone). 사는 카드(price, 투자 · 속보 · 합성 공방): 카드 전체 = 사기 단추, 값 = 아래 줄 오른쪽,
  *  off = 못 삼 (산 것 · 값 부족 — 그림자 없음, 눌러도 엔진이 이유를 알린다 · 상세 팝오버는 그대로 보인다), 산 것은 값 자리에 계약함 같은 말.
  *  번호(.mn-n) = 숫자키 — 창 밖(사는 카드)에는 숫자키가 없어 그리지 않는다 */
-function miniCard(o: { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; tc?: string; price?: string; off?: boolean; more?: string }) {
+export type MiniCardOpts = { a: string; v: string | number; k: string; tier: string; icon: string; name: string; desc: string; mark: string; cls?: string; tc?: string; price?: string; off?: boolean; more?: string;
+  /** 그림 칸 오른쪽 위 (점 대신): 할인 −n% · 상인 전용 같은 짧은 표식 */ flag?: string; /** 단추에 덧붙일 속성 (확인 팝업 기준점 data-tag 등) */ attrs?: string };
+export function miniCard(o: MiniCardOpts) {
   const more = o.more ?? `<b>${o.name}</b><small>${esc(o.mark)}${o.price ? ` · ${o.price}` : ''}</small><span>${o.desc}</span>`;
-  return `<span class="tslot mslot${o.off ? ' off' : ''}"><button class="card mn t${o.tier}${o.price ? ' buy' : ''}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.off ? ' aria-disabled="true"' : ''}${o.tc ? ` style="--tc:${o.tc}"` : ''}>`
-    + `<span class="mn-hd"><span class="mn-tl"><span>${esc(o.k)}</span><i aria-hidden="true"></i></span>${o.icon.replace(/ title="[^"]*"/g, '').replace(/ style="--(?:hc|sc):[^"]*"/g, '')}${o.price ? '' : '<span class="mn-n" aria-hidden="true"></span>'}</span>`
+  return `<span class="tslot mslot${o.off ? ' off' : ''}"><button class="card mn t${o.tier}${o.price ? ' buy' : ''}${o.cls ? ` ${o.cls}` : ''}" data-a="${o.a}" data-v="${o.v}"${o.attrs ? ` ${o.attrs}` : ''}${o.off ? ' aria-disabled="true"' : ''}${o.tc ? ` style="--tc:${o.tc}"` : ''}>`
+    + `<span class="mn-hd"><span class="mn-tl"><span>${esc(o.k)}</span>${o.flag || '<i aria-hidden="true"></i>'}</span>${o.icon.replace(/ title="[^"]*"/g, '').replace(/ style="--(?:hc|sc):[^"]*"/g, '')}${o.price ? '' : '<span class="mn-n" aria-hidden="true"></span>'}</span>`
     + `<span class="mn-lo"><b>${o.name}</b><span class="mn-desc">${o.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${esc(o.mark)}</span>${o.price ? `<span class="mn-pr">${o.price}</span>` : ''}</span></span>`
     + `<span class="mn-more" hidden>${more}</span></button></span>`;
 }

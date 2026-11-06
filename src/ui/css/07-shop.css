@@ -42,7 +42,7 @@
 .so-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 10px; }
 .so-hd h1 { font-size: var(--fs-2xl); }
 .kv-inv.full b, .kv-keep.zero b { color: var(--c-text-2); }
-.so-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 300px); gap: 12px; min-height: 0; overflow: auto; align-content: start; padding-bottom: 8px; }
+.so-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-height: 0; overflow: auto; align-content: start; padding-bottom: 8px; }
 .so-shelf { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .so-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .so-cnt { font-size: var(--fs-sm); color: var(--c-text-2); }
@@ -53,70 +53,17 @@
 .so-rf b { display: inline-flex; align-items: center; gap: 2px; font: 700 var(--fs-md) var(--f-mono); color: var(--c-credit); }
 .so-rf b .li { width: 13px; height: 13px; }
 .so-rf b.free { color: var(--c-text); font-family: var(--f-body); font-size: var(--fs-sm); }
-.sg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.sg-card { position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: 6px; min-height: 124px; min-width: 0; padding: 8px 9px; text-align: left; color: var(--c-text); cursor: pointer;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); transition: border-color .15s, background .15s; }
-.sg-card:hover { border-color: color-mix(in srgb, var(--c-select) 45%, var(--line)); }
-.sg-card.on { border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 8%, var(--panel)); }
-.sg-card.sold { background: var(--bg); }
-.sg-card.sold > :not(.sg-foot) { opacity: calc(.4 + var(--op-lift)); }
-/* 진열하지 않은 칸 (상점마다 6~9개): 빈 선반 — 면 · 내용 · 강조 없이 옅은 테두리와 아래쪽 선반 줄만. 품절 (바탕 칸 + 흐린 내용 + 도장)과 다른 모양, 3×3 자리는 그대로 */
-.sg-card.sg-empty { cursor: default; background: transparent; border-color: var(--line-soft); }
-.sg-card.sg-empty:hover { border-color: var(--line-soft); }
-.sg-card.sg-empty::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 14px; height: 2px; border-radius: var(--r-sm); background: var(--line-soft); }
-.sg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
-.sg-top .item { width: 38px; height: 38px; cursor: inherit; }
-.sg-top .item .ii { width: 22px; height: 22px; }
-.sg-kind { display: grid; justify-items: end; gap: 2px; font-size: var(--fs-2xs); color: var(--c-text-2); text-align: right; line-height: 1.25; }
-.sg-ex { font-style: normal; padding: 0 5px; border: 1px solid color-mix(in srgb, var(--c) 70%, var(--line)); border-radius: var(--r-pill); color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
-.sg-name { font-size: var(--fs-base); line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.sg-eff { display: none; font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.4; }
-.sg-eff.tx { -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: calc(1.4em * 2); }
-.sg-eff /* 잠재능력 줄 (장비 팝업 · 백수정 조각 합성 확인): 마름모 + 이름 + 값 */
+/* 잠재능력 줄 (장비 팝업 · 백수정 조각 합성 확인 · 미니 카드 상세): 마름모 + 이름 + 값 */
 .ip-pots { display: grid; gap: 3px; margin-top: 4px; }
 .ip-pot { display: flex; align-items: baseline; gap: 6px; font-size: var(--fs-sm); color: var(--c-text-2); }
 .ip-pot b { color: var(--c-text); font-weight: 700; white-space: nowrap; flex: none; }
 .ip-pot svg { width: 8px; height: 8px; flex: none; align-self: center; fill: var(--g-S); }
 .ip-pot.empty svg { fill: none; stroke: var(--g-S); stroke-width: 1.4px; }
 .ip-stats { gap: 2px 8px; color: var(--c-text); }
-.sg-eff .ip-stats .li, .sg-eff .ip-stats .mi { width: 12px; height: 12px; }
-@media (min-width: 1101px) and (min-height: 760px) {
-  .sg-card { grid-template-rows: auto auto 1fr auto; min-height: 168px; }
-  .sg-eff { display: block; }
-  .sg-eff.tx { display: -webkit-box; }
-  .sg-top .item { width: 44px; height: 44px; }
-  .sg-top .item .ii { width: 26px; height: 26px; }
-}
 .kv-int .kv-v { gap: 3px; }
 .kv-int .kv-v small { color: var(--c-text-2); font-size: var(--fs-xs); }
 .ask-pop:has(.sb-pay) { width: 250px; }
-.sg-card.tS .sg-name, .sd-name.tS { color: var(--g-S); } .sg-card.tC .sg-name, .sd-name.tC { color: var(--g-C); } .sg-card.tG .sg-name, .sd-name.tG { color: var(--g-G); } .sg-card.tA .sg-name, .sd-name.tA { color: var(--g-A); } .sg-card.tL .sg-name, .sd-name.tL { color: var(--g-L); }
-.sg-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 30px; }
-.sg-tag { display: inline-flex; align-items: center; gap: 3px; height: 30px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2); color: var(--c-credit); cursor: pointer; }
-.sg-tag:hover { border-color: var(--c-select); }
-.sg-tag .li { width: 14px; height: 14px; }
-.sg-tag b { font: 700 var(--fs-lg) var(--f-mono); }
-.sg-tag s { font: 400 var(--fs-xs) var(--f-mono); color: var(--c-text-2); }
-.sg-tag.poor b { color: var(--c-text-2); }
-.sg-tag.poor { border-style: dashed; }
-.sg-off { font: 700 var(--fs-xs) var(--f-mono); font-style: normal; padding: 2px 7px 2px 9px; color: var(--c-white); background: var(--c-sale); clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%); }
-.sg-sold { display: inline-grid; place-items: center; height: 26px; padding: 0 10px; font-size: var(--fs-sm); font-weight: 700; color: var(--c-text-2); border: 2px solid currentColor; border-radius: var(--r-sm); rotate: -6deg; letter-spacing: .2em; }
-.sg-err { font-style: normal; font-size: var(--fs-xs); color: var(--c-down); }
-.sd { display: grid; gap: 8px; align-content: start; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: var(--fs-base); min-width: 0; }
-.sd.empty { place-items: center; min-height: 120px; border-style: dashed; color: var(--c-text-2); font-size: var(--fs-sm); text-align: center; }
-.sd.empty p { margin: 0; }
-.sd-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
-.sd-head .item { width: 38px; height: 38px; cursor: default; }
-.sd-head > div { display: grid; }
-.sd-kind { font-size: var(--fs-xs); color: var(--c-text-2); }
-.sd-name { font-size: var(--fs-lg); }
-.sd-x { display: none; }
-.sd-st { display: flex; flex-wrap: wrap; gap: 4px; }
 .kv-sale b { color: var(--c-sale); }
-.sd-buy { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.sd-int { font-size: var(--fs-xs); color: var(--c-warn-ink); }
-.sd-rules { border-top: 1px solid var(--line-soft); padding-top: 6px; }
-.sd-rules .sc-row:first-child { margin-top: 0; }
 .so-foot { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 0 12px; background: linear-gradient(transparent, var(--bg) 30%); }
 .so-mu { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
 .so-mu .item { width: 22px; height: 22px; cursor: inherit; }
@@ -156,16 +103,6 @@
   .so-main { padding: 10px 12px 0; overflow: visible; }
   .so-hd h1 { font-size: var(--fs-xl); }
   .so-body { overflow: visible; }
-  .sg { gap: 6px; }
-  .sg-card { min-height: 112px; padding: 6px; gap: 4px; }
-  .sg-top .item { width: 32px; height: 32px; }
-  .sg-name { font-size: var(--fs-sm); }
-  .sg-tag { height: 28px; padding: 0 6px; }
-  .sg-tag b { font-size: var(--fs-md); }
-  .sg-foot { gap: 4px; }
-  .sd { position: fixed; z-index: var(--z-pop); left: 8px; right: 8px; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); max-height: 52vh; overflow-y: auto; box-shadow: var(--shadow-pop); border-color: var(--c-select); }
-  .sd.empty { display: none; }
-  .sd-x { display: inline-block; }
   .so-foot { padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) { .shop-ov { animation: none; } .so-bub.on { animation: none; } }

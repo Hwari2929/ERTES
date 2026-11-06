@@ -9,12 +9,15 @@ import { CATWHEEL } from '../data/despair';
 import { isPlaceable } from '../data/devices';
 import { MERCHANT_BY_ID, PETRA_AD, PETRA_ADS, type MerchantDef, type TalkKey } from '../data/merchants';
 import type { RunState, ShopSlot } from '../types';
+import type { MiniCardOpts } from '../app/modals';
 import { artURL, standURL } from './portraits';
 import { lineIcon } from './synicons';
 
 export interface ShopDeps {
   run(): RunState | null;
   itemIcon(id: string | null, attrs?: string): string;
+  /** 사는 미니 카드 (app/modals.ts miniCard — 합성 공방 · 장비 고르기와 같은 디자인 시스템 MiniCard) */
+  miniCard(o: MiniCardOpts): string;
   /** 소모품 색 (app/common.ts consColor — 보관함 육각 아이콘과 같은 색) */
   consColor(id: string): string;
   /** 카드 색 (app/common.ts itemTone — 소모품 · 문장 · 신비 부품) */
@@ -109,17 +112,18 @@ const tierCls = (id: string) => (CONSUMABLES[id]?.legend ? 'L' : itemInfo(id).ti
 /** 진열 카드 윗띠 색 (메트로 .sg-card --tc): 소모품 = 그 소모품 색 (전설 · 합성품 · 전투 보상 · 셰프), 문장 = 그 시너지 색, 신비 부품 = 신비학자 색.
  *  나머지 (재료 · 고급 · 희귀 · 전설 부품) 는 등급 클래스 tS/tC/tG/tA/tL 이 정한다 */
 const bandColor = (id: string) => D.itemTone(id);
-/** 칸의 짧은 성질 한 줄 (넓은 화면만): 능력치 줄이 있으면 그것, 없으면 효과 문장 */
-function cardEff(id: string) {
-  const { stats, eff } = D.itemBrief(id);
-  return stats ? `<span class="sg-eff">${stats}</span>` : eff ? `<span class="sg-eff tx">${D.statIc(esc(eff))}</span>` : '';
-}
-/** 가격표 (진열 칸 · 상세 공용). src: c = 칸 · d = 상세 (확인 팝업이 누른 쪽 옆에 뜨게) */
-function tag(run: RunState, s: ShopSlot, i: number, src: 'c' | 'd') {
-  if (s.sold) return '<span class="sg-sold">품절</span>';
-  const poor = run.credits < s.price;
-  const tip = `${s.base ? `원래 ${s.base} → ` : ''}${s.price} 크레딧${poor ? ' · 크레딧 부족' : ''} — 누르면 구매 확인`;
-  return `<button class="sg-tag${poor ? ' poor' : ''}${s.off ? ' sale' : ''}" data-a="shop-buy" data-v="${i}:${src}" data-tag="${src}${i}" title="${esc(tip)}" aria-label="${esc(`${itemInfo(s.item).name} 구매 — ${tip}`)}">${D.CR}${s.base ? `<s>${s.base}</s>` : ''}<b>${s.price}</b></button>`;
+/** 진열 칸 = 사는 미니 카드 (2026-11-06 사용자 결정: 합성 공방과 같은 장비 카드 — 오른쪽 상세 칸 없이 상세는 팝오버). 누르면 바로 ✕ / ✓ 구매 확인 (남는 크레딧 · 이자 변화 · 설명).
+ *  그림 칸 오른쪽 위 = 할인 −n% · 상인 전용, 아래 줄 = 종류 | 값 (할인 = 줄 그은 원가 + 값), 오류(크레딧 부족 · 보관함 가득) = 값 자리에, 품절 = 잠김 */
+function slotCard(run: RunState, s: ShopSlot, i: number) {
+  const id = s.item, it = itemInfo(id), poor = !s.sold && run.credits < s.price, err = SHOP.err?.i === i ? SHOP.err.msg : '';
+  const { stats, eff } = D.itemBrief(id), own = run.inventory.filter((x) => x === id).length;
+  const rules = id === R.TICKET ? ticketRules(run) : isPlaceable(id) ? D.devicePop(run, id) : '';
+  const meta = [esc(kindName(id)), s.ex ? '상인 전용' : '', own ? `보유 ${own}` : '', s.off && !s.sold ? `할인 −${s.off}% (원래 ${s.base})` : ''].filter(Boolean).join(' · ');
+  const more = `<b>${esc(it.name)}</b><small>${meta}${s.sold ? ' · 품절' : ` · ${D.CR}${s.price}`}</small>${stats}${eff ? `<span>${D.statIc(esc(eff))}</span>` : ''}${rules ? `<div class="mn-rules">${rules}</div>` : ''}`;
+  const flag = s.off && !s.sold ? `<i class="mn-off">−${s.off}%</i>` : s.ex ? '<i class="mn-ex">전용</i>' : '';
+  const price = s.sold ? '품절' : err ? `<em>${esc(err)}</em>` : `${D.CR}${s.base ? `<s>${s.base}</s>` : ''}<b>${s.price}</b>`;
+  return D.miniCard({ a: 'shop-buy', v: `${i}:c`, k: 'ITEM', tier: tierCls(id), icon: D.itemIcon(id), name: esc(it.name), desc: D.statIc(esc(it.desc)), mark: kindName(id), tc: bandColor(id),
+    price, off: s.sold, flag, more, attrs: `data-tag="c${i}"`, cls: ['mn-ask', SHOP.sel === i && 'on', s.sold && 'sold', poor && 'poor', err && 'err'].filter(Boolean).join(' ') });
 }
 const silhouette = '<svg class="so-sil" viewBox="0 0 100 160" aria-hidden="true"><circle cx="50" cy="34" r="20"/><path d="M14 160c0-46 14-82 36-82s36 36 36 82z"/></svg>';
 function artHtml(m: MerchantDef) {
@@ -147,16 +151,8 @@ export function shopOverlay(run: RunState): string {
   const rfWhy = run.tutorial ? '튜토리얼' : rf.used ? `이번 페이즈 사용함 · 다음 ${rf.cost ? `${rf.cost}` : '무료'}` : '';
   const rfCost = rf.cost ? `${rf.cost} 크레딧${Math.abs(mul - 1) > 1e-6 ? ` (${rf.base} × 상점 배율 ${+mul.toFixed(2)})` : ''}` : '무료';
   const rfBtn = `<button class="btn small so-rf" data-a="shop-refresh"${rfOff ? ' aria-disabled="true"' : ''} title="${esc(`진열 수 (${CFG.shop.count[0][0]}~${CFG.shop.count[CFG.shop.count.length - 1][0]}개) · 물품 · 할인을 모두 새로 (품절 칸 포함, 상인 그대로). 페이즈마다 1번 · 의뢰 첫 번 무료, 그다음 ${CFG.shop.refresh.base}부터 +${CFG.shop.refresh.step} × 상점 배율 — 지금 ${rfCost}`)}">${lineIcon('a.cd', 'li')}<span>새로고침</span>${rf.cost ? `<b>${D.CR}${rf.cost}</b>` : '<b class="free">무료</b>'}</button>`;
-  const cards = stock.map((s, i) => {
-    const id = s.item, on = SHOP.sel === i;
-    const err = SHOP.err?.i === i ? `<em class="sg-err" role="status">${esc(SHOP.err.msg)}</em>` : '';
-    const bc = bandColor(id);
-    return `<div class="sg-card t${tierCls(id)}${on ? ' on' : ''}${s.sold ? ' sold' : ''}${s.ex ? ' ex' : ''}"${bc ? ` style="--tc:${bc}"` : ''} data-a="shop-sel" data-v="${i}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(`${itemInfo(id).name} · ${kindName(id)}${s.sold ? ' · 품절' : ` · ${s.price} 크레딧`}`)}">
-      <span class="sg-top">${D.itemIcon(id)}<span class="sg-kind">${s.ex ? `<i class="sg-ex">전용</i>` : ''}${esc(kindName(id))}</span></span>
-      <b class="sg-name">${esc(itemInfo(id).name)}</b>${cardEff(id)}
-      <span class="sg-foot">${tag(run, s, i, 'c')}${s.off && !s.sold ? `<i class="sg-off" title="할인">−${s.off}%</i>` : ''}</span>${err}
-    </div>`;
-  }).join('') + '<div class="sg-card sg-empty" aria-hidden="true"></div>'.repeat(Math.max(0, CFG.shop.slots - stock.length)); // 진열하지 않은 칸 = 빈 선반 (품절과 다른 모양, 3×3 자리는 그대로)
+  const shelf = '<span class="tslot mslot off" aria-hidden="true"><span class="card mn mn-empty"><span class="mn-hd"></span><span class="mn-lo"></span></span></span>';
+  const cards = stock.map((s, i) => slotCard(run, s, i)).join('') + shelf.repeat(Math.max(0, CFG.shop.slots - stock.length)); // 진열하지 않은 칸 = 빈 선반 (품절과 다른 모양, 9칸 자리는 그대로)
   return `<div class="shop-ov" style="--c:${m.color}" role="region" aria-label="${esc(m.shop)}">
     <section class="so-npc" aria-label="${esc(m.name)}">
       ${artHtml(m)}
@@ -169,37 +165,14 @@ export function shopOverlay(run: RunState): string {
       <div class="so-body">
         <div class="so-shelf">
           <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length}</b>${sold ? ` · 품절 <b>${sold}</b>` : ''}</span><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
-          <div class="sg">${cards}</div>
+          <div class="sg cards mn-row mn-buy">${cards}</div>
         </div>
-        ${detail(run, stock)}
       </div>
       <div class="so-foot">${musterBtn(run)}<button class="btn" data-a="manage">편성 · 장비</button><button class="btn" data-a="shop-close" title="상점을 닫고 지도로 (이 칸은 그대로 — 지도에서 다시 열 수 있음)">닫기</button><button class="btn primary" data-a="leave-shop" title="이 상점을 떠나 다음 칸으로">떠나기</button></div>
     </section>
   </div>`;
 }
 
-/** 고른 칸 상세 (진열대를 가리지 않는 오른쪽 칸 · 좁은 화면은 하단 시트): 이름 · 분류 → 성질 → 구매 → 세부 규칙 (docs/UI.md 12) */
-function detail(run: RunState, stock: ShopSlot[]) {
-  const i = SHOP.sel, s = i === null ? null : stock[i];
-  if (!s || i === null) return '<aside class="sd empty" aria-label="물품 상세"><p>물품을 누르면 여기에 설명이 나옵니다.</p></aside>';
-  const id = s.item, it = itemInfo(id), { stats, eff } = D.itemBrief(id);
-  const own = run.inventory.filter((x) => x === id).length;
-  const k = R.interestKeep(run), after = s.sold || run.credits < s.price ? k.keep : k.after(s.price); // 살 수 없는 칸은 이자 변화를 보이지 않는다
-  const st = [
-    s.ex ? D.kvChip('상인 전용', '<b>늘 진열</b>', '이 상인의 상점에만 늘 진열되는 상품', 'kv-ex') : '',
-    own ? D.kvChip('보유', `<b>${own}</b>`) : '',
-    s.off && !s.sold ? D.kvChip('할인', `<b>−${s.off}%</b>`, `원래 ${s.base}`, 'kv-sale') : '',
-  ].filter(Boolean).join('');
-  const intNote = !s.sold && after !== k.keep ? `<span class="sd-int">이자 <b>+${k.keep} → +${after}</b></span>` : '';
-  const rules = id === R.TICKET ? ticketRules(run) : isPlaceable(id) ? D.devicePop(run, id) : '';
-  return `<aside class="sd" aria-label="${esc(it.name)} 상세">
-    <div class="sd-head">${D.itemIcon(id)}<div><span class="sd-kind">${esc(kindName(id))}</span><b class="sd-name t${tierCls(id)}">${esc(it.name)}</b></div><button class="btn tiny sd-x" data-a="shop-sel" data-v="${i}" aria-label="상세 닫기">×</button></div>
-    ${st ? `<div class="sd-st">${st}</div>` : ''}
-    ${stats}${eff ? `<p class="ip-eff">${D.statIc(esc(eff))}</p>` : ''}
-    <div class="sd-buy">${tag(run, s, i, 'd')}${intNote}${SHOP.err?.i === i ? `<em class="sg-err">${esc(SHOP.err.msg)}</em>` : ''}</div>
-    ${rules ? `<div class="sd-rules">${rules}</div>` : ''}
-  </aside>`;
-}
 /** 상점 바닥 줄 [지정 소집]: 지정 소집 티켓이 있을 때만 (상점 칸에서는 티켓 소집만 — engine/run.ts musterBlock). 소집 · 영입 창은 상점 위에 뜨고, 닫으면 같은 상점으로 */
 function musterBtn(run: RunState) {
   const tk = R.ticketCount(run);
@@ -248,15 +221,6 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
   if (!m || !stock) return true;
   sync(run);
   switch (a) {
-    case 'shop-sel': {
-      const i = +v;
-      if (!stock[i]) break;
-      SHOP.err = null; SHOP.rfErr = '';
-      if (SHOP.sel === i) { SHOP.sel = null; break; }
-      SHOP.sel = i;
-      say(run, selTalk(stock[i]));
-      break;
-    }
     case 'shop-buy': {
       const [si, src] = v.split(':'), i = +si, s = stock[i];
       if (!s) break;
@@ -266,10 +230,11 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
       if (R.invFull(run, s.item)) { SHOP.err = { i, msg: '보관함 가득' }; say(run, 'full'); D.sfx('error'); break; }
       SHOP.err = null;
       say(run, selTalk(s));
-      const k = R.interestKeep(run), after = k.after(s.price);
+      const k = R.interestKeep(run), after = k.after(s.price), { stats, eff } = D.itemBrief(s.item);
       const html = `<b class="ask-t">${D.itemIcon(s.item)} ${esc(itemInfo(s.item).name)}</b>
         <div class="sb-pay">${D.CR}${s.base ? `<s>${s.base}</s>` : ''}<b>${s.price}</b><span class="muted">→ 남는 크레딧 <b>${run.credits - s.price}</b></span></div>
-        ${after !== k.keep ? `<p class="ask-note warn">이자 +${k.keep} → +${after}</p>` : ''}`;
+        ${after !== k.keep ? `<p class="ask-note warn">이자 +${k.keep} → +${after}</p>` : ''}
+        ${stats || eff ? `<div class="sb-desc">${stats}${eff ? `<p class="ip-eff">${D.statIc(esc(eff))}</p>` : ''}</div>` : ''}`; // 상세 칸이 없어졌으니 확인 창에 성질 (터치는 팝오버 없이 바로 이 창)
       D.ask([`.shop-ov [data-tag="${src}${i}"]`, `.shop-ov [data-tag="c${i}"]`], html, '구매', () => {
         const it = s.item, e = R.buyShop(run, i);
         if (e) { SHOP.err = { i, msg: e === '크레딧 부족' ? e : e === '인벤토리 가득 참' ? '보관함 가득' : e }; say(run, e === '크레딧 부족' ? 'poor' : 'full'); return; }

@@ -78,7 +78,7 @@ import { CR, ic, mapScreen, nodeHint, phaseBoss } from './app/map';
 import { devicePop, itemBrief, placeAt, placingSel, popKey, prepScreen, setTacShownPrev, setTouchPtr, tgTip, toolMark, touchPtr } from './app/prep';
 import { detailHeadBind, foeItemTip, umCompactBind, unitModal } from './app/abilities';
 import { animateResult, applySpeed, battleScreen, craneOn, crateGroup, updateMeter } from './app/battle';
-import { advSync, goAfterOk, injectFx, investScreen, kvChip, menuModal, newsScreen, overScreen, pendingModal, recoModal, routeHold, setInjHold, shopScreen, useModal } from './app/modals';
+import { advSync, goAfterOk, injectFx, investScreen, kvChip, menuModal, miniCard, newsScreen, overScreen, pendingModal, recoModal, routeHold, setInjHold, shopScreen, useModal } from './app/modals';
 import { askCombineInv, askPop, equipAsk, layoutPanels, moveEq, prepVpMid, topHSync, tryUse } from './app/popups';
 import { battleZoomAct, keepMedia, pinch, pinchEnd, prepCenterOn, prepViewInit, prepZoomAct, prepZoomSync, scrollRestore, scrollSnapshot, setPinch, touchMid, zoomBy, zoomHost } from './app/zoom';
 import { artWarmed, bindCardDrag, bindTabSwipe, carStep, greatBusy, revealCards, setArtWarmed, setCarX, setGreatBusy, setMapTab, setupCarousel, syncCardOpen } from './app/carousel';
@@ -758,7 +758,7 @@ root.addEventListener('click', (e) => {
 document.addEventListener('pointerdown', (e) => { if (!(e.target as HTMLElement).closest('.tl-pop')) document.querySelector('.tl-pop')?.remove(); }, true);
 addEventListener('scroll', () => document.querySelector('.tl-pop')?.remove(), { passive: true, capture: true });
 document.addEventListener('mouseover', (e) => { // 미니 카드 상세 팝오버 (마우스): 가리키면 띄우고 떠나면 닫는다 (터치로 고정한 것은 그대로)
-  if (!CAN_HOVER || !mnOn() || document.querySelector('.mn-tip.pin')) return;
+  if (!CAN_HOVER || !mnOn() || document.querySelector('.mn-tip.pin, .ask-pop')) return; // 구매 확인 창이 떠 있으면 겹치지 않게
   const c = (e.target as HTMLElement).closest<HTMLElement>('.card.mn');
   if (c) mnTip(c); else if (document.querySelector('.mn-tip')) mnHide();
 });
@@ -861,7 +861,7 @@ root.addEventListener('click', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
   if (el.classList.contains('modal-bg') && (ev.target as HTMLElement).closest('.modal')) return; // 창 안쪽을 눌러도 닫지 않음
-  if (el.classList.contains('mn')) { if (touchPtr && mnOn() && mnTap(el)) return; mnHide(); } // 미니 카드: 터치 첫 탭 = 상세 팝오버 (같은 카드 다시 탭 = 실행), 마우스 = 바로
+  if (el.classList.contains('mn')) { if (touchPtr && mnOn() && !el.classList.contains('mn-ask') && mnTap(el)) return; mnHide(); } // 미니 카드: 터치 첫 탭 = 상세 팝오버 (같은 카드 다시 탭 = 실행), 마우스 = 바로. 확인 창을 띄우는 카드(상인 상점 .mn-ask)는 그 창이 상세를 겸한다
   if (el.dataset.a === 'item-info') { // 소모품을 고른 채로 장착 장비를 누르면 그 장비(또는 기물)에 사용, 아니면 장비 설명 말풍선
     if (app.sel?.k === 'item' && app.run && isConsumable(app.run.inventory[app.sel.idx])) act('use-eq', el.dataset.v || ''); else itemTip(el, el.dataset.v || '');
     return;
@@ -896,7 +896,7 @@ Object.assign(CTR.hooks, {
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작
 SHOP.shopInit({ // 상인 상점 덮개 (ui/shop.ts): main 의 그림 조각 · 확인 팝업 · 알림
-  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), consColor, itemTone, itemBrief, statIc, devicePop, kvChip, CR,
+  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), miniCard, consColor, itemTone, itemBrief, statIc, devicePop, kvChip, CR,
   ask: (anchor, html, okLabel, ok) => { app.ask = { anchor, at: 'below', html, okLabel, ok }; },
   toast: (m) => toast(m), persist: () => persist(), sfx: (n) => SND.sfx(n),
 });

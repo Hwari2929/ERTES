@@ -83,7 +83,18 @@
 .card.mn.poor .mn-pr { color: var(--c-bad); }
 .card.mn.sold { opacity: .45; } .card.mn.sold .mn-pr { color: var(--c-text-2); font: 700 var(--fs-sm)/1 var(--f-body); }
 .card.mn[aria-disabled="true"] { cursor: default; } .card.mn[aria-disabled="true"]:hover { border-color: var(--line); transform: none; }
-.card.mn.buy.tS > b { color: var(--g-S); } .card.mn.buy.tC > b { color: var(--g-C); } .card.mn.buy.tG > b { color: var(--g-G); } .card.mn.buy.tA > b { color: var(--g-A); } .card.mn.buy.tL > b { color: var(--g-L); } .card.mn.buy.tT > b { color: var(--g-T); } /* 합성 공방 상품 이름 = 등급색 (메트로는 머리 칸 색) */
+.card.mn .mn-pr s { margin-right: 2px; color: var(--c-text-2); font: 400 var(--fs-xs)/1 var(--f-mono); } /* 할인 = 줄 그은 원가 + 값 */
+.card.mn .mn-pr em { color: var(--c-down); font: 700 var(--fs-xs)/1.2 var(--f-body); font-style: normal; } /* 오류 (크레딧 부족 · 보관함 가득) = 값 자리에 */
+/* 상인 상점 진열 칸 표식 (ui/shop.ts slotCard): 할인 꼬리표 −n% (분홍, 꼬리표 모양) · 상인 전용. 갤럭시는 카드 오른쪽 위에 띄운다 */
+.mn-off, .mn-ex { font-style: normal; white-space: nowrap; }
+.mn-off { padding: 2px 7px 2px 9px; color: var(--c-white); background: var(--c-sale); font: 700 var(--fs-xs)/1.1 var(--f-mono); clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%); }
+.mn-ex { padding: 0 5px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--c-text-2); font: 700 var(--fs-2xs)/1.4 var(--f-body); }
+.card.mn.buy { position: relative; }
+:root:not([data-ui-theme="metro"]) .card.mn.buy .mn-tl:has(.mn-off, .mn-ex) { display: block; position: absolute; top: 8px; right: 8px; } :root:not([data-ui-theme="metro"]) .card.mn.buy .mn-tl > :not(.mn-off, .mn-ex) { display: none; }
+.card.mn.mn-empty { pointer-events: none; cursor: default; opacity: .35; } /* 빈 선반 (진열하지 않은 칸 — 9칸 자리는 그대로) */
+.ask-pop .sb-desc { margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--line-soft); color: var(--c-text-2); font-size: var(--fs-sm); } /* 구매 확인 = 성질도 함께 (상세 칸이 없다) */
+.mn-tip .mn-rules { margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--line-soft); font-size: var(--fs-sm); }
+.card.mn.buy.tS .mn-lo > b { color: var(--g-S); } .card.mn.buy.tC .mn-lo > b { color: var(--g-C); } .card.mn.buy.tG .mn-lo > b { color: var(--g-G); } .card.mn.buy.tA .mn-lo > b { color: var(--g-A); } .card.mn.buy.tL .mn-lo > b { color: var(--g-L); } .card.mn.buy.tT .mn-lo > b { color: var(--g-T); } /* 합성 공방 · 상인 상점 상품 이름 = 등급색 (메트로는 머리 칸 색) */
 .card { display: grid; gap: 6px; align-content: start; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px; cursor: pointer; min-height: 120px; }
 .card:hover { border-color: var(--c-select); transform: translateY(-2px); transition: transform .12s; }
 .card b { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-xl); }
