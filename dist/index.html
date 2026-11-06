@@ -108,6 +108,7 @@
   /* ── 쌓임 층 (z-index). 실제 쓰임에서 뽑은 층 이름 · 값. 카드 · 토큰 안쪽 순서(0 ~ 6)는 지역 쌓임이라 숫자 그대로 */
   --top-pill-h: 26px;  /* 런 리본 칩 높이 (리본 두께 고정) */
   --z-raise: 3;        /* 같은 목록 안에서 고른 칸을 한 단 위로 */
+  --z-card-fx: 7;      /* 카드 안 연출 층 — 카드 뒷면(.cback 6) 위 (전역 증강 스캔 줄 · 삑 고리) */
   --z-sticky: 5;       /* 화면 하단 버튼 줄 */
   --z-sticky-head: 6;  /* 상세 패널 머리 바 */
   --z-shop: 10;        /* 상인 상점 덮개 (상단 바 아래 전체, 상단 바 · 펼침보다 아래) */
@@ -2644,7 +2645,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 @keyframes bn-line { 0% { transform: scaleX(0); } 25% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
 @keyframes bn-boss { 0% { opacity: 0; transform: scale(1.8); filter: blur(6px); } 18% { opacity: 1; transform: scale(1); filter: none; } 24% { transform: translateX(-4px); } 28% { transform: translateX(4px); } 32% { transform: none; } 82% { opacity: 1; } 100% { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot > .pcard, .deal-box > .gslot, .deal-box > .gslot > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot > .pcard, .deal-box > .gslot, .deal-box > .gslot > .gcard, .deal-box > .gslot > .gcard::after, .gc-scan, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 .more-list li span { display: inline-flex; align-items: center; gap: 4px; }
@@ -2760,6 +2761,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 
 /* 전역 증강 카드 */
 .modal.global { width: min(980px, 100%); }
+.gc-scan { display: none; } /* 메트로 등장 스캔 줄 (26-metro.css) */
 .gc-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 12px; }
 .gcard { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 250px; padding: 22px 16px 18px; text-align: center; color: var(--c-text); cursor: pointer;
   --gc: var(--g-C); border: 1px solid color-mix(in srgb, var(--gc) 45%, var(--line)); border-radius: var(--r-lg);
@@ -7143,21 +7145,36 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .fc-head b { font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
 [data-ui-theme="metro"] .nt-rows { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); }
 [data-ui-theme="metro"] .nt-rows dd { font-family: var(--f-mono); }
-/* 전역 증강 등장 (메트로 전용, deal-box · flip = app/carousel.ts revealCards): 뒤집기 대신 승차권 발권 —
-   ① 뒷면(교통카드)이 아래에서 표처럼 솟아오르고 ② 일러스트를 기다린 뒤 ∞ 동전 자리에 구멍이 뚫려(디자인 시스템 punch) 벌어지며 앞면이 드러나고
-   전설은 한 번 쿵 내려앉는다. 머리 등급 망점은 앞면의 일부라 처음부터 있다 (따로 찍지 않는다, 2026-11-06 사용자 결정). 움직임 줄이기 = 0.01초 (12-banner-mobile.css) */
-@property --ph { syntax: '<length>'; inherits: false; initial-value: 0px; }
-[data-ui-theme="metro"] .gcard .cback { -webkit-mask: radial-gradient(circle at 50% 36%, transparent var(--ph), var(--c-black) calc(var(--ph) + .5px)); mask: radial-gradient(circle at 50% 36%, transparent var(--ph), var(--c-black) calc(var(--ph) + .5px)); }
-[data-ui-theme="metro"] .deal-box > .gslot { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both; animation-delay: calc(var(--i, 0) * .08s); } /* 솟기 · 쿵 = 칸 (그림자 판이 카드와 함께) */
-[data-ui-theme="metro"] .deal-box.flip > .gslot.gt-L { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both, mt-gc-slam .36s cubic-bezier(.3, 1.5, .5, 1) forwards; animation-delay: calc(var(--i, 0) * .08s), calc(var(--i, 0) * .14s + .34s); }
+/* 전역 증강 등장 (메트로 전용, deal-box · flip = app/carousel.ts revealCards): 개찰 스캔 (2026-11-06 사용자 결정 — 시안 3 세로 · 곡선 강).
+   ① 뒷면(교통카드)이 아래에서 솟고 (칸이 맡아 그림자 판이 카드와 함께) ② 일러스트를 기다린 뒤 등급색 스캔 줄(.gc-scan)이 위 → 아래로 훑고, 지나간 자리가 앞면이 된다
+   — 곡선 = 처음 · 끝은 느리고 가운데서 급히 빨라진다 (일반 .56 · 희귀 .6 · 전설 .76초, 카드마다 .15초 차례) ③ 다 훑으면 '삑': 테두리 전체가 등급색으로 번쩍
+   (카드 맨 위 층 고리 ::after — 머리 잉크 칸에 가리지 않게 + 카드 테두리색 → 홈 고리도 함께). 전설 = 굵은 빨간 줄 + 쿵.
+   머리 등급 망점은 앞면의 일부라 처음부터 있다. 움직임 줄이기 = 0.01초 (12-banner-mobile.css) */
+[data-ui-theme="metro"] .gslot { --sd: .56s; --t0: calc(var(--i, 0) * .15s); --ez: cubic-bezier(.86, 0, .14, 1); }
+[data-ui-theme="metro"] .gslot.gt-R { --sd: .6s; } [data-ui-theme="metro"] .gslot.gt-L { --sd: .76s; }
+[data-ui-theme="metro"] .deal-box > .gslot { animation: mt-gc-deal .38s cubic-bezier(.2, .9, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+[data-ui-theme="metro"] .deal-box.flip > .gslot.gt-L { animation: mt-gc-deal .38s cubic-bezier(.2, .9, .2, 1) both, mt-gc-slam .36s cubic-bezier(.3, 1.5, .5, 1) forwards; animation-delay: calc(var(--i, 0) * 70ms), calc(var(--t0) + var(--sd)); }
 [data-ui-theme="metro"] .deal-box > .gslot > .gcard { animation: none; }
-[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard { animation: mt-gc-live .01s both; animation-delay: calc(var(--i, 0) * .14s + .5s); }
-[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard > .cback { animation: mt-gc-punch .56s both; animation-delay: calc(var(--i, 0) * .14s); }
-[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard::after { content: none; } /* 번지는 빛줄기 대신 망점 */
-@keyframes mt-gc-deal { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard { animation: mt-gc-live .01s both, mt-gc-beep .55s ease-out; animation-delay: calc(var(--t0) + var(--sd) * .6), calc(var(--t0) + var(--sd)); }
+[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard > .cback { animation: mt-gc-wipe var(--sd) var(--ez) both; animation-delay: var(--t0); }
+[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard > .gc-scan { display: block; position: absolute; inset: 0 0 auto; z-index: var(--z-card-fx); height: 3px; background: var(--tc); pointer-events: none;
+  box-shadow: 0 0 8px var(--tc), 0 0 24px 2px color-mix(in srgb, var(--tc) 55%, transparent);
+  animation: mt-gc-scan var(--sd) var(--ez) both, mt-gc-scanfade var(--sd) linear both; animation-delay: var(--t0), var(--t0); }
+[data-ui-theme="metro"] .deal-box.flip > .gslot.gt-L > .gcard > .gc-scan { height: 4px; box-shadow: 0 0 10px var(--tc), 0 0 34px 6px color-mix(in srgb, var(--tc) 60%, transparent); }
+[data-ui-theme="metro"] .gc-scan::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 76px; background: linear-gradient(to top, color-mix(in srgb, var(--tc) 60%, transparent), transparent);
+  -webkit-mask: radial-gradient(circle, var(--c-black) 1.3px, transparent 1.8px) 0 0 / 6px 6px; mask: radial-gradient(circle, var(--c-black) 1.3px, transparent 1.8px) 0 0 / 6px 6px; } /* 지나온 자리 = 등급색 망점 꼬리 */
+[data-ui-theme="metro"] .gc-scan::after { content: 'SCAN'; position: absolute; right: 10px; bottom: 7px; color: var(--tc); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard::after { content: ''; position: absolute; inset: -1.5px; z-index: var(--z-card-fx); border-radius: inherit; pointer-events: none; background: none; opacity: 0;
+  box-shadow: inset 0 0 0 3px var(--tc), inset 0 0 40px color-mix(in srgb, var(--tc) 45%, transparent);
+  animation: mt-gc-flash .55s ease-out; animation-delay: calc(var(--t0) + var(--sd)); } /* '삑' 고리 = 바깥 테두리에서 안으로 3px + 안쪽 번짐, 카드 맨 위 층이라 머리 · 몸통 고르게 */
+@keyframes mt-gc-deal { from { opacity: 0; transform: translateY(36px); } to { opacity: 1; transform: none; } }
 @keyframes mt-gc-live { from { pointer-events: none; } to { pointer-events: auto; } }
 @keyframes mt-gc-slam { from { transform: scale(1.06); } to { transform: none; } }
-@keyframes mt-gc-punch { 0% { --ph: 0px; animation-timing-function: cubic-bezier(.3, 1.5, .5, 1); } 22% { --ph: 16px; } 36% { --ph: 16px; animation-timing-function: cubic-bezier(.7, 0, .2, 1); } 100% { --ph: 380px; } }
+@keyframes mt-gc-wipe { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
+@keyframes mt-gc-scan { from { top: 0; } to { top: 100%; } }
+@keyframes mt-gc-scanfade { 0% { opacity: 0; } 5% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mt-gc-flash { from { opacity: 1; } to { opacity: 0; } }
+@keyframes mt-gc-beep { from { border-color: var(--tc); } } /* 카드 테두리 → 홈 고리(border-color: inherit)도 함께 */
 </style>
 <div id="app"></div>
 <!-- 휴대폰 세로 화면: 가로로 돌려 달라는 첫 화면 (모바일 세로는 정식 지원하지 않는다, 12-banner-mobile.css .rotate-ask) -->
@@ -8026,7 +8043,7 @@ ${t.map(i=>mC(i.def,i.n)).join(`
     ${t?"":By(s.id)}
   </div>`}function Ty(e){if(e==="pc")return{name:"\uC9C0\uD718\uAD00",color:"var(--accent)"};let t=de[e];if(t)return{name:t.name,color:Ct[t.factions[0]||t.traits[0]]?.color||"var(--accent)"};let s=vu[e];return{name:s?.name||e,color:s?.color||"var(--dim)"}}function tie(e){let t="";return`<div class="scene">${e.map(s=>{let a="";if(s.bg&&s.bg!==t&&(t=s.bg,a=`<div class="sc-bg">${S((af[s.bg]||s.bg).split(" \u2014 ")[0])}</div>`),!s.who)return`${a}<p class="sc-narr">${S(s.text)}</p>`;let n=Ty(s.who),i=s.name||n.name;return s.think?`${a}<p class="sc-think"><span class="sc-who" style="--c:${n.color}">${S(i)}</span>${S(s.text)}</p>`:`${a}<div class="sc-say"><span class="sc-who" style="--c:${n.color}">${S(i)}</span><p>${S(s.text)}</p></div>`}).join("")}</div>`}function lx(e){let t=Ty(e),s=e==="pc"?"rachel":e;return{...t,stand:xr(s)?s:null}}function DN(e){let t=e?.pending[0],s=e&&t&&b.screen!=="battle"&&b.screen!=="over"&&!Uy(e);if(s&&t.t==="event"){let a=Jd[t.id];Io(`ev:${t.id}:${e.pending.length}`,BT(t,e.flags),{title:a.title,speaker:lx,fmt:n=>Bn(S(n)),choices:a.choices.map(n=>({label:n.label,desc:n.desc,why:n.block?.(e)||void 0})),onDone:n=>mn("event-choice",String(n))})}else s&&t.t==="notice"&&t.scene?.length?Io(`nt:${t.title}:${e.pending.length}`,t.scene,{title:t.title,result:t.body,speaker:lx,fmt:a=>Bn(S(a)),onDone:()=>mn("notice-ok","")}):po()&&!po().startsWith("tu:")&&!(b.screen==="bar"&&po().startsWith("bar:"))&&np()}var cx=!1;function TN(e){cx=e}var f7=[];function UN(e,t,s,a,n){f7.forEach(clearTimeout),f7=[],document.querySelector(".inj-fx")?.remove();let i=()=>{document.querySelector(".inj-fx")?.remove(),cx&&(cx=!1,Hs())},r=x=>x.offsetParent!==null,o=Array.from(Ve.querySelectorAll(`.board [data-drop="unit:${e}"], .bench [data-drop="unit:${e}"]`)).find(r);if(!o)return i();let c=(x,I)=>x>=u.maxRank?100:Math.min(100,I/u.xpToNext(x)*100),d=a-s;for(let x=t;x<n;x++)d+=u.xpToNext(x);let m=n>t,p=`+${d}`,f=document.createElement("div");f.className="inj-fx"+(m?" up":""),f.setAttribute("role","status"),f.innerHTML=`<span class="inj-wash" aria-hidden="true"></span><div class="inj-row"><span class="inj-rk">${pr(t)}</span><span class="inj-ar" aria-hidden="true">\u203A</span><span class="inj-rk2">${pr(n)}</span><b class="inj-amt">\uACF5\uBA85\uB3C4 ${p}</b></div><div class="inj-bar"><i style="width:${c(t,s)}%"></i></div>`,document.body.appendChild(f);let g=o.getBoundingClientRect(),h=f.offsetWidth,y=f.offsetHeight;f.style.left=`${Math.max(8,Math.min(innerWidth-h-8,g.left+g.width/2-h/2))}px`,f.style.top=`${g.top-y-8>=8?g.top-y-8:g.bottom+8}px`,o.classList.add("inj-glow");let k=(x,I)=>f7.push(window.setTimeout(I,x)),v=f.querySelector(".inj-bar i");k(30,()=>{f.classList.add("in"),v.style.width=`${m?100:c(n,a)}%`}),m?(k(650,()=>f.classList.add("wash")),k(890,()=>{f.classList.add("ranked"),qs("rankUp")}),k(2300,()=>f.classList.add("out")),k(2600,i)):(k(1500,()=>f.classList.add("out")),k(1800,i))}var sie=["rankup","itemPick","turretPick","notice","global"],g7=e=>!!b.goAfter&&b.goAfter.step===e.step&&b.goAfter.phase===e.phase&&!e.node&&cf(e).includes(b.goAfter.t);function Uy(e){let t=e.pending[0];return!t||b.screen!=="map"||!e.links||e.node||e.tutorial||g7(e)||!sie.includes(t.t)||t.t==="global"&&t.rerolls!==void 0||t.t==="notice"&&t.end?!1:cf(e).length>1}function u7(e){return`<span class="tslot mslot"><button class="card mn t${e.tier}${e.cls?` ${e.cls}`:""}" data-a="${e.a}" data-v="${e.v}"${e.title&&e.title.length>70?` title="${S(e.title)}"`:""}><span class="mn-hd" data-k="${S(e.k)}">${e.icon}</span><b>${e.name}</b><span class="mn-desc">${e.desc}</span><span class="mn-ft"><span class="mn-rk"><i aria-hidden="true"></i>${S(e.mark)}</span></span></button></span>`}function HN(e){let t=e.pending[0];if(!t||b.screen==="battle"||b.screen==="over"||cx||Uy(e))return"";let s="",a="";if(t.t==="global")a="global",s=`<h1>${t.rerolls!==void 0?"\uD56D\uB85C \uD68C\uC758 \u2014 ":""}\uC804\uC5ED \uC99D\uAC15</h1><p class="muted small">\uB7F0 \uB05D\uAE4C\uC9C0 \uD568\uB300 \uC804\uCCB4\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4. \uD55C \uC7A5\uC744 \uACE0\uB974\uC138\uC694.</p>
       <div class="gc-row">${t.options.map((o,c)=>{let d=Nr[o];return`<span class="tslot gslot${d.tier?` gt-${d.tier}`:""}" style="--i:${c}"><button class="gcard${d.tier?` gt-${d.tier}`:""}" style="--i:${c}" data-a="pick-global" data-v="${o}"${d.desc.length>70?` title="${S(d.desc)}"`:""}>
-        <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${te(d.id,"gc-ic")||(d.tier==="L"?"\u2739":d.tier==="R"?"\u2727":"\u2726")}</span>
+        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${te(d.id,"gc-ic")||(d.tier==="L"?"\u2739":d.tier==="R"?"\u2727":"\u2726")}</span>
         <span class="gc-kind">${d.tier?`${T2[d.tier]} \xB7 `:""}${d.unique?"\uACE0\uC720 \xB7 ":""}\uC804\uC5ED</span><b>${S(d.name)}</b><span class="gc-desc">${Bn(S(d.desc))}</span></button></span>`}).join("")}</div>
       ${t.rerolls!==void 0?`<div class="row-btns"><button class="btn" data-a="reroll-global" ${t.rerolls>0?"":"disabled"}>\uC0C8\uB85C\uACE0\uCE68 (${t.rerolls}\uD68C)</button></div>`:""}`;else{if(t.t==="event"||t.t==="notice"&&t.scene?.length)return"";if(t.t==="victory")a="victory",s=`<h1>\uC758\uB8B0 \uC131\uACF5</h1><p>\uD398\uC774\uC988 ${e.phase} \uBCF4\uC2A4\uB97C \uACA9\uD30C\uD588\uC2B5\uB2C8\uB2E4. ${S(Ms(e.field).name)} \uC758\uB8B0\uAC00 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4${e.diff?` (${wd(e.diff,xd(e))}${Xo(e).length?` \xB7 \uC808\uB9DD \uC99D\uAC15 ${w7(e)}`:""}${ry(e,!0)})`:""}.</p>
       <p class="muted small">\uADC0\uD658\uD558\uBA74 \uB7F0\uC774 \uB05D\uB098\uACE0 \uAE30\uB85D\uC774 \uB0A8\uC2B5\uB2C8\uB2E4. \uACC4\uC18D\uD558\uBA74 \uBB34\uD55C \uBAA8\uB4DC\uB85C \uC774\uC5B4\uC9C0\uBA70, \uC801\uC740 \uACC4\uC18D \uAC15\uD574\uC9D1\uB2C8\uB2E4. \uC5B4\uB290 \uCABD\uC774\uB4E0 \uB2E4\uC74C \uC704\uD5D8 \uB4F1\uAE09\uC774 \uD574\uAE08\uB429\uB2C8\uB2E4.</p>
