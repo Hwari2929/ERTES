@@ -2639,7 +2639,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 @keyframes bn-line { 0% { transform: scaleX(0); } 25% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
 @keyframes bn-boss { 0% { opacity: 0; transform: scale(1.8); filter: blur(6px); } 18% { opacity: 1; transform: scale(1); filter: none; } 24% { transform: translateX(-4px); } 28% { transform: translateX(4px); } 32% { transform: none; } 82% { opacity: 1; } 100% { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot > .pcard, .deal-box > .gslot > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot > .pcard, .deal-box > .gslot, .deal-box > .gslot > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 .more-list li span { display: inline-flex; align-items: center; gap: 4px; }
@@ -6699,14 +6699,15 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 
 [data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
 [data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }
-/* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 · 아주 옅은 점 격자 / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과 / 아래 노선 띠.
-   등급색 = 일반 민트 · 희귀 파랑(--g-A) · 전설 빨강(--g-L). 뒷면(카드 돌리기 전) = 교통카드 뒷면과 같은 문법 + GLOBAL 일련번호 */
+/* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 · 아주 옅은 점 격자 / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과.
+   등급색 = 일반 흰(--g-C) · 희귀 파랑(--g-A) · 전설 빨강(--g-L) — 원판 · 머리 좌하단 망점 · 그림자 판(.gslot::before). 뒷면(카드 돌리기 전) = 교통카드 뒷면과 같은 문법 + GLOBAL 일련번호 */
 [data-ui-theme="metro"] .gc-row { counter-reset: gc; gap: 22px; }
-[data-ui-theme="metro"] .gcard { --tc: var(--g-C); --gds: 84px; --gdo: .4; --gh: 124px; counter-increment: gc; align-items: stretch; gap: 10px; padding: 0 0 22px; overflow: visible; text-align: left;
-  border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); background: linear-gradient(var(--tc), var(--tc)) bottom / 100% 5px no-repeat, var(--panel); }
-[data-ui-theme="metro"] .gcard.gt-R { --tc: var(--g-A); --cs: var(--g-A); --gds: 104px; --gdo: .7; border-color: color-mix(in srgb, var(--g-A) 45%, var(--mt-edge)); }
-[data-ui-theme="metro"] .gcard.gt-L { --tc: var(--g-L); --cs: var(--g-L); --gds: 120px; --gdo: .95; border-color: color-mix(in srgb, var(--g-L) 55%, var(--mt-edge)); } /* 전설: 글로우 대신 등급색 윤곽 · 두께 */
-[data-ui-theme="metro"] .gcard:focus-visible { --so: 6px; } /* 등급 카드 그림자 = 등급색 (희귀 파랑 · 전설 빨강) */
+[data-ui-theme="metro"] .gslot { --gh: 124px; } /* 머리 높이 = 칸에서 정한다 (카드 · 그림자 판이 함께 읽는다, 폰 64px) */
+[data-ui-theme="metro"] .gcard { --tc: var(--g-C); --gds: 84px; --gdo: .4; counter-increment: gc; align-items: stretch; gap: 10px; padding: 0 0 22px; overflow: visible; text-align: left;
+  border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); } /* 아래 등급색 띠 없음 (2026-11-06 사용자 결정 — 등급색은 그림자 판이 맡는다) */
+[data-ui-theme="metro"] .gcard.gt-R { --tc: var(--g-A); --gds: 104px; --gdo: .7; border-color: color-mix(in srgb, var(--g-A) 45%, var(--mt-edge)); }
+[data-ui-theme="metro"] .gcard.gt-L { --tc: var(--g-L); --gds: 120px; --gdo: .95; border-color: color-mix(in srgb, var(--g-L) 55%, var(--mt-edge)); } /* 전설: 글로우 대신 등급색 윤곽 · 두께 */
+[data-ui-theme="metro"] .gcard:focus-visible:not(:active) { translate: -2px -2px; } /* 키보드 포커스도 가리킴처럼 떠오른다 (그림자 판은 제자리 → 9px) */
 [data-ui-theme="metro"] .gcard { --ny: calc(var(--gh) - .75px); --nb: var(--panel); } /* 절취 홈 고리 = 이름 글자(b)에 단다 (카드 ::before 는 망점 · ::after 는 뒤집기 연출) */
 [data-ui-theme="metro"] .gc-sigil { position: relative; display: grid; place-items: center; width: auto; height: var(--gh); margin: 0; padding-top: 10px; border: 0; transform: none; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
   border-radius: var(--mt-r) var(--mt-r) 0 0; color: var(--mt-paper); font-size: var(--fs-2xl);
@@ -6734,7 +6735,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .gcard .cback::after { content: 'ERRANTES METRO\A GLOBAL PASS ' counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
   color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
 @media (max-width: 640px) {
-  [data-ui-theme="metro"] .gcard { --gh: 64px; --gds: 44px; padding-bottom: 14px; } [data-ui-theme="metro"] .gcard.gt-R { --gds: 54px; } [data-ui-theme="metro"] .gcard.gt-L { --gds: 64px; }
+  [data-ui-theme="metro"] .gslot { --gh: 64px; } [data-ui-theme="metro"] .gcard { --gds: 44px; padding-bottom: 14px; } [data-ui-theme="metro"] .gcard.gt-R { --gds: 54px; } [data-ui-theme="metro"] .gcard.gt-L { --gds: 64px; }
   [data-ui-theme="metro"] .gc-sigil { flex-basis: 100%; width: auto; height: var(--gh); margin: 0; font-size: var(--fs-xl); }
   [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 25px; --gdi: 17px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 22px; height: 22px; }
   [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
@@ -6951,7 +6952,16 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* 칸(.tslot) = 그림자: drop-shadow (거리 --so: 기본 4 · 가리킴 6 · 누름 0 · 고름 6 · 색 --cs) — 카드 자신의 상자 그림자는 마스크에 잘리므로 끈다 */
 [data-ui-theme="metro"] .tslot { --so: 4px; --cs: var(--mt-sh); display: grid; filter: drop-shadow(var(--so) var(--so) 0 var(--cs)); transition: --so .09s cubic-bezier(.2, .9, .2, 1); }
 [data-ui-theme="metro"] .tslot > :is(.gcard, .card, .aug-opt) { box-shadow: none; }
-[data-ui-theme="metro"] .gslot.gt-R { --cs: var(--g-A); } [data-ui-theme="metro"] .gslot.gt-L { --cs: var(--g-L); } /* 전역 증강 그림자 = 등급색 */
+/* 전역 증강 칸 = 등급색 그림자 판 (2026-11-06 사용자 결정 — 탑승권 · 절망 증강 판과 같은 문법): 오른쪽 아래 7px · 등급색 100% (일반 흰 --g-C · 희귀 파랑 --g-A · 전설 빨강 --g-L) ·
+   망점 마스크로 우하단 끝으로 갈수록 옅게 · 판의 절취 홈도 뚫는다. 판은 제자리, 카드가 움직인다 (가리킴 · 포커스 9px · 누름 3px). 발권 등장은 칸이 맡아 판과 카드가 함께 솟는다 */
+[data-ui-theme="metro"] .gslot { --cs: var(--g-C); position: relative; isolation: isolate; filter: none; }
+[data-ui-theme="metro"] .gslot.gt-R { --cs: var(--g-A); } [data-ui-theme="metro"] .gslot.gt-L { --cs: var(--g-L); }
+[data-ui-theme="metro"] .gslot::before { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -1; border-radius: var(--mt-r); background-color: var(--cs); pointer-events: none;
+  -webkit-mask: radial-gradient(circle at 0 calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), radial-gradient(circle at 100% calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
+    linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
+  mask: radial-gradient(circle at 0 calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), radial-gradient(circle at 100% calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
+    linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
+  -webkit-mask-composite: source-in, source-in, source-over, source-over, source-over, source-over; mask-composite: intersect, intersect, add, add, add, add; }
 [data-ui-theme="metro"] .tslot:has(> :hover:not([disabled], :disabled, .on, .took)) { --so: 6px; }
 [data-ui-theme="metro"] .tslot:has(> :focus-visible) { --so: 6px; }
 [data-ui-theme="metro"] .tslot:has(> :is(.on, .took)) { --cs: var(--c-select); --so: 6px; }
@@ -7133,10 +7143,10 @@ html:has(main.prep) { scrollbar-gutter: stable; }
    ③ 등급 망점이 계단식으로 찍힌다 (희귀 · 전설일수록 넓고 진하다), 전설은 한 번 쿵 내려앉는다. 움직임 줄이기 = 0.01초 (12-banner-mobile.css) */
 @property --ph { syntax: '<length>'; inherits: false; initial-value: 0px; }
 [data-ui-theme="metro"] .gcard .cback { -webkit-mask: radial-gradient(circle at 50% 36%, transparent var(--ph), var(--c-black) calc(var(--ph) + .5px)); mask: radial-gradient(circle at 50% 36%, transparent var(--ph), var(--c-black) calc(var(--ph) + .5px)); }
-[data-ui-theme="metro"] .deal-box > .gslot > .gcard { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both; animation-delay: calc(var(--i, 0) * .08s); }
-[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both, mt-gc-live .01s both; animation-delay: calc(var(--i, 0) * .08s), calc(var(--i, 0) * .14s + .5s); }
-[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard.gt-L { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both, mt-gc-live .01s both, mt-gc-slam .36s cubic-bezier(.3, 1.5, .5, 1) forwards;
-  animation-delay: calc(var(--i, 0) * .08s), calc(var(--i, 0) * .14s + .5s), calc(var(--i, 0) * .14s + .34s); }
+[data-ui-theme="metro"] .deal-box > .gslot { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both; animation-delay: calc(var(--i, 0) * .08s); } /* 솟기 · 쿵 = 칸 (그림자 판이 카드와 함께) */
+[data-ui-theme="metro"] .deal-box.flip > .gslot.gt-L { animation: mt-gc-deal .42s cubic-bezier(.2, .9, .2, 1) both, mt-gc-slam .36s cubic-bezier(.3, 1.5, .5, 1) forwards; animation-delay: calc(var(--i, 0) * .08s), calc(var(--i, 0) * .14s + .34s); }
+[data-ui-theme="metro"] .deal-box > .gslot > .gcard { animation: none; }
+[data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard { animation: mt-gc-live .01s both; animation-delay: calc(var(--i, 0) * .14s + .5s); }
 [data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard > .cback { animation: mt-gc-punch .56s both; animation-delay: calc(var(--i, 0) * .14s); }
 [data-ui-theme="metro"] .deal-box.flip > .gslot > .gcard::after { content: none; } /* 번지는 빛줄기 대신 망점 */
 @keyframes mt-gc-deal { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
