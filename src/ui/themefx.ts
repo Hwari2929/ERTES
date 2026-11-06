@@ -464,7 +464,7 @@ function starLayer(level: FxLevel): Layer {
 
 // ───────────────────────── 메트로: 창밖 별빛 (본문 뒤)
 // 달리는 열차의 창밖처럼 별이 오른쪽에서 왼쪽으로 흐른다 (먼 별은 느리고 가까운 별은 빠르다). 가까운 층은 네 갈래 반짝이 별(보라 · 민트 · 흰).
-// 켜기에서는 가끔 먼 선로 위로 빛 열차(노선색 칸이 이어진 점선)가 지나간다. 전투 중엔 흐름을 멈추고 어둡게 둔다
+// 켜기에서는 가끔 먼 선로 위로 빛 열차(노선색 칸이 이어진 점선)가 지나간다. 전투 중엔 어둡게 · 느리게 (멈추지 않는다)
 // [타일 폭, 높이, [점 · 작은 점 · 반짝이 수], 흐름 속도 px/s, 반짝임 주기 ms]
 const WIN_TILES: [number, number, number[], number, number][] = [[560, 300, [12, 5, 0], 9, 0], [720, 400, [0, 7, 2], 24, 0], [640, 420, [0, 0, 4], 15, 2600]];
 const WIN_C = ['#d9d4ff', '#c4f2e4', '#fff6dc'];
@@ -523,6 +523,6 @@ function metroLayer(level: FxLevel): Layer {
       }
     },
     stop() { stopTrain(); anims.forEach((x) => x.cancel()); el.remove(); },
-    setBusy(b) { isBusy = b; el.classList.toggle('busy', b); anims.forEach((x) => (b ? x.pause() : x.play())); }, // 전투 중: 숨기지 않고 멈춘 채 어둡게 (보드 둘레에도 별 — 2026-11-06 피드백)
+    setBusy(b) { isBusy = b; el.classList.toggle('busy', b); anims.forEach((x) => x.updatePlaybackRate(b ? 0.25 : 1)); }, // 전투 중 (일시 정지 포함): 숨기지 않고 어둡게 · 4분의 1 빠르기로 계속 흐른다 (보드 둘레에도 별 — 2026-11-06 피드백)
   };
 }

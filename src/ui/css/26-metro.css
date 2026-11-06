@@ -11,7 +11,7 @@
 [data-ui-theme="metro"] .title-screen { --c-select: var(--gx-select); --c-select-ink: var(--gx-select-ink); --c-brand: var(--gx-brand); --c-credit: var(--gx-credit); } /* 타이틀 = 메트로 제외 구역: 갤럭시 색 */
 [data-ui-theme="metro"] .pref input { accent-color: var(--mt-b); } /* 체크 = 민트 (기본 규칙의 선택색을 덮는다) */
 .mt-win > i { position: absolute; }
-.mt-win.busy { opacity: .6; } /* 전투 중: 멈춘 별 (themefx setBusy) */
+.mt-win.busy { opacity: .6; } /* 전투 중: 어둡게 · 느리게 흐르는 별 (themefx setBusy) */
 /* 전투판 · 편성판 (2026-11-06 피드백 '전투판에서 테마가 끊긴다'): 아군 진형이 간격 · 적 진형과 맞닿은 변 = 승강장 안전선 (종이색 실선 3px — app/battle.ts safeLine),
    판 위 = 노선 띠 (보라 · 민트, 정보 판과 같은 문법). 움직이지 않는다 (전투 성능) */
 [data-ui-theme="metro"] .cell.mine:is(.ln-t, .ln-b, .ln-l, .ln-r) { --sl: color-mix(in srgb, var(--mt-paper) 72%, transparent); }
@@ -37,7 +37,9 @@
    판독기 = 브루탈리즘 판 (잉크 바탕 · 굵은 종이 윤곽 · 흐림 없는 민트 그림자 · 각진 모서리) 위에 탑승권 */
 .mt-gate { --go-a: var(--mt-a); --go-b: var(--mt-b); display: grid; place-items: center; }
 .gt-bars { position: absolute; inset: 0; display: flex; }
-.gt-bars i { flex: 1 1 0; margin-right: -1px; background: var(--mt-sky), var(--mt-ink); background-position: calc(0px - var(--bx, 0px)) 0; transform: scaleY(0); transform-origin: 50% 0; } /* 잉크 막대 = 이어지는 밤하늘 (떨어지는 동안 별이 세로로 늘어진다) */
+.gt-bars i { flex: 1 1 0; margin-right: -1px; background: var(--mt-sky), var(--mt-ink); background-position: calc(0px - var(--bx, 0px)) 0; transform: scaleY(0); transform-origin: 50% 0;
+  animation: gt-sky-drift 14s linear infinite; } /* 잉크 막대 = 이어지는 밤하늘 (떨어지는 동안 별이 세로로 늘어진다) · 막대가 서 있는 동안에도 별무리가 천천히 흐른다 */
+@keyframes gt-sky-drift { from { background-position: calc(0px - var(--bx, 0px)) 0, calc(0px - var(--bx, 0px)) 0, 0 0; } to { background-position: calc(-600px - var(--bx, 0px)) 0, calc(-470px - var(--bx, 0px)) 0, 0 0; } } /* 별 두 층 = 타일 폭만큼 (이음매 없이 되풀이, 가까운 층이 조금 빠르다) */
 .gt-bars i:nth-child(3n) { background: var(--mt-a); }
 .gt-bars i:nth-child(5n) { background: var(--mt-b); }
 .gt-scan { position: absolute; left: 0; right: 0; top: 0; height: 72px; opacity: 0; pointer-events: none;
@@ -120,7 +122,10 @@
 .mg-pan.p2 { margin-left: 4vw; background: var(--go-a); }
 .mg-pan.p3 { margin-left: 8vw;
   background: var(--mt-sky),
-    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--mt-ink); } /* 잉크 패널 = 모눈 위 별 하늘 */
+    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--mt-ink);
+  animation: mt-sky-drift 14s linear infinite; } /* 잉크 패널 = 모눈 위 별 하늘 · 패널이 멈춰 있는 동안에도 별무리가 천천히 흐른다 (모눈은 그대로) */
+@keyframes mt-sky-drift { to { background-position: -600px 0, -470px 0, 0 0, 0 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .gt-bars i, .mg-pan.p3 { animation: none; } }
 .mg-stage { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 4vmin; opacity: 0; }
 .mg-shapes { position: absolute; inset: 0; overflow: hidden; }
 .mg-shapes > i { position: absolute; display: block; }
