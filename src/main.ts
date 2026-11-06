@@ -70,7 +70,7 @@ import * as RM from './ui/routemap';
 import * as LAB from './ui/lab';
 import * as SHOP from './ui/shop';
 import { CAMP_SLOT, Screen, TUT_SLOT, app, applyFxPrefs, applyTheme, canFullscreen, enterFullscreen, esc, isFullscreen, loadPrefs, openContract, persist, root, savePref, toast, toggleFullscreen } from './app/state';
-import { banner, interestLines, itemIcon, itemTip, statIc, topbar } from './app/common';
+import { banner, consColor, interestLines, itemIcon, itemTip, statIc, topbar } from './app/common';
 import { fieldBrief, foeModal, newRunScreen, releaseModal, titleScreen } from './app/title';
 import { CAN_HOVER, relicTok } from './app/unitparts';
 import { pilgrimAct } from './app/pilgrim';
@@ -887,7 +887,7 @@ Object.assign(CTR.hooks, {
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작
 SHOP.shopInit({ // 상인 상점 덮개 (ui/shop.ts): main 의 그림 조각 · 확인 팝업 · 알림
-  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), itemBrief, statIc, devicePop, kvChip, CR,
+  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), consColor, itemBrief, statIc, devicePop, kvChip, CR,
   ask: (anchor, html, okLabel, ok) => { app.ask = { anchor, at: 'below', html, okLabel, ok }; },
   toast: (m) => toast(m), persist: () => persist(), sfx: (n) => SND.sfx(n),
 });

@@ -88,6 +88,7 @@
 .card.sup-card.open:hover { transform: none; border-color: var(--line); }
 .card.sup-card.jp { --jp-c: var(--g-A); border-color: var(--jp-c); } /* 대박 ×2 = 파랑 (희귀 색) */
 .card.sup-card.jp-hi { --jp-c: var(--g-L); } /* 대박 ×4 = 빨강 (전설) */
+.sup-card .sup-dt { display: none; } /* 우하단 망점 칸 (메트로만 쓴다) */
 .sup-card .sup-ic { display: grid; place-items: center; }
 .sup-card .sup-ic .li { width: 48px; height: 48px; }
 .sup-card .sup-ic .item { width: 60px; height: 60px; cursor: default; }

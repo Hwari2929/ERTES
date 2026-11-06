@@ -4,7 +4,8 @@
 // 엔진 규칙 (진열 · 할인 · 새로고침 · 교환 · 티켓)은 engine/run.ts, 상인 · 대사는 data/merchants.ts 에서 읽는다.
 import { CFG } from '../config';
 import * as R from '../engine/run';
-import { CONSUMABLES, itemInfo } from '../data/items';
+import { CONSUMABLES, emblemOf, isConsumable, isEmblem, isOccultMod, itemInfo } from '../data/items';
+import { SYN_BY_ID } from '../data/synergies';
 import { CATWHEEL } from '../data/despair';
 import { isPlaceable } from '../data/devices';
 import { MERCHANT_BY_ID, PETRA_AD, PETRA_ADS, type MerchantDef, type TalkKey } from '../data/merchants';
@@ -15,6 +16,8 @@ import { lineIcon } from './synicons';
 export interface ShopDeps {
   run(): RunState | null;
   itemIcon(id: string | null, attrs?: string): string;
+  /** 소모품 색 (app/common.ts consColor — 보관함 육각 아이콘과 같은 색) */
+  consColor(id: string): string;
   itemBrief(id: string): { stats: string; eff: string };
   statIc(html: string): string;
   devicePop(run: RunState, id: string): string;
@@ -102,6 +105,9 @@ function selTalk(s: ShopSlot): TalkKey {
   return k === 'KL' ? 'selK' : s.item === 'S_crystal' ? 'selCr' : (`sel${k}` as TalkKey);
 }
 const tierCls = (id: string) => (CONSUMABLES[id]?.legend ? 'L' : itemInfo(id).tier);
+/** 진열 카드 윗띠 색 (메트로 .sg-card --tc): 소모품 = 그 소모품 색 (전설 · 합성품 · 전투 보상 · 셰프), 문장 = 그 시너지 색, 신비 부품 = 신비학자 색.
+ *  나머지 (재료 · 고급 · 희귀 · 전설 부품) 는 등급 클래스 tS/tC/tG/tA/tL 이 정한다 */
+const bandColor = (id: string) => (isConsumable(id) ? D.consColor(id) : isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : '') || '';
 /** 칸의 짧은 성질 한 줄 (넓은 화면만): 능력치 줄이 있으면 그것, 없으면 효과 문장 */
 function cardEff(id: string) {
   const { stats, eff } = D.itemBrief(id);
@@ -143,7 +149,8 @@ export function shopOverlay(run: RunState): string {
   const cards = stock.map((s, i) => {
     const id = s.item, on = SHOP.sel === i;
     const err = SHOP.err?.i === i ? `<em class="sg-err" role="status">${esc(SHOP.err.msg)}</em>` : '';
-    return `<div class="sg-card t${tierCls(id)}${on ? ' on' : ''}${s.sold ? ' sold' : ''}${s.ex ? ' ex' : ''}" data-a="shop-sel" data-v="${i}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(`${itemInfo(id).name} · ${kindName(id)}${s.sold ? ' · 품절' : ` · ${s.price} 크레딧`}`)}">
+    const bc = bandColor(id);
+    return `<div class="sg-card t${tierCls(id)}${on ? ' on' : ''}${s.sold ? ' sold' : ''}${s.ex ? ' ex' : ''}"${bc ? ` style="--tc:${bc}"` : ''} data-a="shop-sel" data-v="${i}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(`${itemInfo(id).name} · ${kindName(id)}${s.sold ? ' · 품절' : ` · ${s.price} 크레딧`}`)}">
       <span class="sg-top">${D.itemIcon(id)}<span class="sg-kind">${s.ex ? `<i class="sg-ex">전용</i>` : ''}${esc(kindName(id))}</span></span>
       <b class="sg-name">${esc(itemInfo(id).name)}</b>${cardEff(id)}
       <span class="sg-foot">${tag(run, s, i, 'c')}${s.off && !s.sold ? `<i class="sg-off" title="할인">−${s.off}%</i>` : ''}</span>${err}
