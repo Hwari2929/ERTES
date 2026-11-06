@@ -90,23 +90,21 @@
 @keyframes pv-spot { to { opacity: 1; } }
 .pv-bg.played .pv-half, .pv-bg.played .pv-seam, .pv-bg.played .pv-curtain::after { animation-duration: 0s; animation-delay: 0s; }
 .pv-bg.played .pv-body { animation-delay: 0s; }
-.pv-bg.played .pv-card { animation-delay: calc(var(--i) * .08s); }
 .pv-body { position: relative; z-index: 1; display: grid; gap: 12px; justify-items: center; text-align: center; animation: pv-in .5s ease .85s both; }
 @keyframes pv-in { from { opacity: 0; } }
 .pv-body h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); text-shadow: 0 0 22px rgb(242 169 59 / .5); }
 .pv-body > p { margin: 0; }
 .pv-kicker { font-size: var(--fs-sm); letter-spacing: .4em; color: var(--c-brand); }
 .pv-row { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 6px; }
-.pv-card { display: grid; align-content: start; gap: 8px; min-height: 230px; padding: 20px 16px; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--c-brand) 60%, transparent); text-align: left; color: var(--c-text); cursor: pointer;
-  background: linear-gradient(170deg, rgb(40 24 12 / .92), rgb(14 12 18 / .95) 60%); box-shadow: 0 14px 34px color-mix(in srgb, var(--c-black) 60%, transparent), inset 0 1px 0 rgb(255 220 160 / .15);
-  animation: pv-card .55s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(1.05s + var(--i) * .13s); transition: transform .2s, box-shadow .2s; }
-.pv-card:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px var(--c-select), 0 20px 40px color-mix(in srgb, var(--c-black) 70%, transparent); }
-.pv-card b { font-size: var(--fs-xl); }
-.pv-sigil { font-size: var(--fs-3xl); color: var(--c-brand); }
-.pv-desc { font-size: var(--fs-md); color: var(--c-narr-2); }
-@keyframes pv-card { from { opacity: 0; transform: translateY(40px) rotateX(40deg); } }
-@media (max-width: 700px) { .pv-row { grid-template-columns: 1fr; } .pv-card { min-height: 0; } }
-@media (prefers-reduced-motion: reduce) { .pv-curtain, .pv-card, .pv-body { animation: none; } }
+.pv-row > .gslot { display: grid; }
+/* 특권 카드 = 전역 증강과 같은 카드 (2026-11-06 사용자 결정 — 같은 유형의 토큰 · 연출, app/modals.ts): 색 = 브랜드 호박 (특권은 등급이 없다).
+   등장 = 전역 증강처럼 뒷면에서 뒤집혀 공개 — 막이 닫히고 머리 글씨가 놓인 뒤 (메트로는 같은 자리에서 개찰 스캔, 26-metro.css) */
+.gcard.pv-card { --gc: var(--c-brand); }
+.pv-row > .gslot > .pv-card { animation: deal-turn .75s linear both; animation-delay: calc(1.05s + var(--i) * .13s); }
+.pv-row > .gslot > .pv-card > .cback { display: block; animation: back-hide .75s linear both; animation-delay: calc(1.05s + var(--i) * .13s); }
+.pv-bg.played .pv-row > .gslot > .pv-card, .pv-bg.played .pv-row > .gslot > .pv-card > .cback { animation-delay: calc(var(--i) * .08s); }
+@media (max-width: 700px) { .pv-row { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .pv-curtain, .pv-body { animation: none; } .pv-row > .gslot > .pv-card, .pv-row > .gslot > .pv-card > .cback { animation-duration: .01s; animation-delay: 0s; } }
 
 /* ───────── 절망 증강 (data/despair.ts): 특권 막과 달리 위에서 어둠이 내려앉고, 붉은 재가 가라앉으며, 카드는 무겁게 떨어진다 (빛 · 반짝임 없음) */
 .modal-bg.dp-bg { background: color-mix(in srgb, var(--c-despair-deep) 90%, var(--c-black)); animation: dp-dark 1.6s ease-in both; }

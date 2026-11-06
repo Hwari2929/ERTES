@@ -273,6 +273,11 @@ export function miniCard(o: MiniCardOpts) {
     + `<span class="mn-more" hidden>${more}</span></button></span>`;
 }
 
+/** 특권 증강 카드 머리 아이콘 (전역 증강 카드와 같은 원판 위 선 아이콘): 문장 = 그 시너지 아이콘 */
+const PV_ICON: Record<string, string> = { 'P.recruit': 'n.recruit', 'P.rank': 'm.up', 'P.global': 'n.council', 'P.funds': 'r.cr', 'P.hp': 'a.hp', 'P.relic': 'k.relic', 'P.supply': 'n.supply',
+  'P.trust': 'r.dividend', 'P.scout': 'k.scope', 'P.gamble': 'p.dice', 'P.rare': 'p.star4', 'P.legend': 'p.crown' };
+const pvIcon = (o: { id: string; param?: string }) => (o.id === 'P.emblem' && o.param ? synIcon(o.param, 'gc-ic') : lineIcon(PV_ICON[o.id] || '', 'gc-ic')) || '♜';
+
 // ───────────────────────── 모달: 대기 중인 선택
 export function pendingModal(run: RunState): string {
   const p = run.pending[0];
@@ -299,7 +304,9 @@ export function pendingModal(run: RunState): string {
   } else if (p.t === 'privilege') {
     mcls = 'privilege';
     body = `<div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
-      <div class="pv-row">${p.options.map((o, i) => `<button class="pv-card" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${R.privilegeDesc(o).length > 70 ? ` title="${esc(R.privilegeDesc(o))}"` : ''}><span class="pv-sigil" aria-hidden="true">♜</span><b>${esc(R.privilegeName(o))}</b><span class="pv-desc">${ic(esc(R.privilegeDesc(o)))}</span></button>`).join('')}</div>
+      <div class="pv-row">${p.options.map((o, i) => { const desc = R.privilegeDesc(o); return `<span class="tslot gslot gt-P" style="--i:${i}"><button class="gcard pv-card gt-P" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${desc.length > 70 ? ` title="${esc(desc)}"` : ''}>
+        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
+        <span class="gc-kind">특권</span><b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'despair') {
     // 절망 증강: 어둡게 가라앉는 카드 (특권 · 등급 공개 연출과 따로, 소리는 낮은 음 하나 — sound.ts despair)

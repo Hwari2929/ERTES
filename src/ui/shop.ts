@@ -123,7 +123,7 @@ function slotCard(run: RunState, s: ShopSlot, i: number) {
   const flag = s.off && !s.sold ? `<i class="mn-off">−${s.off}%</i>` : s.ex ? '<i class="mn-ex">전용</i>' : '';
   const price = s.sold ? '품절' : err ? `<em>${esc(err)}</em>` : `${D.CR}${s.base ? `<s>${s.base}</s>` : ''}<b>${s.price}</b>`;
   return D.miniCard({ a: 'shop-buy', v: `${i}:c`, k: 'ITEM', tier: tierCls(id), icon: D.itemIcon(id), name: esc(it.name), desc: D.statIc(esc(it.desc)), mark: kindName(id), tc: bandColor(id),
-    price, off: s.sold, flag, more, attrs: `data-tag="c${i}"`, cls: ['mn-ask', SHOP.sel === i && 'on', s.sold && 'sold', poor && 'poor', err && 'err'].filter(Boolean).join(' ') });
+    price, off: s.sold, flag, more, attrs: `data-tag="c${i}"`, cls: ['mn-ask', SHOP.sel === i && !s.sold && 'on', s.sold && 'sold', poor && 'poor', err && 'err'].filter(Boolean).join(' ') });
 }
 const silhouette = '<svg class="so-sil" viewBox="0 0 100 160" aria-hidden="true"><circle cx="50" cy="34" r="20"/><path d="M14 160c0-46 14-82 36-82s36 36 36 82z"/></svg>';
 function artHtml(m: MerchantDef) {
@@ -161,10 +161,10 @@ export function shopOverlay(run: RunState): string {
     </section>
     ${m.trade && SHOP.trade ? tradePop(run) : ''}
     <section class="so-main">
-      <div class="so-hd"><h1>${esc(m.shop)}</h1><div class="sh-row">${chips}</div></div>
+      <div class="so-hd"><h1>${esc(m.shop)}</h1><div class="sh-row">${chips}</div><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
       <div class="so-body">
         <div class="so-shelf">
-          <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length}</b>${sold ? ` · 품절 <b>${sold}</b>` : ''}</span><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
+          <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length}</b>${sold ? ` · 품절 <b>${sold}</b>` : ''}</span></div>
           <div class="sg cards mn-row mn-buy">${cards}</div>
         </div>
       </div>

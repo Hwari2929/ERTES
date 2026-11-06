@@ -297,6 +297,10 @@ const L: Record<string, string> = {
   't.disrupt': '<path d="M3 9c2.5-4 5.5 4 9 0s6.5 4 9 0"/><path d="M3 15c2.5-4 5.5 4 9 0s6.5 4 9 0"/>',
   't.pack': '<circle cx="5" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2.5"/><path d="M7 6l9 5M7 18l9-5M7 12h9"/>',
   't.assassin': '<path d="M20 4l-1.2 5.2L10 18l-4-4 8.8-8.8z"/><path d="M5 13l6 6"/><path d="M7 17l-3 3"/>',
+  // 특권 증강 (app/modals.ts PV_ICON): 도박사의 출항 = 주사위 · 고급 작전 재량 = 네 갈래 별 · 전설의 시작 = 왕관
+  'p.dice': '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r=".9"/><circle cx="15" cy="9" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="9" cy="15" r=".9"/><circle cx="15" cy="15" r=".9"/>',
+  'p.star4': '<path d="M12 3c.7 4.7 3.5 7.6 8.5 9-5 1.4-7.8 4.3-8.5 9-.7-4.7-3.5-7.6-8.5-9 5-1.4 7.8-4.3 8.5-9z"/>',
+  'p.crown': '<path d="M4 18h16"/><path d="M5 15L3.5 7l5 4L12 5l3.5 6 5-4L19 15z"/>',
 };
 export function lineIcon(key: string, cls = 'li'): string {
   const p = L[key] ?? (GICON_ON ? GICONS[key] : undefined); // 전역 증강은 증강 id 그대로 (ui/gicons.ts, 다 그려지면 켠다)

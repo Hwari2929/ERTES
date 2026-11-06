@@ -31,18 +31,14 @@ import { layoutPanels } from './popups';
 import { followCamera } from './battlecam';
 
 // ───────────────────────── 화면: 전투
-/** 아군 진형 칸이 간격 · 적 진형 칸과 맞닿은 변 (화면 기준 위 · 아래 · 왼쪽 · 오른쪽) → ' ln-t ln-l …' (메트로 = 승강장 안전선) */
-export const safeLine = (zoneAt: (dx: number, dy: number) => string) => ([[0, -1, 't'], [0, 1, 'b'], [-1, 0, 'l'], [1, 0, 'r']] as const).map(([dx, dy, k]) => { const n = zoneAt(dx, dy); return n === 'mid' || n === 'foe' ? ` ln-${k}` : ''; }).join('');
 /** 전투 보드 칸 (테두리 · 적 진형 · 간격 · 아군 진형 색 구분) */
 export function battleCells(enc: Encounter) {
   const g = encGeo(enc), { w, h } = scrDims(g), tLay = terrainLayer(g); // 화면 칸 순서로 (가로 지형은 돌려서, BattleView.syncTerrain 도 이 순서)
   let out = '';
-  const zs = (sx: number, sy: number) => { if (sx < 0 || sy < 0 || sx >= w || sy >= h) return 'edge'; const p = fromScr(g, sx, sy); return zoneAt(g, p.x, p.y); };
   for (let sy = 0; sy < h; sy++) for (let sx = 0; sx < w; sx++) {
     const { x, y } = fromScr(g, sx, sy), z = zoneAt(g, x, y);
     const tc = tLay.at.get(`${x},${y}`);
-    const ln = z === 'ally' ? safeLine((dx, dy) => zs(sx + dx, sy + dy)) : '';
-    out += tc && !TERRAIN[tLay.groups[tc.gid].k].breakable ? terrainCell(tLay, x, y, 'data-a="bterrain"', -1) : `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}${ln}"></div>`; // 차 · 바리케이드는 전투에서 구조물 (칸은 빈칸)
+    out += tc && !TERRAIN[tLay.groups[tc.gid].k].breakable ? terrainCell(tLay, x, y, 'data-a="bterrain"', -1) : `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}"></div>`; // 차 · 바리케이드는 전투에서 구조물 (칸은 빈칸)
   }
   return out + terrainIcons(tLay, (x, y) => { const s = toScr(g, x, y); return `left:${(s.x / w) * 100}%;top:${(s.y / h) * 100}%;width:${100 / w}%;height:${100 / h}%`; }, -1, true);
 }

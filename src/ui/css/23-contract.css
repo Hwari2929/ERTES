@@ -354,7 +354,7 @@
 .nr.brief.docking .nr-band-k { display: none; } /* 제목 위에 떠 있어(absolute) 빼도 상자 폭 · 제목 자리가 그대로 */
 .nr.brief.docking .nr-band .nr-band-t small { color: var(--c-text-2); transition: color .5s; }
 /* 도킹 뒤: 은하 바탕 위로 초기 기물 카드가 하나씩 떨어진다 */
-.nr.drop .pslot { animation: nr-drop .55s cubic-bezier(.2, .85, .3, 1.15) both; animation-delay: calc(.12s + var(--i, 0) * 70ms); }
+.nr.drop .pslot { animation: nr-drop .55s cubic-bezier(.2, .85, .3, 1.15) backwards; /* 끝나면 원래 값(translate 없음) — 칸이 층을 만들지 않아야 메트로 탑승권 그림자 판(screen)이 전장 그림과 섞인다 */ animation-delay: calc(.12s + var(--i, 0) * 70ms); }
 @keyframes nr-drop { from { opacity: 0; translate: 0 -48px; } to { opacity: 1; translate: 0 0; } }
 .nr.drop :is(.nr-title > h1, .nr-side, .nr-foot) { animation: ct-fade .4s both; } /* 첫 줄은 내려앉은 제목이 이어받아 그대로 */
 @media (max-width: 760px) {
