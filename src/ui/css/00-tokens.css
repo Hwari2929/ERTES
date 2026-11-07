@@ -74,6 +74,7 @@
   --f-paper: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
   --f-pen: 'Nanum Pen Script', 'Segoe Script', cursive;
   --f-sign: 'Pinyon Script', 'Snell Roundhand', 'Gowun Batang', cursive; /* 간판 글씨: 동판 필기체 'Errantes' (계약 표지 · 바 세로 띠, index.html 에서 그 글자만 받는다) */
+  --f-num: var(--f-body); /* 값 숫자 (상단 바 · 편성 머리 칩 · 비용) — 메트로 = Archivo 좁은 폭 (01-themes.css, 글자 폭은 26-metro.css body font-stretch) */
   --f-logo: 'Archivo Black', var(--f-display); /* 메트로 상단 바 로고 METRO (index.html 에서 그 글자만 받는다) */
   --f-slip: 'Nanum Gothic Coding', var(--f-mono); /* 전표 · 영수 증서: 한글도 같은 폭으로 찍히는 고정폭 */
   --fs-2xs: .625rem;   /* 10px  배지 숫자 · 아주 작은 표식 */

@@ -98,7 +98,7 @@ function rideTrack(r: Ride) {
   void Promise.race([Promise.all([Promise.all(loads), minHold]), new Promise((res) => setTimeout(res, CAP))]).then(() => r.leave(r));
 }
 /** 덮개 아래에서 먼저 돌아 버리면 안 보이는 등장 연출(런 출발 특권 창의 머리 글씨 · 카드 세 장)은 멈춰 두었다가, 덮개가 걷히기 시작할 때 이어서 돈다.
- *  스크린도어(막)는 덮인 동안 닫혀 둔다 → 걷히면 문이 닫힌 승강장에 카드가 놓인다. at = 멈춘 연출을 이 시각(ms)부터 잇는다 (지연을 그만큼 건너뛴다) */
+ *  막(메트로 = 행선 안내판 플립)도 덮인 동안 멈춰 둔다 → 걷히면 글자판이 넘어가며 카드가 놓인다. at = 멈춘 연출을 이 시각(ms)부터 잇는다 (지연을 그만큼 건너뛴다) */
 function holdUnder(r: Ride) {
   r.held = Array.from(document.querySelectorAll('.pv-bg:not(.played) .pv-body')).flatMap((e) => e.getAnimations({ subtree: true })); // 머리 글씨 + 카드 줄 전체 (칸 · 뒷면 · 스캔 줄 · 삑 고리)
   r.held.forEach((a) => a.pause());
@@ -265,7 +265,7 @@ export function onScreen(prev: string, next: string) {
   if (ride?.fresh) {
     ride.fresh = false;
     // 사건 장면 · 역경 선택은 제 막 연출이 있다 → 덮개는 그리기 전에 거둔다.
-    // 런 출발의 특권 막(메트로 = 닫히는 스크린도어)은 그대로 둔다: 덮인 동안 문이 닫히고, 걷히면 닫힌 승강장에 카드가 놓인다 (holdUnder)
+    // 런 출발의 특권 막(메트로 = 행선 안내판)은 그대로 둔다: 덮인 동안 멈춰 두었다가, 걷히면 글자판이 넘어가며 카드가 놓인다 (holdUnder)
     if (document.querySelector('.adv, .dp-bg:not(.played)')) { endRide(); return; }
     holdUnder(ride);
     rideTrack(ride);

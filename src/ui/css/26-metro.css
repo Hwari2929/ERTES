@@ -1,14 +1,16 @@
 /* ═════════ 메트로 인피니티 패스 (설정 → 테마). 디자인 시스템 'ADMIT ONE' 의 부품을 게임 화면에 옮긴다. 재료는 [data-ui-theme="metro"] 의 --mt-* 토큰만 쓴다
-   · 인게임 화면만: 바 · 계약 · 타이틀 · 사건 장면은 그대로 (:not(:is(.bar, .ct, .title-screen, .adv) *))
+   · 인게임 화면만: 바 · 계약 · 타이틀 · 사건 장면은 그대로 (:not(:is(.bar, .ct, .title-screen, .adv) *)) — 타이틀은 색 토큰만 메트로를 따른다 (2026-11-07 사용자 결정, 피드백 보고서 D3)
    · 누를 수 있는 것과 아닌 것을 모양으로 나눈다 —
        창 · 패널 · 노드 표 · 열린 보급 카드 = 평평한 판 (1.5px 윤곽 + 위 노선 띠, 그림자 없음)
        단추 = 평평한 판 + 단단한 그림자 (오른쪽 아래 4px, 가리키면 떠서 6px · 누르면 내려앉는다 — 쿠폰형 주 동작은 보존 주석만)
        고르는 카드 = 같은 그림자 문법 (티켓형은 실제 구멍 절취 홈 + 칸 · 판 그림자), 가리키면 밝은 회색 윤곽(--mt-hover), 고른 것은 선택색
    · 모노 글꼴 = 영문 · 숫자 전용 (한글 라벨 = 본문 글꼴), 패널 장식은 하나
    · 연출(themefx.ts): 창밖 별빛 · 런 출발 바코드 게이트 · 보스 빨간 급행 · 상점 MARKET · 전투 진입(노선색 패널 와이프 + 신호등) */
-[data-ui-theme="metro"] body { background: var(--mt-floor); }
+[data-ui-theme="metro"] body { background: var(--mt-floor); font-stretch: 68%; } /* 글자 폭 = Archivo 좁은 폭 (폭 축이 있는 글꼴에만 걸린다 — 한글 · 모노 글꼴은 그대로) */
+[data-ui-theme="metro"] :is(.bar, .ct, .title-screen, .adv) { --fs-xs: .6875rem; --fs-sm: .75rem; --r-pill: 999px; } /* 제외 구역 = 원래 글자 크기 · 알약 둥글기 */
+/* 한글 라벨 = 13px 이상 (2026-11-07 피드백 보고서 1단계 — 디자인 시스템 caption 13px). --fs-xs(12px)는 영문 · 숫자 표식 몫이라, 한글이 들어가는 작은 라벨은 --fs-sm 으로 */
+[data-ui-theme="metro"] :is(.map-scale, .pc-blurb, .env-kicker, .cx-role, .cx-st, .ir-empty, .dp-rec, .tchip, .pil-bk, .ah-sec, .fc-k, .card.mn.buy .mn-rk, .bench-label):not(:is(.bar, .ct, .title-screen, .adv) *) { font-size: var(--fs-sm); }
 [data-ui-theme="metro"] .sticky-actions, [data-ui-theme="metro"] .prep .board-head { background: var(--mt-floor); } /* 화면에 붙는 띠: 같은 고정 바닥 → 모눈 위에 네모가 드러나지 않는다 */
-[data-ui-theme="metro"] .title-screen { --c-select: var(--gx-select); --c-select-ink: var(--gx-select-ink); --c-brand: var(--gx-brand); --c-credit: var(--gx-credit); } /* 타이틀 = 메트로 제외 구역: 갤럭시 색 */
 [data-ui-theme="metro"] .pref input { accent-color: var(--mt-b); } /* 체크 = 민트 (기본 규칙의 선택색을 덮는다) */
 .mt-win > i { position: absolute; }
 .mt-win.busy { opacity: .6; } /* 전투 중: 어둡게 · 느리게 흐르는 별 (themefx setBusy) */
@@ -193,6 +195,7 @@
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *) { background-color: var(--c-bad); border-color: transparent; color: var(--mt-on); }
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { background-color: color-mix(in srgb, var(--c-bad) 85%, var(--c-white)); border-color: transparent; }
 [data-ui-theme="metro"] :focus-visible { outline: 2px solid var(--mt-a); outline-offset: 3px; }
+@media (pointer: coarse) { [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny) { min-height: 44px; } } /* 터치 = 누를 것 44px (디자인 시스템 hit-min, 2026-11-07 피드백 보고서) */
 
 /* ── 창 · 판: 누를 수 없는 것 = 평평한 판 (1.5px 윤곽 · 위 노선 띠 · 그림자 없음). 덮개 = 망점 */
 [data-ui-theme="metro"] .modal:not(.privilege, .despair) { border: var(--stroke) solid var(--edge); border-radius: var(--r-win); box-shadow: none;
@@ -335,6 +338,8 @@
   [data-ui-theme="metro"] .pcard .pc-art { inset: 6px 6px calc(var(--stub) + 2px); }
   [data-ui-theme="metro"] .pcard .pc-panel { inset: 0 0 var(--stub); }
   [data-ui-theme="metro"] .pcard .pc-syn { top: 8px; left: 8px; }
+  [data-ui-theme="metro"] .pcard .pc-panel { justify-content: flex-start; padding-top: 36px; } /* 이름 = 시너지 마름모 줄(위 8 ~ 36px) 아래부터 — 아래 정렬이면 짧은 카드에서 글이 차올라 이름이 마름모에 겹친다 */
+  [data-ui-theme="metro"] .pcard .pc-role { gap: 2px 8px; } /* 유형 둘을 한 줄에 */
   [data-ui-theme="metro"] .pcard .pc-full { top: 32px; right: 8px; } /* 우상단 모서리는 고른 표시 칩 자리 */
 }
 
@@ -978,6 +983,7 @@
 [data-ui-theme="metro"] .ship-btn:disabled { box-shadow: none; }
 /* HUD · 메뉴 · 설정 */
 [data-ui-theme="metro"] .top .pill { font-variant-numeric: tabular-nums; }
+[data-ui-theme="metro"] :is(.top .pill, .board-head .pill, .sb-cost) { font-family: var(--f-num); } /* 값 숫자 = Archivo 좁은 폭 (한글은 본문 글꼴) */
 [data-ui-theme="metro"] .slot { border-radius: 0; background: none; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); padding-inline: 2px; }
 [data-ui-theme="metro"] .pref { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); }
 [data-ui-theme="metro"] .modal input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; margin: 2px 0 0; cursor: pointer;
@@ -1110,7 +1116,7 @@
 @keyframes mt-gc-beep { from { border-color: var(--tc); } } /* 카드 테두리 → 홈 고리(border-color: inherit)도 함께 */
 [data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard > b::before, [data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard > b::after { animation: mt-gc-ringflash .55s ease-out; animation-delay: calc(var(--t0) + var(--sd)); }
 @keyframes mt-gc-ringflash { from { border-color: var(--tc); box-shadow: 0 0 0 1.5px var(--tc), 0 0 14px 3px color-mix(in srgb, var(--tc) 45%, transparent); } }
-/* 특권 공개 (메트로, 2026-11-06 사용자 결정 — 전역 증강과 같은 개찰 스캔): 막(스크린도어)이 닫히고 머리 글씨가 놓인 뒤(--pv0) 칸이 아래에서 솟고 → 보라 스캔 줄 → '삑'.
+/* 특권 공개 (메트로, 2026-11-06 사용자 결정 — 전역 증강과 같은 개찰 스캔): 막(행선 안내판)이 넘어가고 머리 글씨가 놓인 뒤(--pv0) 칸이 아래에서 솟고 → 보라 스캔 줄 → '삑'.
    deal-box 를 쓰지 않고 처음부터 지연으로 잡는다 — 런 출발 게이트가 덮는 동안 themefx holdUnder 가 이 연출을 통째로 멈춰 두었다가 걷힐 때 잇는다. 다시 그릴 때(.played)는 바로 */
 [data-ui-theme="metro"] .pv-row { --pv0: 1.05s; }
 [data-ui-theme="metro"] .pv-bg.played .pv-row { --pv0: 0s; }
