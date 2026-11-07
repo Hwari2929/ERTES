@@ -1,0 +1,81 @@
+/* 2차 피드백 시안 B (밝은 객실 · 어두운 창) — 6c255980(v602) 위 덮어쓰기, 방향 확인용 (깨진 곳 일부만 손봄). 넣는 법은 시안 A 머리 주석과 같다.
+ * 권장안은 여기에 "전투 화면 = 밤 값(소등)" 을 더한 것: 전투 화면에서는 이 파일의 규칙이 걸리지 않게 한다. */
+/* (v604 비교샷용으로 옮긴 판, 2026-11-07): 권장안대로 모든 선택자의 html[data-ui-theme="metro"] → html[data-ui-theme="metro"]:not(:has(main.battle)) (전투 화면 = 밤 값),
+ * 맨 아래 'v604 이음' 블록 = v603 · v604 에서 바뀐 그림자 체계(오버레이 계산식이 읽는 숫자 채널 --ch-* · 바탕 --sh-bg)를 밝은 값으로 다시 잇는 것.
+ * 어두운 창 목록에 더한 잉크 부품 (v604 촬영에서 잉크 판 위 진한 글씨로 안 보이던 곳): 소집 시너지 칸 .ms-syn · 결과 보고서 지표 · MVP 칸 .aar-kpi · .aar-mvp · 순례 카드 머리 .pil-ch · 알림 표 .nt-rows · 절망 증강 창 · 지도 칸 말풍선 .tl-pop · 결과 보고서 머리 띠 .aar-head
+ * 넣는 법 (비교샷): node scripts/ui_shots.mjs --css design/metro-light/theme-b.css */
+/* 시안 B — 밝은 객실 · 어두운 창: 바탕 · 판 · 글씨를 디자인 시스템 ADMIT ONE 라이트 값으로, 전투판 · 대기석 · 그림 위 화면 · 잉크 부품은 어두운 값 그대로 */
+html[data-ui-theme="metro"]:not(:has(main.battle)) {
+  --bg: #e9e8e4; --panel: #f2f1ed; --panel-2: #e1e0dc; --line: #b4b3ae;
+  --c-text: #15161a; --c-text-2: #4f5054;
+  --c-select-ink: #1c0f08;
+  --c-good: #0b6650; --c-bad: #ad2415; --c-info: #3a4fc4;
+  --c-chalk: #15161a; --c-chalk-ink: #f2f1ed; --c-ink: rgb(242 241 237);
+  --c-brand: #4f3fc0; --c-credit: #a8461a;
+  --overlay: rgba(21, 22, 26, 0.46);
+  --tint-1: rgb(21 22 26 / .04); --tint-2: rgb(21 22 26 / .08);
+  --shade-1: rgb(21 22 26 / .12); --shade-2: rgb(21 22 26 / .2); --shade-3: rgb(21 22 26 / .32);
+  color-scheme: light;
+  /* 라이트 보정 (11-05 에 지운 이타카 라이트 테마의 값을 빌림 — d4ace6c8^:src/ui/css/01-themes.css) */
+  --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
+  --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
+  --g-C: #6f6d68; --g-G: #23794f; --g-A: #2a6fc0; --g-L: #b0245a; --g-U: #8a2fb0; --g-T: #3a7e9c; --g-S: #5a50b8;
+  --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #f2f1ed;
+  --c-down: #b8322a; --c-type: #3a3029; --c-res: #1f6f8e; --c-warn-ink: #8a5a00; --c-ok-ink: #23794f;
+  --c-danger-ink: #b3261e; --c-danger-line: #c0392e; --c-danger-bg: #e7a79d;
+  --c-streak: #b2520f; --c-lo: #b0303f; --cat-bio: #3f7f22; --cat-mech: #2a6aa8; --cat-struct: #7a6a48;
+  --data-mix: 60%; --op-lift: .15;
+  /* 메트로 재료: 모눈 · 윤곽 · 그림자를 종이 위 잉크로 (디자인 시스템 grid · ink 윤곽 · shadow-sm) */
+  --mt-grid: rgb(21 22 26 / .06);
+  --mt-edge: #15161a; --mt-hover: #4f5054;
+  --mt-sh: #15161a;
+  --mt-floor: linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, var(--bg);
+  --cell-mine: #1c1d2c; --cell-foe: #261b21; --cell-mid: #17171f;
+}
+/* 어두운 창: 전투판 · 대기석 · 그림 위 화면 · 잉크 부품은 원래 메트로 값 (글씨가 잉크 면 위에서 밝게 남도록) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) :is(.board-wrap, .board, .bench, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .item, .ah-in, .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .ms-syn, .aar-kpi, .aar-mvp, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) {
+  --bg: #111218; --panel: #191a22; --panel-2: #22232e; --line: #333546;
+  --c-text: #ecebe7; --c-text-2: #9897a8; --c-chalk: #f0f2f6; --c-chalk-ink: #12151c; --c-ink: rgb(9 9 14);
+  --c-good: #63d297; --c-bad: #ff6b5e; --c-info: #8fa4ff; --c-brand: #9a8cf0; --c-credit: var(--c-select);
+  --tint-1: rgb(255 255 255 / .03); --tint-2: rgb(255 255 255 / .06); --shade-1: rgb(0 0 0 / .35); --shade-2: rgb(0 0 0 / .55); --shade-3: rgb(0 0 0 / .8);
+  --c-divine: #ffd34d; --c-occult: #c38cff; --c-psi: #b07cff; --c-ult: #4aa8ff; --c-steel: #a0b4c8; --fame: #ff9de2; --staff: #c9b37a;
+  --el-phys: #eceae4; --el-chem: #9be15d; --el-elec: #62d6ff; --el-psy: #d48cff; --el-holy: #ffd866; --el-true: #ff7a7a;
+  --g-C: #eef0f4; --g-G: #63d297; --g-A: #6cb6ff; --g-L: #ff4f7b; --g-U: #d58cff; --g-T: #9fd0e8; --g-S: #aaa6ff;
+  --st-buff: #5ab8ff; --st-buff-ink: #9fd4ff; --st-debuff: #ff6a6a; --st-debuff-ink: #ff9a9a; --st-chip: #14161d;
+  --data-mix: 100%; --op-lift: 0;
+  --mt-edge: color-mix(in srgb, #ecebe7 42%, #0c0d12); --mt-sh: color-mix(in srgb, #ecebe7 30%, #0c0d12); --mt-grid: rgb(236 235 231 / .04);
+  color-scheme: dark; color: var(--c-text);
+}
+html[data-ui-theme="metro"]:not(:has(main.battle)) .so-npc { background: #111218; color: #ecebe7; }
+/* 강조색 복숭아는 면에만 — 종이 위 글씨 · 숫자는 짙은 복숭아 (디자인 시스템 accent-text 와 같은 구분) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) :is(.boss-goal b, .top .stat-row .cr, .pk-v) { color: #a8461a; }
+/* 종이 판은 바탕과 같은 밝기라 잉크 윤곽 + 잉크 그림자로 세운다 (디자인 시스템 shadow-sm 4px 4px 0 ink) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .board-wrap { background: #111218; border-radius: var(--r-panel); }
+/* 주인공 = 반대 극성: 라이트에서는 잉크 면 (디자인 시스템 ADMIT ONE 라이트 GameScreen 의 AGENT FILE 표 · 선택 탭) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur { --mt-paper: #15161a; --mt-on: #ecebe7; --mt-ink: #ecebe7; }
+html[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur .ah-lead .ah-ic { border-color: #15161a; color: #15161a; }
+html[data-ui-theme="metro"]:not(:has(main.battle)) .st-tab[aria-selected="true"] { background: #15161a; color: #ecebe7; border-color: #15161a; }
+/* 시너지 마름모: 짙은 시너지색 면 + 흰 아이콘 (11-05 에 지운 이타카 라이트 보정 규칙) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); border-color: transparent; color: #fff; }
+html[data-ui-theme="metro"]:not(:has(main.battle)) :is(.syn-tk.active, .syn-b:hover, .syn-b.peek) .syn-dia { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
+html[data-ui-theme="metro"]:not(:has(main.battle)) .syn-tk:is(.active, :not(.active)) .syn-lv { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); color: #fff; box-shadow: 0 0 0 1.5px var(--bg); }
+html[data-ui-theme="metro"]:not(:has(main.battle)) .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); opacity: .62; }
+/* 주인공이 아닌 표의 스텁은 종이 쪽 (반대 극성은 주인공 하나에만) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card:not(.cur) .ah-lead { background: color-mix(in srgb, var(--nc, var(--c-text-2)) 16%, var(--panel-2)); }
+/* 전투판은 창: 판 둘레의 흐린 칸이 종이 바탕을 비추지 않게 판 뒤를 어둡게 */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .board { background: #111218; border-radius: var(--r-panel); }
+
+/* ── v604 이음: 단추 그림자색 = 바탕에 오버레이 · .8 계산식(26-metro.css)이 숫자 채널 --ch-* 와 바탕 --sh-bg 를 읽는다.
+   밝은 객실: 잿빛 그림자 자리 = 잉크(--mt-sh #15161a, 디자인 시스템 라이트 shadow-sm), 주 동작의 종이 그림자도 잉크 (밝은 바탕 위 종이색은 보이지 않는다).
+   바탕은 이 요소에서 다시 풀어야 한다 (--sh-bg 는 정의된 자리에서 값이 굳어 내려온다) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) { --ch-gray-r: 21; --ch-gray-g: 22; --ch-gray-b: 26; --ch-paper-r: 21; --ch-paper-g: 22; --ch-paper-b: 26; --sh-bg: var(--bg); }
+html[data-ui-theme="metro"]:not(:has(main.battle)) .modal { --sh-bg: var(--panel); }
+html[data-ui-theme="metro"]:not(:has(main.battle)) :is(.board-wrap, .board, .bench, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .item, .ah-in, .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .ms-syn, .aar-kpi, .aar-mvp, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) {
+  --ch-gray-r: 79.2; --ch-gray-g: 79.6; --ch-gray-b: 81.9; --ch-paper-r: 236; --ch-paper-g: 235; --ch-paper-b: 231; --sh-bg: var(--bg); }
+/* 주인공 표(지금 칸)는 잉크 면으로 뒤집히므로 그 안 단추 그림자도 뒤집는다: 일반 = 어두운 테마의 잿빛, 주 동작 = 종이 */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur { --ch-gray-r: 79.2; --ch-gray-g: 79.6; --ch-gray-b: 81.9; --ch-on-r: 236; --ch-on-g: 235; --ch-on-b: 231; }
+/* 밝은 바탕 위 글씨로 쓰는 노선색 · 선택색은 짙게 (디자인 시스템 accent-text 와 같은 구분 — 면 · 선은 그대로) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .btn.on:not(:is(.bar, .ct, .title-screen, .adv) *) { color: #a8461a; } /* 켜진 단추 글씨 (상점 보관함 펼침 등) */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .card.mn.tN .mn-pr { color: color-mix(in srgb, var(--mt-a) 55%, #15161a); } /* 속보 값 */
+html[data-ui-theme="metro"]:not(:has(main.battle)) .um-sum :is(.us-k, .us-gk) { color: color-mix(in srgb, var(--mt-b) 45%, #15161a); }
+html[data-ui-theme="metro"]:not(:has(main.battle)) .aar-n { border-color: color-mix(in srgb, var(--mt-b) 45%, #15161a); color: color-mix(in srgb, var(--mt-b) 45%, #15161a); }
