@@ -923,6 +923,12 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .inv-rail { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; max-height: calc(100vh - var(--top-h, 70px) - var(--board-reserve, 150px)); padding: 8px 6px; box-sizing: border-box;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .inv-rail.drop-ok, .inv-rail.over { border-color: var(--c-select); }
+/* 보관함 = 보드 줄 오른쪽 끝에 고정 — 보드를 확대 · 축소해도 움직이지 않는다 (2026-11-07 사용자 요청: 보드 옆에 붙어 함께 가운데 정렬되던 것).
+   보드 창은 남은 폭 가운데 (오른쪽 여백 = 보관함 폭 + 간격이라 보드 창 폭 · 확대 계산은 그대로). 좁은 화면(≤640px)은 보관함이 보드 아래 줄 */
+@media (min-width: 641px) {
+  .board-row { padding-right: calc(84px + 10px); }
+  .board-row > .inv-rail { position: absolute; top: 0; right: 0; }
+}
 .ir-count { font-size: var(--fs-xs); color: var(--c-text-2); font-variant-numeric: tabular-nums; }
 .ir-items { display: grid; grid-template-columns: repeat(2, 30px); gap: 6px; overflow-y: auto; scrollbar-width: none; min-height: 0; }
 .ir-items::-webkit-scrollbar { display: none; }
