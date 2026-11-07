@@ -300,7 +300,7 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 .ru-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; }
 .ru-head h1 { grid-column: 1 / -1; margin: 0; font-size: var(--fs-2xl); color: var(--c-text); }
 .ru-who { display: flex; gap: 10px; align-items: center; min-width: 0; }
-.ru-reroll { justify-self: end; }
+.ru-reroll { grid-column: 2; justify-self: end; } /* 머리 오른쪽 끝 (39번) — 머리 아래 문장이 없어도 같은 자리 */
 .aug-list { display: grid; gap: 8px; }
 .aug-opt { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px; color: var(--c-text); font: inherit; cursor: pointer; border-color: var(--line-soft); }
 .aug-opt:hover { border-color: color-mix(in srgb, var(--c-text) 35%, var(--line)); }

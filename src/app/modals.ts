@@ -353,7 +353,7 @@ export function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="RANK UP · AUGMENT">${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, ${PSI_RANKS.join(' · ')}등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 ${CFG.augEvery}등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
+          ${p.kind === 'school' ? `<span class="muted small">${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙습니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}</span>` : ''}
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? matchupChips(run.field) : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
