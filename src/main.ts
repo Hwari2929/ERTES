@@ -160,10 +160,10 @@ const OVERLAYS = ['.shop-ov', '.pil-ov'];
  *  나머지 화면 전환은 그대로 컷 */
 function mtStop(run: RunState | null, prev: string, next: string): TFX.Stop | null {
   if (!run || prev === next) return null;
-  if (prev === 'newrun' && next === 'map') return { kick: 'DEPARTURE', name: fieldOf(run.field).name, en: `PHASE ${run.phase} · LINE ∞`, tone: 'depart' };
+  if (prev === 'newrun' && next === 'map') return { kick: 'DEPARTURE', name: fieldOf(run.field).name, en: `PHASE ${run.phase} · ROUTE ∞`, tone: 'depart' };
   if (prev !== 'map') return null;
   if (next === 'prep' && run.node?.type === 'boss') { const b = phaseBoss(run); return { kick: 'EXPRESS', name: b?.name || '보스', en: `PHASE ${run.phase} · TERMINAL`, tone: 'boss', img: (b && standURL(`en_${b.id}`)) || undefined }; }
-  if (next === 'shop') return { kick: 'NEXT STATION', name: '상점', en: 'MARKET', tone: 'market' };
+  if (next === 'shop') return { kick: 'NEXT PORT', name: '상점', en: 'MARKET', tone: 'market' };
   return null;
 }
 export function render() {

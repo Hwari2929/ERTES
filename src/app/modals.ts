@@ -6,7 +6,7 @@ import { diffName, effDiffLabel, runHeat } from '../data/difficulty';
 import { DESPAIR_BY_ID, despairsOf } from '../data/despair';
 import { EVENT_BY_ID } from '../data/events';
 import { fieldElites, fieldOf } from '../data/battlefields';
-import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from '../data/globals';
+import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME, GLOBALS, PRIVILEGES } from '../data/globals';
 import { combine, CONSUMABLES, isConsumable, isLegendConsumable, DUST, SHARD, itemInfo, tierKey, TURRET_GEAR } from '../data/items';
 import { ENG_TUR, OCCULT_SYNTH, SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, type UnitDef } from '../data/units';
@@ -277,6 +277,10 @@ export function miniCard(o: MiniCardOpts) {
 const PV_ICON: Record<string, string> = { 'P.recruit': 'n.recruit', 'P.rank': 'm.up', 'P.global': 'n.council', 'P.funds': 'r.cr', 'P.hp': 'a.hp', 'P.relic': 'k.relic', 'P.supply': 'n.supply',
   'P.trust': 'r.dividend', 'P.scout': 'k.scope', 'P.gamble': 'p.dice', 'P.rare': 'p.star4', 'P.legend': 'p.crown' };
 const pvIcon = (o: { id: string; param?: string }) => (o.id === 'P.emblem' && o.param ? synIcon(o.param, 'gc-ic') : lineIcon(PV_ICON[o.id] || '', 'gc-ic')) || '♜';
+/** 전역 증강 · 특권 = 회원증 머리 (메트로, 2026-11-07 사용자 결정 C3-1 — 런 내내 유지되는 것은 번호 증서, 절취 홈 · 절취선은 1회성 표에만):
+ *  순번(= 숫자키) · 종류 · 발급처 / 번호 = 데이터 표 순번 (없으면 뺀다) / 칸 = 이름 + 값 (첫 칸 값 = 등급색). 갤럭시는 숨기고 종류 머리표(.gc-kind)를 쓴다 */
+const passHead = (i: number, kind: string, no: number, fields: [string, string][]) =>
+  `<span class="gc-pass"><span class="gc-ph" aria-hidden="true"><i class="gc-key">${String(i + 1).padStart(2, '0')}</i>${kind} 회원증<span class="gc-iss">METRO ∞ PASS</span></span>${no > 0 ? `<span class="gc-no" aria-hidden="true"><small>No.</small><span class="gc-nv">${String(no).padStart(3, '0')}</span></span>` : ''}<span class="gc-f">${fields.map(([k, v], j) => `<span><i>${k}</i><em${j ? '' : ' class="gc-t"'}>${v}</em></span>`).join('')}</span></span>`;
 
 // ───────────────────────── 모달: 대기 중인 선택
 export function pendingModal(run: RunState): string {
@@ -288,7 +292,7 @@ export function pendingModal(run: RunState): string {
     body = `<h1 class="mt-hd" data-k="GLOBAL · COUNCIL" style="--hdc:var(--mt-a)">${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
-        <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
+        <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span>${passHead(i, '전역', GLOBALS.indexOf(g) + 1, [['등급', `${GLOBAL_TIER_NAME[g.tier || 'N']}${g.unique ? ' · 고유' : ''}`], ['유효', '런 종료까지']])}<b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
@@ -306,7 +310,7 @@ export function pendingModal(run: RunState): string {
     body = `<div class="pv-body"><span class="pv-flap" aria-hidden="true">${[...'PRIVILEGE'].map((c, i) => `<i style="--n:${i}">${c}</i>`).join('')}</span><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
       <div class="pv-row">${p.options.map((o, i) => { const desc = R.privilegeDesc(o); return `<span class="tslot gslot gt-P" style="--i:${i}"><button class="gcard pv-card gt-P" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${desc.length > 70 ? ` title="${esc(desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
-        <span class="gc-kind">특권</span><b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
+        <span class="gc-kind">특권</span>${passHead(i, '특권', PRIVILEGES.findIndex((d) => d.id === o.id) + 1, [['종류', '특권'], ['유효', '이번 런']])}<b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'despair') {
     // 절망 증강: 어둡게 가라앉는 카드 (특권 · 등급 공개 연출과 따로, 소리는 낮은 음 하나 — sound.ts despair)

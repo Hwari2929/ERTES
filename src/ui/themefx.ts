@@ -171,7 +171,7 @@ function expressIn(ghost: HTMLElement, st: Stop): Ride {
   el.className = 'mt-ex';
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = `<i class="mg-pan p1"></i><i class="mg-pan p2"></i><i class="mg-pan p3"></i><div class="ex-car"><div class="ex-win"><div class="ex-view">${st.img ? `<i class="ex-boss"><img alt="" decoding="async" src="${esc(st.img)}" onerror="this.remove()"></i>` : ''}</div></div>
-    <i class="ex-lv"></i><b class="ex-word">${'EXPRESS ∞ NO STOP · '.repeat(4)}</b><i class="ex-skirt"></i><i class="ex-tail"></i>
+    <i class="ex-lv"></i><b class="ex-word">${'EXPRESS ∞ NON-STOP · '.repeat(4)}</b><i class="ex-skirt"></i><i class="ex-tail"></i>
     <div class="ex-panel"><i class="ex-hz"><i></i></i><b class="ex-ic">!</b><span class="ex-k">${esc(st.kick)}</span><b class="ex-t">${esc(st.name)}</b><span class="ex-en">${esc(st.en)}</span><span class="mt-bd-stops"></span></div></div>`;
   document.body.appendChild(el);
   const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
@@ -296,7 +296,7 @@ function sweep() {
 // 보스 = 신호 주황 패널 · 위아래 경고 빗금 띠 · 느린 신호등, 역경 = 복숭아 경고 띠, 페이즈 = 신호등 대신 큰 노선 번호 (전투 아님 → 기다리지 않는다).
 // 줄이기: 패널 없이 띠 + 탑승권만 (기다리지 않는다). 움직임 줄이기: 기본 배너
 type BannerKind = 'battle' | 'boss' | 'phase' | 'adversity';
-const KICK: Record<BannerKind, string> = { battle: 'DEPARTURE', adversity: 'RAPID', boss: 'EXPRESS · NO STOP', phase: 'LINE CHANGE' };
+const KICK: Record<BannerKind, string> = { battle: 'DEPARTURE', adversity: 'TURBULENCE', boss: 'EXPRESS · NON-STOP', phase: 'COURSE CHANGE' }; // 성간 여행 어휘 (2026-11-07 사용자 결정 C1 — 지하철 말 대신: RAPID → TURBULENCE · NO STOP → NON-STOP · LINE CHANGE → COURSE CHANGE)
 const SLAM = 'cubic-bezier(.7, 0, .2, 1)', POP = 'cubic-bezier(.3, 1.5, .5, 1)', OUTE = 'cubic-bezier(.6, 0, .9, .35)';
 /** 시각(ms) 기준 키프레임 → 한 애니메이션 (마지막 상태 유지). pts: [시각, 속성들, 그 구간 easing] */
 function tl(el: Element, T: number, pts: [number, Keyframe, string?][]) {

@@ -161,7 +161,7 @@ export function shopOverlay(run: RunState): string {
     </section>
     ${m.trade && SHOP.trade ? tradePop(run) : ''}
     <section class="so-main">
-      <div class="so-hd mt-hd hd-row" style="--hdc:var(--c-credit)"><h1 data-k="MARKET · NEXT STATION">${esc(m.shop)}</h1><div class="sh-row">${chips}</div><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
+      <div class="so-hd mt-hd hd-row" style="--hdc:var(--c-credit)"><h1 data-k="MARKET · DUTY FREE">${esc(m.shop)}</h1><div class="sh-row">${chips}</div><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
       <div class="so-body">
         <div class="so-shelf">
           <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length}</b>${sold ? ` · 품절 <b>${sold}</b>` : ''}</span></div>

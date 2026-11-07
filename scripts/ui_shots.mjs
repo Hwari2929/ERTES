@@ -1,5 +1,6 @@
 // UI 촬영 · 지표 (피드백 보고서 지표 재현 + 회귀 비교용): dist/index.html 을 저장 상태별로 열어 찍고 DOM 지표를 모은다.
-// 사용: node scripts/ui_shots.mjs [--out dist/ui_shots/now] [--themes metro,galaxy] [--sizes 1440x900,844x390] [--only map,shop] [--css 덧씌울.css]
+// 사용: node scripts/ui_shots.mjs [--out dist/ui_shots/now] [--themes metro,galaxy] [--sizes 1440x900,844x390] [--only map,shop] [--css 덧씌울.css] [--html dist/다른빌드.html]
+//   --html: 비교 기준을 찍을 때 (예: git show HEAD:dist/index.html > dist/base.html — 그림 경로가 같도록 dist/ 안에 둔다, 찍은 뒤 지운다)
 //   먼저 `npm run -s build` 와 상태 생성(tests/ui_states.ts 머리 주석)이 필요하다 — 상태 파일이 없으면 여기서 만든다.
 // 결과: <out>/<theme>/<화면>_<W>.png · <out>/metrics.json (화면별: 한글 글자 수 · 13px 미만 · 누를 것 · 44px · 24px 미만 · 둥글기 값 · 잘린 칸 · 문서 높이).
 // 밝은 면적 · 유채색 면적 · 두 촬영의 픽셀 비교는 scripts/ui_metrics.py.
@@ -17,7 +18,7 @@ const SIZES = arg('sizes', '1440x900,844x390').split(',').map((s) => s.split('x'
 const ONLY = arg('only', '') ? arg('only').split(',') : null;
 const CSS = arg('css', '') ? readFileSync(arg('css'), 'utf8') : '';
 const ROOT = new URL('..', import.meta.url).pathname;
-const URL_ = `file://${ROOT}dist/index.html`;
+const URL_ = `file://${ROOT}${arg('html', 'dist/index.html')}`;
 
 if (!existsSync(`${ROOT}dist/ui_states.json`)) execSync('npx esbuild tests/ui_states.ts --bundle --platform=node --log-level=error --outfile=dist/ui_states.cjs && node dist/ui_states.cjs > dist/ui_states.json', { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 const STATES = JSON.parse(readFileSync(`${ROOT}dist/ui_states.json`, 'utf8'));

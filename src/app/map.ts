@@ -37,6 +37,13 @@ import { tendOf } from './battle';
 import { fieldCard, kvChip } from './modals';
 
 // ───────────────────────── 화면: 맵
+/** 환경 탭 전장 = 여행 포스터의 한 줄 문구 · 현상 도장 (메트로, 2026-11-07 사용자 결정 C2-1 — 갤럭시는 숨긴다): 데이터를 그릴 때마다 읽는다.
+ *  한 줄 문구 = 설명 첫 문장 (따옴표로 시작하면 닫는 따옴표까지), 현상 = 첫 조건의 이름 ('이름: 효과' 꼴일 때만) */
+function envPoster(f: { desc: string; rules: string[] }) {
+  const line = f.desc.match(/^["“][^"”]*["”]/)?.[0] ?? f.desc.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? f.desc;
+  const ph = f.rules[0]?.match(/^([^:]{1,16}):/)?.[1];
+  return `<p class="env-line">${esc(line)}</p>${ph ? `<span class="env-ph" data-k="PHENOMENON">${esc(ph)}</span>` : ''}`;
+}
 export function mapScreen(run: RunState) {
   const p = run.phase;
   const ha = CFG.diffHpAdd(run.diff || 0), sp = scalePhase(p, !!run.campaign), sp0 = scalePhase(p - 1, !!run.campaign); // 적 성장 페이즈
@@ -86,7 +93,7 @@ export function mapScreen(run: RunState) {
       ${run.inventory.length ? `<div class="inv-strip">${invGroups(run).map(({ i, all }) => itemIcon(run.inventory[i], '', '', all.length)).join('')}</div>` : '<p class="muted small">보관 중인 장비가 없습니다.</p>'}
       </section>
       <section class="st-pane" role="tabpanel" aria-label="환경">
-      <div class="env-hero" style="--c:${fieldOf(run.field).color};background-image:url('${bgURL(`field_${fieldOf(run.field).id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${fieldOf(run.field).color} 40%, #0b0d14), #0b0d14 75%)"><span class="env-kicker">현재 전장</span><b>${esc(fieldOf(run.field).name)}</b><span>${esc(fieldOf(run.field).region)}</span></div>
+      <div class="env-hero" style="--c:${fieldOf(run.field).color};background-image:url('${bgURL(`field_${fieldOf(run.field).id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${fieldOf(run.field).color} 40%, #0b0d14), #0b0d14 75%)"><span class="env-kicker">현재 전장</span><b data-k="DESTINATION">${esc(fieldOf(run.field).name)}</b><span class="env-reg">${esc(fieldOf(run.field).region)}</span>${envPoster(fieldOf(run.field))}</div>
       <button class="field-btn" data-a="field-info" title="전장 브리핑 다시 보기">${fieldCard(run, true)}</button>
       ${kingEnv(run)}
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>

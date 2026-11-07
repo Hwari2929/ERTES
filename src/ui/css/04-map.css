@@ -354,6 +354,7 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .env-hero b { font: 400 var(--fs-2xl) var(--f-display); text-shadow: 0 0 16px var(--c); }
 .env-hero span { font-size: var(--fs-sm); color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
 .env-hero .env-kicker { letter-spacing: .25em; color: var(--c-text-2); font-size: var(--fs-xs); }
+.env-hero :is(.env-line, .env-ph) { display: none; } /* 메트로 여행 포스터의 한 줄 문구 · 현상 도장 (app/map.ts envPoster — 26-metro.css) */
 @keyframes env-pan { from { background-position: 30% center; } to { background-position: 70% center; } }
 @media (prefers-reduced-motion: reduce) { .env-hero { animation: none; } }
 /* 상세 서랍: 기물을 고르면 탭 대신 상세 */

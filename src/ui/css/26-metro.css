@@ -55,7 +55,7 @@
    노선 띠 · 큰 윤곽 글자 · 경고 빗금 치마 · 잉크 꼬리판. 경고 패널 = 종이 판 + 굵은 잉크 윤곽 + 흐림 없는 잉크 그림자 + 흐르는 빗금 + ! 판 */
 .ex-car { position: absolute; top: 0; bottom: 0; left: -10vw; width: 130vw; background: var(--mt-d); transform: translateX(110vw); clip-path: polygon(0 34%, 8vw 0, 100% 0, 100% 100%, 0 100%); }
 .ex-car::before { content: ''; position: absolute; left: 1.2vw; top: 62%; width: 4vw; height: 2.4vmin; background: var(--mt-paper); box-shadow: 0 3.4vmin 0 var(--mt-ink); } /* 전조등 · 앞 범퍼 */
-.ex-car::after { content: 'EXPRESS ∞ METRO · NO STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
+.ex-car::after { content: 'EXPRESS ∞ METRO · NON-STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
 .ex-win { --ww: 34vw; --wp: 2.6vw; position: absolute; left: 3vw; right: 4vw; top: 7%; height: 45%; background: var(--mt-ink); }
 .ex-view { position: absolute; inset: 7% 0; overflow: hidden;
   background: var(--mt-sky), radial-gradient(22px 1px at 50% 50%, color-mix(in srgb, var(--mt-paper) 55%, transparent), transparent) 0 0 / 230px 41px,
@@ -372,7 +372,7 @@
 [data-ui-theme="metro"] .pv-body > :not(.pv-flap) { animation: pv-in .5s ease .85s both; }
 [data-ui-theme="metro"] .pv-bg.played .pv-body > * { animation-delay: 0s; }
 [data-ui-theme="metro"] .pv-flap { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 4px; perspective: 600px; }
-[data-ui-theme="metro"] .pv-flap::before { content: 'NOW BOARDING · PLATFORM ∞'; flex-basis: 100%; margin-bottom: 6px; color: var(--mt-b); font: 600 var(--fs-xs)/1 var(--f-mono); letter-spacing: .3em; text-align: center; }
+[data-ui-theme="metro"] .pv-flap::before { content: 'NOW BOARDING · GATE ∞'; flex-basis: 100%; margin-bottom: 6px; color: var(--mt-b); font: 600 var(--fs-xs)/1 var(--f-mono); letter-spacing: .3em; text-align: center; }
 [data-ui-theme="metro"] .pv-flap i { display: grid; place-items: center; width: 56px; height: 74px; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-md); font-style: normal;
   background: linear-gradient(var(--mt-deep) 0 49%, var(--mt-ink) 49% 51%, var(--mt-deep) 51%); color: var(--mt-paper); font: 400 var(--mt-fs-hero)/1 var(--f-display);
   animation: mt-pv-flap .32s cubic-bezier(.3, 0, .2, 1) both; animation-delay: calc(.15s + var(--n) * 55ms); }
@@ -386,15 +386,14 @@
 [data-ui-theme="metro"] .pv-body > p { color: var(--c-text-2); }
 [data-ui-theme="metro"] .pv-kicker { color: var(--mt-b); font: 700 var(--fs-xs)/1 var(--f-body); letter-spacing: .04em; }
 [data-ui-theme="metro"] .pv-row { counter-reset: gc; gap: 22px; }
-/* 특권 카드 = 전역 증강과 같은 함대 정기권 (2026-11-06 사용자 결정 — 같은 유형의 토큰 · 연출, app/modals.ts: .gslot.gt-P > .gcard.pv-card.gt-P):
-   머리 = 잉크 · 원판 위 선 아이콘 (문장 = 그 시너지 아이콘) · 노선 사선 · 순번 머리표 '01 · 특권' / 절취선 + 홈 / 이름 · 효과, 그림자 판 · 망점 · 뒷면 길로셰도 같다.
+/* 특권 카드 = 전역 증강과 같은 함대 회원증 (2026-11-06 사용자 결정 — 같은 유형의 토큰 · 연출, 2026-11-07 C3-1 회원증, app/modals.ts: .gslot.gt-P > .gcard.pv-card.gt-P):
+   머리 = 잉크 · 원판 위 선 아이콘 (문장 = 그 시너지 아이콘) · 노선 사선 · '01 특권 회원증' · 번호 · 칸(종류 · 유효) / 이름 · 효과, 그림자 판 · 망점 · 뒷면 길로셰도 같다.
    색 = 노선 보라 (특권은 등급이 없다 — 증강 등급색 흰 · 파랑 · 빨강과 겹치지 않게), 뒷면 = PRIVILEGE PASS. 등장은 아래 '특권 공개' (막이 닫힌 뒤 같은 개찰 스캔) */
 [data-ui-theme="metro"] .gcard.gt-P { --tc: var(--mt-a); --gds: 96px; --gdo: .55; border-color: color-mix(in srgb, var(--mt-a) 45%, var(--mt-edge)); }
-[data-ui-theme="metro"] .gcard.gt-P .gc-kind { color: var(--mt-a); }
 [data-ui-theme="metro"] .gslot.gt-P { --cs: var(--mt-a); }
 [data-ui-theme="metro"] .gcard.gt-P .cback::after { content: 'METRO\A PRIVILEGE PASS ' counter(gc, decimal-leading-zero); }
 
-/* ── 항로도 아래 노드 = 승차 표: 왼쪽 스텁(노드 아이콘 · 순서) | 절취선 | 몸통 (머리표 NOW BOARDING / NEXT STOP). 누르는 것은 진입 단추뿐 → 표는 평평 */
+/* ── 항로도 아래 노드 = 승차 표: 왼쪽 스텁(노드 아이콘 · 순서) | 절취선 | 몸통 (머리표 NOW BOARDING / NEXT PORT). 누르는 것은 진입 단추뿐 → 표는 평평 */
 [data-ui-theme="metro"] .ah-list { gap: 12px; }
 [data-ui-theme="metro"] .ah-card { --ahw: 96px; --ah-r: 11px; --ah-edge: color-mix(in srgb, var(--nc) 38%, var(--mt-edge)); position: relative; padding: 0; gap: 0; align-items: stretch; overflow: visible;
   border: 1px solid var(--ah-edge); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: none;
@@ -404,7 +403,7 @@
     radial-gradient(circle at calc(var(--ahw) + .5px) 100%, transparent calc(var(--ah-r) - 1.25px), var(--c-black) calc(var(--ah-r) - .75px)) bottom / 100% 51% no-repeat; } /* 절취 홈 = 실제 구멍 (뒤 바탕이 보인다). 테두리는 정수 1px: 1.5px 는 브라우저마다 1 · 1.5 로 달리 그려져 홈 고리 · 절취선 자리가 어긋난다 */
 [data-ui-theme="metro"] .ah-lead { position: relative; flex: none; width: var(--ahw); justify-items: center; align-content: center; padding: 12px 8px; border-radius: var(--mt-r-md) 0 0 var(--mt-r-md);
   background: color-mix(in srgb, var(--nc) 14%, var(--mt-ink)); } /* 스텁 너비는 내용과 무관하게 고정 */
-[data-ui-theme="metro"] .ah-lead .ah-step { display: none; } /* 현재 · 다음 노드는 몸통 머리표(NOW BOARDING / NEXT STOP)가 말한다 — 같은 말 두 번 하지 않는다 (17 · 20번) */
+[data-ui-theme="metro"] .ah-lead .ah-step { display: none; } /* 현재 · 다음 노드는 몸통 머리표(NOW BOARDING / NEXT PORT)가 말한다 — 같은 말 두 번 하지 않는다 (17 · 20번) */
 /* 홈 고리: 중심 = 스텁 오른쪽 끝 + .5px (절취선 가운데) · 카드 위 · 아래 변. 1px 고리의 안쪽 변 = 구멍 가장자리 → 카드 테두리 끝이 고리 밑에 숨는다 */
 [data-ui-theme="metro"] .ah-lead::before, [data-ui-theme="metro"] .ah-lead::after { content: ''; position: absolute; left: calc(var(--ahw) - .5px - var(--ah-r)); box-sizing: border-box; width: calc(var(--ah-r) * 2); height: calc(var(--ah-r) * 2);
   border: 1px solid var(--ah-edge); border-radius: 50%; pointer-events: none; }
@@ -412,7 +411,7 @@
 /* 절취선 (--mt-perf): 위 · 아래 홈 사이만 — 고리에서 3px 떨어져 끝난다 */
 [data-ui-theme="metro"] .ah-card::after { content: ''; position: absolute; left: calc(var(--ahw) - 1px); top: calc(var(--ah-r) + 2px); bottom: calc(var(--ah-r) + 2px); border-left: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 22%, transparent); pointer-events: none; }
 [data-ui-theme="metro"] .ah-body { padding: 12px 16px; }
-[data-ui-theme="metro"] .ah-body::before { content: 'NEXT STOP'; display: block; margin-bottom: 4px; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .ah-body::before { content: 'NEXT PORT'; display: block; margin-bottom: 4px; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .ah-card.cur { --ah-edge: var(--c-select); box-shadow: none; }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead { background: color-mix(in srgb, var(--c-select) 16%, var(--mt-ink)); }
 [data-ui-theme="metro"] .ah-card.cur .ah-body::before { content: 'NOW BOARDING'; color: color-mix(in srgb, var(--c-select) 55%, var(--mt-on)); }
@@ -574,32 +573,39 @@
 
 [data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
 [data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }
-/* ── 전역 증강 = 함대 정기권 (패스): 머리 = 잉크 바탕 · 등급색 원판 위 문장 · 노선 사선 (점 격자 없음 — 점 격자는 뒷면만, 스캔이 지나가면 사라진다) / 절취선(--mt-perf) + 양옆 홈 / 몸통 = 이름 · 효과.
-   등급색 = 일반 흰(--g-C) · 희귀 파랑(--g-A) · 전설 빨강(--g-L) — 원판 · 머리 좌하단 망점 · 그림자 판(.gslot::before). 뒷면(스캔 전) = 길로셰 무늬 + 가는 테 ∞ 동전 + GLOBAL 일련번호 */
+/* ── 전역 증강 = 함대 회원증 (2026-11-07 사용자 결정 C3-1 — 런 내내 유지되는 것은 번호 증서: 절취선 · 홈 없음, 뜯는 표는 1회성 보상에만):
+   머리 = 잉크 바탕 · 왼쪽 등급색 원판 위 문장 · 위 줄 순번(= 숫자키) · 종류 · 발급처 · 큰 번호(데이터 표 순번, app/modals.ts passHead) · 칸(등급 · 유효) · 오른쪽 끝 노선 사선
+   (점 격자 없음 — 점 격자는 뒷면만, 스캔이 지나가면 사라진다) / 몸통 = 이름 · 효과.
+   등급색 = 일반 흰(--g-C) · 희귀 파랑(--g-A) · 전설 빨강(--g-L) — 원판 · 등급 값 · 머리 좌하단 망점 · 그림자 판(.gslot::before). 뒷면(스캔 전) = 길로셰 무늬 + 가는 테 ∞ 동전 + GLOBAL 일련번호 */
 [data-ui-theme="metro"] .gc-row { counter-reset: gc; gap: 22px; }
 [data-ui-theme="metro"] .gslot { --gh: 124px; } /* 머리 높이 = 칸에서 정한다 (카드 · 그림자 판이 함께 읽는다, 폰 64px) */
-[data-ui-theme="metro"] .gcard { --tc: var(--g-C); --gds: 84px; --gdo: .24; counter-increment: gc; align-items: stretch; gap: 10px; padding: 0 0 22px; overflow: visible; text-align: left;
+[data-ui-theme="metro"] .gcard { --tc: var(--g-C); --gds: 84px; --gdo: .24; --gx: 62px; --gy: calc(50% + 10px); --gd: 40px; --gdi: 27px; counter-increment: gc; align-items: stretch; gap: 10px; padding: 0 0 22px; overflow: visible; text-align: left;
   border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); } /* 아래 등급색 띠 없음 (2026-11-06 사용자 결정 — 등급색은 그림자 판이 맡는다) */
 [data-ui-theme="metro"] .gcard.gt-R { --tc: var(--g-A); --gds: 104px; --gdo: .7; border-color: color-mix(in srgb, var(--g-A) 45%, var(--mt-edge)); }
 [data-ui-theme="metro"] .gcard.gt-L { --tc: var(--g-L); --gds: 120px; --gdo: .95; border-color: color-mix(in srgb, var(--g-L) 55%, var(--mt-edge)); } /* 전설: 글로우 대신 등급색 윤곽 · 두께 */
 [data-ui-theme="metro"] .gcard:focus-visible:not(:active) { translate: -2px -2px; } /* 키보드 포커스도 가리킴처럼 떠오른다 (그림자 판은 제자리 → 9px) */
-[data-ui-theme="metro"] .gcard { --ny: calc(var(--gh) - .75px); --nb: var(--panel); } /* 절취 홈 고리 = 이름 글자(b)에 단다 (카드 ::before 는 망점 · ::after 는 뒤집기 연출) */
-[data-ui-theme="metro"] .gc-sigil { position: relative; display: grid; place-items: center; width: auto; height: var(--gh); margin: 0; padding-top: 10px; border: 0; transform: none; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
+[data-ui-theme="metro"] .gc-sigil { position: relative; display: grid; grid-template-columns: calc(var(--gx) * 2); justify-content: start; place-items: center; width: auto; height: var(--gh); margin: 0; padding: 20px 0 0; border: 0; transform: none;
   border-radius: var(--mt-r) var(--mt-r) 0 0; color: var(--mt-paper); font-size: var(--fs-2xl);
-  background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 24px, transparent 24.5px), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 44px, transparent 44.5px),
-    linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
-    var(--mt-ink); } /* 머리: 원판 위 문장 */
-[data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 44px; --gdi: 30px;
-  background: radial-gradient(circle at 50% calc(50% + 5px), var(--mt-ink) 0 var(--gdi), transparent calc(var(--gdi) + .5px)), radial-gradient(circle at 50% calc(50% + 5px), var(--tc) 0 var(--gd), transparent calc(var(--gd) + .5px)),
-    linear-gradient(118deg, transparent 0 60%, var(--mt-a) 60% 68%, transparent 68% 71%, color-mix(in srgb, var(--mt-a) 45%, transparent) 71% 75%, transparent 75%),
-    var(--mt-ink); } /* 아이콘이 있으면 원판 안 잉크 동전을 키운다 (뒷면 ∞ 자리와 같은 동전) */
+  background: radial-gradient(circle at var(--gx) var(--gy), var(--mt-ink) 0 var(--gdi), transparent calc(var(--gdi) + .5px)), radial-gradient(circle at var(--gx) var(--gy), var(--tc) 0 var(--gd), transparent calc(var(--gd) + .5px)),
+    linear-gradient(118deg, transparent 0 86%, var(--mt-a) 86% 90%, transparent 90% 91.5%, color-mix(in srgb, var(--mt-a) 45%, transparent) 91.5% 93.5%, transparent 93.5%),
+    var(--mt-ink); } /* 머리: 왼쪽 원판 위 문장 (원판 중심 --gx · --gy = 문장 칸 가운데) · 오른쪽 끝 노선 사선 */
 [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 36px; height: 36px; transform: none; } /* 전역 증강 아이콘 = 종이색 선 (ui/gicons.ts) */
-[data-ui-theme="metro"] .gc-kind::before { content: counter(gc, decimal-leading-zero) ' · '; font-family: var(--f-mono); letter-spacing: .12em; } /* 순번 = 모노 숫자, 종류(희귀 · 고유 · 전역) = 본문 글꼴 */
-[data-ui-theme="metro"] .gcard::before, [data-ui-theme="metro"] .gcard[data-key]::before { content: ''; position: absolute; left: 0; top: calc(var(--gh) - var(--gds)); z-index: 1; width: var(--gds); height: var(--gds); border-radius: var(--mt-r) 0 0 0; pointer-events: none;
-  background: var(--tc); opacity: var(--gdo); -webkit-mask: var(--mt-dot-tl) center / 100% 100% no-repeat; mask: var(--mt-dot-tl) center / 100% 100% no-repeat; rotate: -90deg; } /* 등급 망점 = 머리(잉크 칸) 좌하단으로 짙어진다 (글자 · 동전과 겹치지 않는 자리, 정사각 토큰을 돌려 찍는다 — 늘이지 않는다): 일반 흰 · 희귀 파랑 · 전설 빨강, 등급이 높을수록 넓고 진하다. 단축키 숫자 = 머리표 순번이라 이 자리를 쓴다 */
-[data-ui-theme="metro"] .gc-kind { position: absolute; left: 12px; top: 10px; color: var(--mt-paper); font: 700 var(--fs-xs)/1.2 var(--f-body); letter-spacing: .04em; }
-[data-ui-theme="metro"] .gcard.gt-R .gc-kind { color: var(--g-A); } [data-ui-theme="metro"] .gcard.gt-L .gc-kind { color: var(--g-L); }
-[data-ui-theme="metro"] .gcard.gt-R .gc-sigil, [data-ui-theme="metro"] .gcard.gt-L .gc-sigil { border-color: color-mix(in srgb, var(--mt-paper) 26%, transparent); color: var(--mt-paper); }
+[data-ui-theme="metro"] .gcard::before, [data-ui-theme="metro"] .gcard[data-key]::before { content: ''; position: absolute; left: 0; top: calc(var(--gh) - var(--gds)); z-index: 1; width: var(--gds); height: var(--gds); border-radius: 0; pointer-events: none;
+  background: var(--tc); opacity: var(--gdo); -webkit-mask: var(--mt-dot-tl) center / 100% 100% no-repeat; mask: var(--mt-dot-tl) center / 100% 100% no-repeat; rotate: -90deg; } /* 등급 망점 = 머리(잉크 칸) 좌하단으로 짙어진다 (글자 · 동전과 겹치지 않는 자리, 정사각 토큰을 돌려 찍는다 — 늘이지 않는다 · 모서리 각지게, 2026-11-07): 일반 흰 · 희귀 파랑 · 전설 빨강, 등급이 높을수록 넓고 진하다. 단축키 숫자 = 머리 위 줄 순번이라 이 자리를 쓴다 */
+[data-ui-theme="metro"] .gcard .gc-kind { display: none; } /* 종류 · 등급 = 회원증 머리 칸이 말한다 (갤럭시는 이 머리표, 회원증 머리는 숨김) */
+[data-ui-theme="metro"] .gc-pass { display: block; position: absolute; left: 0; right: 0; top: 0; z-index: var(--z-card-text); height: var(--gh); color: var(--mt-paper); pointer-events: none; } /* 망점 위 · 뒷면 아래 */
+[data-ui-theme="metro"] .gc-ph { position: absolute; left: 12px; right: 12px; top: 10px; display: flex; align-items: baseline; gap: 8px; font: 700 var(--fs-sm)/1.2 var(--f-body); }
+[data-ui-theme="metro"] .gc-key { font: 600 var(--fs-xs)/1 var(--f-mono); font-style: normal; letter-spacing: .12em; } /* 순번 = 숫자키 */
+[data-ui-theme="metro"] .gc-iss { margin-left: auto; font: 800 var(--fs-2xs)/1 var(--f-num); letter-spacing: .16em; color: color-mix(in srgb, var(--mt-paper) 62%, transparent); } /* 발급처 */
+[data-ui-theme="metro"] .gc-no { position: absolute; left: calc(var(--gx) + var(--gd) + 18px); top: 36px; display: flex; align-items: baseline; gap: 6px; font-family: var(--f-num); }
+[data-ui-theme="metro"] .gc-no small { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; color: color-mix(in srgb, var(--mt-paper) 62%, transparent); }
+[data-ui-theme="metro"] .gc-nv { font-size: var(--fs-3xl); font-weight: 800; line-height: 1; letter-spacing: .04em; }
+[data-ui-theme="metro"] .gc-f { position: absolute; left: calc(var(--gx) + var(--gd) + 18px); right: 12px; top: 74px; display: grid; gap: 3px; font: 400 var(--fs-sm)/1.25 var(--f-body); }
+[data-ui-theme="metro"] .gc-f > span { display: flex; gap: 8px; }
+[data-ui-theme="metro"] .gc-f i { flex: none; width: 2.2em; font-style: normal; color: color-mix(in srgb, var(--mt-paper) 55%, transparent); }
+[data-ui-theme="metro"] .gc-f em { font-style: normal; font-weight: 700; }
+[data-ui-theme="metro"] .gc-f .gc-t { color: var(--tc); } /* 첫 칸 값 = 등급색 (일반 흰 · 희귀 파랑 · 전설 빨강 · 특권 보라) */
+[data-ui-theme="metro"] .gcard.gt-R .gc-sigil, [data-ui-theme="metro"] .gcard.gt-L .gc-sigil { color: var(--mt-paper); }
 [data-ui-theme="metro"] .gcard > b { padding: 4px 16px 0; font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
 [data-ui-theme="metro"] .gc-desc { padding-inline: 16px; }
 [data-ui-theme="metro"] .gcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden;
@@ -614,9 +620,12 @@
   color: color-mix(in srgb, var(--mt-paper) 50%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
 @media (max-width: 640px) {
   [data-ui-theme="metro"] .gslot { --gh: 64px; } [data-ui-theme="metro"] .gcard { --gds: 44px; padding-bottom: 14px; } [data-ui-theme="metro"] .gcard.gt-R { --gds: 54px; } [data-ui-theme="metro"] .gcard.gt-L { --gds: 64px; }
-  [data-ui-theme="metro"] .gc-sigil { flex-basis: 100%; width: auto; height: var(--gh); margin: 0; font-size: var(--fs-xl); }
+  [data-ui-theme="metro"] .gc-sigil { flex-basis: 100%; width: auto; height: var(--gh); margin: 0; padding-top: 16px; font-size: var(--fs-xl); }
   [data-ui-theme="metro"] .gcard .cback::before { width: 58px; height: 58px; box-shadow: 0 0 0 5px var(--mt-ink), 0 0 0 6.5px color-mix(in srgb, var(--mt-paper) 14%, transparent); } /* 폰: 낮은 카드 → 작은 동전 (무늬 영역 가운데) */
-  [data-ui-theme="metro"] .gc-sigil:has(.gc-ic) { --gd: 25px; --gdi: 17px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 22px; height: 22px; }
+  [data-ui-theme="metro"] .gcard { --gx: 30px; --gy: calc(50% + 8px); --gd: 18px; --gdi: 13px; } [data-ui-theme="metro"] .gc-sigil .gc-ic { width: 18px; height: 18px; }
+  [data-ui-theme="metro"] .gc-ph { top: 6px; } [data-ui-theme="metro"] .gc-iss { display: none; } /* 낮은 머리 (64px): 위 줄 = 순번 · 종류 | 번호, 원판 옆 = 칸 한 줄 */
+  [data-ui-theme="metro"] .gc-no { left: auto; right: 12px; top: 5px; } [data-ui-theme="metro"] .gc-nv { font-size: var(--fs-lg); }
+  [data-ui-theme="metro"] .gc-f { left: calc(var(--gx) * 2); top: 32px; grid-auto-flow: column; justify-content: start; gap: 14px; }
   [data-ui-theme="metro"] .gcard > b, [data-ui-theme="metro"] .gc-desc { padding-inline: 14px; }
 }
 /* ── 고르는 미니 카드 = 디자인 시스템 MiniCard (ADMIT ONE components/MiniCard — 2026-11-06 사용자 결정: 토큰 재활용이 아니라 원본 구조 그대로, app/modals.ts miniCard).
@@ -738,7 +747,7 @@
 [data-ui-theme="metro"] .br-card .br-ic > :is(svg, span) { width: 26px; height: 26px; }
 [data-ui-theme="metro"] .br-card .br-ic::after { content: '→'; order: 1; margin-left: auto; font: 400 var(--fs-2xl)/1 var(--f-display); }
 [data-ui-theme="metro"] .br-card:first-child .br-ic::after { content: '←'; }
-[data-ui-theme="metro"] .br-card .br-ic::before { content: 'PLATFORM ' counter(br, decimal-leading-zero); order: 2; font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .08em; }
+[data-ui-theme="metro"] .br-card .br-ic::before { content: 'GATE ' counter(br, decimal-leading-zero); order: 2; font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .08em; }
 [data-ui-theme="metro"] .card.br-card > b { padding: 4px 14px 0; font-size: var(--fs-2xl); }
 [data-ui-theme="metro"] .card.br-card > :is(.fk-rows, span:last-child) { width: auto; margin-inline: 14px; text-align: left; }
 [data-ui-theme="metro"] .fk-rows { gap: 0 12px; }
@@ -794,6 +803,23 @@
 [data-ui-theme="metro"] .field-btn .field-card { box-shadow: 4px 4px 0 var(--sh-press); transition: translate .12s, box-shadow .12s; }
 [data-ui-theme="metro"] .field-btn:is(:hover, :focus-visible) .field-card { translate: -2px -2px; box-shadow: 6px 6px 0 var(--sh-press); border-color: var(--mt-hover); }
 [data-ui-theme="metro"] .field-btn:active .field-card { translate: 4px 4px; box-shadow: 0 0 0 var(--sh-press); }
+/* ── 환경 탭 전장 = 여행 포스터 (2026-11-07 사용자 결정 C2-1 — 피드백 보고서 3단계 '목적지가 주인공', app/map.ts envPoster): 위 = 전장 그림 (::after),
+   아래 = 종이 띠 (::before — DESTINATION 머리표 · 전장 이름 · 지역 · 한 줄 문구 = 설명 첫 문장), 그림 아래 오른쪽 = 현상 도장 (PHENOMENON · 첫 조건 이름 — 피치 · 잉크 윤곽 · 조금 기울임).
+   그림은 원래 바탕(인라인 background-image)을 물려받아 위 칸에만 꽉 채운다. 천천히 흐르는 바탕은 끈다 (포스터는 멈춘 그림).
+   최소 높이 = 내용: 넘침을 자르지 않는다 (자르면 높이가 정해진 환경 칸 격자가 포스터 줄을 내용보다 줄여 아래 전장 카드와 겹친다 — 모서리는 그림 · 종이 띠가 각자 둥글린다) */
+[data-ui-theme="metro"] .env-hero { --art-h: 250px; align-content: start; gap: 6px; min-height: auto; margin-bottom: 12px; padding: calc(var(--art-h) + 14px) 16px 16px; overflow: visible;
+  border: var(--mt-stroke) solid var(--mt-on); border-radius: var(--mt-r-panel); box-shadow: none; color: var(--mt-on); animation: none; }
+[data-ui-theme="metro"] .env-hero::before { inset: var(--art-h) 0 0; border-radius: 0 0 var(--mt-r-panel-in) var(--mt-r-panel-in); background: var(--mt-paper); }
+[data-ui-theme="metro"] .env-hero::after { content: ''; position: absolute; inset: 0 0 auto; z-index: -1; height: var(--art-h); border-radius: var(--mt-r-panel-in) var(--mt-r-panel-in) 0 0; background-image: inherit; background-size: cover; background-position: center; }
+[data-ui-theme="metro"] .env-hero .env-kicker { display: none; } /* 현재 전장 → 이름 위 DESTINATION 머리표 */
+[data-ui-theme="metro"] .env-hero > b { font: 400 var(--fs-3xl)/1.05 var(--f-display); letter-spacing: .01em; color: var(--mt-on); text-shadow: none; text-wrap: balance; }
+[data-ui-theme="metro"] .env-hero > b::before { content: attr(data-k); display: block; margin-bottom: 6px; color: color-mix(in srgb, var(--c) 45%, var(--mt-on)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .2em; }
+[data-ui-theme="metro"] .env-hero .env-reg { color: color-mix(in srgb, var(--mt-on) 65%, transparent); font-size: var(--fs-sm); }
+[data-ui-theme="metro"] .env-hero .env-line { display: block; margin: 0; color: color-mix(in srgb, var(--mt-on) 80%, transparent); font: 500 var(--fs-sm)/1.45 var(--f-body); }
+[data-ui-theme="metro"] .env-hero .env-ph { display: inline-flex; position: absolute; right: 12px; top: calc(var(--art-h) - 30px); align-items: center; gap: 6px; padding: 4px 8px; rotate: -4deg;
+  border: var(--mt-stroke) solid var(--mt-on); background: var(--c-select); color: var(--mt-on); box-shadow: 3px 3px 0 var(--mt-on); font: 700 var(--fs-sm)/1 var(--f-body); }
+[data-ui-theme="metro"] .env-hero .env-ph::before { content: attr(data-k); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; opacity: .75; }
+@media (max-height: 560px) { [data-ui-theme="metro"] .env-hero { --art-h: 150px; } [data-ui-theme="metro"] .env-hero > b { font-size: var(--fs-2xl); } } /* 폰 가로: 그림 칸 · 이름을 줄인다 */
 /* ── 알림 · 의뢰 성공 = 디자인 시스템 확인 창 (Modal): 머리 = 종이 → 보라 그라디언트 띠 · 머리표(NOTICE / MISSION COMPLETE) · 큰 제목 / 경계 양옆 홈 / 몸통 = 글 · 이름 + 값 줄 · 단추.
    의뢰 성공은 머리 오른쪽에 VALID 도장 (전투 결과 도장과 같은 문법). 창의 노선 띠는 머리 띠가 대신한다 */
 [data-ui-theme="metro"] .modal:is(.notice, .victory) { --mhd: 20px; position: relative; padding: 0 var(--mhd) 20px; border: 0; background-image: none; box-shadow: inset 0 0 0 1.5px var(--mt-edge); } /* 테두리 = 안쪽 1.5px (홈 고리가 테두리 위를 덮고, 창 밖 반쪽은 창이 자른다) */
@@ -885,37 +911,35 @@
 [data-ui-theme="metro"] .ach-slot { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-sm); }
 [data-ui-theme="metro"] .ach-slot > i { border: 1.5px solid color-mix(in srgb, var(--mt-paper) 25%, var(--mt-edge)); }
 @media (max-width: 600px) { [data-ui-theme="metro"] .ach-card { grid-template-columns: 52px 1fr; } [data-ui-theme="metro"] .ach-card .ach-medal { width: 52px; } }
-/* ── 절취 홈 = 실제 구멍 (티켓형 고르기 카드 공통 — 전역 증강 · 미니 카드 · 공명 증강 줄 · 절망 증강 · 특권 · 탑승권, 2026-11-06 사용자 결정):
+/* ── 절취 홈 = 실제 구멍 (뜯는 표 = 1회성 고르기 카드 공통 — 미니 카드 · 공명 증강 줄 · 절망 증강 · 탑승권, 2026-11-06 사용자 결정. 전역 증강 · 특권은 2026-11-07 부터 홈 없는 회원증):
    카드를 마스크로 뚫고 (구멍 반지름 9px, 중심 = 카드 바깥 테두리 위 · 절취선 높이 --ny), 구멍 가장자리에 카드 테두리와 같은 1.5px 고리 — 고리 색은 카드 테두리색을 물려받아 가리킴 · 고름도 따라가고, 카드 밖 반쪽은 마스크가 자른다.
-   마스크는 카드 밖에 그리는 것을 모두 자르므로: 그림자 = 카드를 감싼 칸이 그린다 (.tslot = drop-shadow 라 구멍 모양 · 구멍 안 그림자까지 그대로 따른다, 전역 증강 · 특권 .gslot · 절망 .dp-slot · 탑승권 .pslot = 구멍 뚫린 그림자 판),
+   마스크는 카드 밖에 그리는 것을 모두 자르므로: 그림자 = 카드를 감싼 칸이 그린다 (.tslot = drop-shadow 라 구멍 모양 · 구멍 안 그림자까지 그대로 따른다, 절망 .dp-slot · 탑승권 .pslot = 구멍 뚫린 그림자 판, 전역 증강 · 특권 .gslot = 홈 없는 판),
    키보드 포커스 테두리 = 카드 안쪽, 등급 공개 빛 = 카드 안쪽 (ui/revealfx.ts masked). 알림 · 의뢰 성공 창 · 튜토리얼 이름표는 머리 높이가 글자에 따라 달라 가짜 홈 (바탕색 원 + 고리) 그대로 */
-[data-ui-theme="metro"] :is(.gcard, .dp-card) > b { border-color: inherit; }
-[data-ui-theme="metro"] :is(.gcard, .dp-card) {
+[data-ui-theme="metro"] .dp-card > b { border-color: inherit; }
+[data-ui-theme="metro"] .dp-card {
   -webkit-mask: radial-gradient(circle at 0 calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) left / 51% 100% no-repeat, radial-gradient(circle at 100% calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) right / 51% 100% no-repeat;
   mask: radial-gradient(circle at 0 calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) left / 51% 100% no-repeat, radial-gradient(circle at 100% calc(var(--ny) + 1.5px), transparent 8.5px, var(--c-black) 9px) right / 51% 100% no-repeat; }
-[data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::before, [data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::after {
+[data-ui-theme="metro"] .dp-card > b::before, [data-ui-theme="metro"] .dp-card > b::after {
   content: ''; position: absolute; top: calc(var(--ny) - 10.5px); bottom: auto; z-index: 1; box-sizing: border-box; width: 21px; height: 21px; min-width: 0; padding: 0;
   border: 1.5px solid; border-color: inherit; border-radius: 50%; background: none; box-shadow: none; pointer-events: none; }
-[data-ui-theme="metro"] .gslot > .gcard > b::before, [data-ui-theme="metro"] .gslot > .gcard > b::after { z-index: var(--z-card-fx); } /* 전역 증강: 뒷면(.cback) 위 — 스캔 전에도 홈 둘레 고리가 보인다 */
-[data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::before { left: -12px; right: auto; } [data-ui-theme="metro"] :is(.gcard > b, .dp-card > b)::after { right: -12px; left: auto; }
+[data-ui-theme="metro"] .dp-card > b::before { left: -12px; right: auto; } [data-ui-theme="metro"] .dp-card > b::after { right: -12px; left: auto; }
 /* 칸(.tslot) = 그림자: drop-shadow (거리 --so: 기본 4 · 가리킴 6 · 누름 0 · 고름 6 · 색 --cs) — 카드 자신의 상자 그림자는 마스크에 잘리므로 끈다 */
 [data-ui-theme="metro"] .tslot { --so: 4px; --cs: var(--sh-press); display: grid; filter: drop-shadow(var(--so) var(--so) 0 var(--cs)); transition: --so .09s cubic-bezier(.2, .9, .2, 1); }
 [data-ui-theme="metro"] .tslot > :is(.gcard, .card, .aug-opt) { box-shadow: none; }
 /* 전역 증강 칸 = 등급색 그림자 판 (2026-11-06 사용자 결정 — 탑승권 · 절망 증강 판과 같은 문법): 오른쪽 아래 7px · 등급색 100% (일반 흰 --g-C · 희귀 파랑 --g-A · 전설 빨강 --g-L) ·
-   망점 마스크로 우하단 끝으로 갈수록 옅게 · 판의 절취 홈도 뚫는다. 판은 제자리, 카드가 움직인다 (가리킴 · 포커스 9px · 누름 3px). 발권 등장은 칸이 맡아 판과 카드가 함께 솟는다 */
+   망점 마스크로 우하단 끝으로 갈수록 옅게 (회원증이라 홈은 뚫지 않는다, 2026-11-07). 판은 제자리, 카드가 움직인다 (가리킴 · 포커스 9px · 누름 3px). 발권 등장은 칸이 맡아 판과 카드가 함께 솟는다 */
 [data-ui-theme="metro"] .gslot { --cs: color-mix(in srgb, var(--g-C) 68%, var(--mt-ink)); position: relative; isolation: isolate; filter: none; } /* 일반 = 흰빛 회색 (불투명 · 밝기를 희귀 파랑 정도로 — 순백은 희귀 · 전설보다 튀었다, 2026-11-06 피드백) */
 [data-ui-theme="metro"] .gslot.gt-R { --cs: var(--g-A); } [data-ui-theme="metro"] .gslot.gt-L { --cs: var(--g-L); }
 [data-ui-theme="metro"] .gslot::before { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -1; border-radius: var(--mt-r); background-color: var(--cs); pointer-events: none;
-  -webkit-mask: radial-gradient(circle at 0 calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), radial-gradient(circle at 100% calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
+  -webkit-mask: var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
     linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
-  mask: radial-gradient(circle at 0 calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), radial-gradient(circle at 100% calc(var(--gh) + .75px), transparent 8.5px, var(--c-black) 9px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
-    linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
-  -webkit-mask-composite: source-in, source-in, source-over, source-over, source-over, source-over; mask-composite: intersect, intersect, add, add, add, add; }
+  mask: var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
+    linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat; }
 [data-ui-theme="metro"] .tslot:has(> :hover:not([disabled], :disabled, .on, .took)) { --so: 6px; }
 [data-ui-theme="metro"] .tslot:has(> :focus-visible) { --so: 6px; }
 [data-ui-theme="metro"] .tslot:has(> :is(.on, .took)) { --cs: var(--c-select); --so: 6px; }
 [data-ui-theme="metro"] .tslot:has(> :active:not([disabled], :disabled)) { --so: 0px; }
-[data-ui-theme="metro"] :is(.tslot > *, .dp-card, .pv-card, .pcard):focus-visible { outline-offset: -5px; } /* 키보드 포커스 = 카드 안쪽 (카드 밖은 마스크가 자른다) */
+[data-ui-theme="metro"] :is(.tslot > *, .dp-card, .pv-card, .pcard):focus-visible { outline-offset: -5px; } /* 키보드 포커스 = 카드 안쪽 (홈 뚫린 카드는 카드 밖을 마스크가 자른다 — 회원증도 같은 자리) */
 /* 탑승권(.pcard)은 마스크로 뚫은 실제 홈 → 홈 가장자리에 같은 고리만 (판 .mt-pass 의 ::before · ::after, 카드 밖은 마스크가 자른다) */
 [data-ui-theme="metro"] .mt-pass { border-color: inherit; }
 [data-ui-theme="metro"] .mt-pass::before, [data-ui-theme="metro"] .mt-pass::after { content: ''; position: absolute; bottom: calc(var(--stub) - 11.75px); box-sizing: border-box; width: 20.5px; height: 20.5px;
@@ -1211,28 +1235,24 @@
   [data-ui-theme="metro"] :is(.mt-hd, .mt-hd.hd-row) { background: var(--hd-paper); }
 }
 
-/* ══ 낮은 가로 화면 (높이 560 이하 — 폰 가로 844×390 등) 정기권 (전역 증강 · 특권) = 가로 카드 (2026-11-06 사용자 결정 검토 C 2):
-   머리 = 왼쪽 칸 (원판 · 사선 · 망점) · 세로 절취선 + 위아래 홈 / 오른쪽 = 순번 머리표 · 이름 · 효과 3줄. 그림자 판 · 홈 고리도 세로 절취선 자리(--gw)로 옮긴다 */
+/* ══ 낮은 가로 화면 (높이 560 이하 — 폰 가로 844×390 등) 회원증 (전역 증강 · 특권) = 가로 카드 (2026-11-06 사용자 결정 검토 C 2 · 2026-11-07 회원증 C3-1):
+   왼쪽 칸 = 원판(위) · 번호 · 등급 칸 · 아래 망점 · 노선 사선 / 오른쪽 = 순번 · 종류 머리 · 이름 · 효과 3줄. 유효 칸은 뺀다 (창 머리 문장이 같은 말을 한다). 절취선 · 홈 없음 */
 @media (max-height: 560px) {
   [data-ui-theme="metro"] .gslot { --gw: 100px; }
-  [data-ui-theme="metro"] .gslot > .gcard { --gds: 44px; display: grid; grid-template-columns: var(--gw) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-content: start; gap: 4px 12px; height: 148px; min-height: 0; padding: 0 12px 0 0;
-    -webkit-mask: radial-gradient(circle at var(--gw) 0, transparent 8.5px, var(--c-black) 9px) top / 100% 51% no-repeat, radial-gradient(circle at var(--gw) 100%, transparent 8.5px, var(--c-black) 9px) bottom / 100% 51% no-repeat;
-    mask: radial-gradient(circle at var(--gw) 0, transparent 8.5px, var(--c-black) 9px) top / 100% 51% no-repeat, radial-gradient(circle at var(--gw) 100%, transparent 8.5px, var(--c-black) 9px) bottom / 100% 51% no-repeat; }
+  [data-ui-theme="metro"] .gslot > .gcard { --gds: 44px; --gx: 50%; --gy: 40px; --gd: 26px; --gdi: 18px; display: grid; grid-template-columns: var(--gw) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-content: start; gap: 4px 12px; height: 148px; min-height: 0; padding: 0 12px 0 0; }
   [data-ui-theme="metro"] .gslot > .gcard:is(.gt-R, .gt-P) { --gds: 54px; } [data-ui-theme="metro"] .gslot > .gcard.gt-L { --gds: 64px; }
-  [data-ui-theme="metro"] .gslot > .gcard > .gc-sigil { grid-row: 1 / 3; grid-column: 1; height: auto; padding-top: 0; border-bottom: 0; border-right: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r) 0 0 var(--mt-r); }
-  [data-ui-theme="metro"] .gslot > .gcard > .gc-sigil:has(.gc-ic) { --gd: 30px; --gdi: 21px; }
-  [data-ui-theme="metro"] .gslot > .gcard > .gc-sigil .gc-ic { width: 24px; height: 24px; }
-  [data-ui-theme="metro"] .gslot > .gcard > b { grid-column: 2; padding: 30px 0 0; }
-  [data-ui-theme="metro"] .gslot > .gcard > .gc-desc { grid-column: 2; padding: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-  [data-ui-theme="metro"] .gslot > .gcard > .gc-kind { left: calc(var(--gw) + 12px); top: 10px; }
-  [data-ui-theme="metro"] .gslot > .gcard::before { top: auto; bottom: 0; border-radius: 0 0 0 var(--mt-r); } /* 등급 망점 = 왼쪽 칸 아래 */
-  [data-ui-theme="metro"] .gslot > .gcard > b::before { left: calc(var(--gw) - 12px); right: auto; top: -12px; bottom: auto; } /* 홈 고리 = 세로 절취선 위 · 아래 끝 */
-  [data-ui-theme="metro"] .gslot > .gcard > b::after { left: calc(var(--gw) - 12px); right: auto; top: auto; bottom: -12px; }
-  [data-ui-theme="metro"] .gslot::before {
-    -webkit-mask: radial-gradient(circle at var(--gw) 0, transparent 8.5px, var(--c-black) 9px), radial-gradient(circle at var(--gw) 100%, transparent 8.5px, var(--c-black) 9px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
-      linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat;
-    mask: radial-gradient(circle at var(--gw) 0, transparent 8.5px, var(--c-black) 9px), radial-gradient(circle at var(--gw) 100%, transparent 8.5px, var(--c-black) 9px), var(--mt-fade-v) right bottom / 10px 640px no-repeat, var(--mt-fade-h) right bottom / 340px 10px no-repeat,
-      linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 640px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 340px) 100% no-repeat; }
+  [data-ui-theme="metro"] .gslot > .gcard > .gc-sigil { grid-row: 1 / 3; grid-column: 1; grid-template-columns: 100%; align-content: start; height: auto; padding: 29px 0 0; border-radius: var(--mt-r) 0 0 var(--mt-r); }
+  [data-ui-theme="metro"] .gslot > .gcard > .gc-sigil .gc-ic { width: 22px; height: 22px; }
+  [data-ui-theme="metro"] .gslot > .gcard > b { grid-column: 2; padding: 32px 0 0; }
+  [data-ui-theme="metro"] .gslot > .gcard > .gc-desc { grid-column: 2; align-self: start; padding: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; } /* 자르는 상자는 늘이지 않는다 (격자 줄에 늘면 말줄임 뒤 4번째 줄이 비친다) */
+  [data-ui-theme="metro"] .gslot > .gcard > .gc-pass { height: auto; bottom: 0; }
+  [data-ui-theme="metro"] .gc-ph { left: calc(var(--gw) + 12px); top: 10px; } [data-ui-theme="metro"] .gc-iss { display: none; }
+  [data-ui-theme="metro"] .gc-no { left: 0; width: var(--gw); top: 74px; justify-content: center; gap: 4px; } [data-ui-theme="metro"] .gc-nv { font-size: var(--fs-xl); }
+  [data-ui-theme="metro"] .gc-f { left: 0; right: auto; width: var(--gw); top: 100px; justify-items: center; text-align: center; }
+  [data-ui-theme="metro"] .gc-f > span { display: grid; gap: 1px; padding: 2px 6px; border-radius: var(--r-sm); background: var(--mt-ink); } /* 잉크 판 = 아래 등급 망점 위에서도 글자 대비 유지 */
+  [data-ui-theme="metro"] .gc-f i { width: auto; font-size: var(--fs-xs); }
+  [data-ui-theme="metro"] .gc-f > span + span { display: none; }
+  [data-ui-theme="metro"] .gslot > .gcard::before { top: auto; bottom: 0; border-radius: var(--mt-r) 0 0 0; } /* 등급 망점 = 왼쪽 칸 아래 — 돌린 토큰의 왼쪽 위 모서리가 화면 왼쪽 아래 = 카드 모서리라 그 둥글기만 따른다 */
   [data-ui-theme="metro"] .gslot > .gcard .cback::before { left: calc(var(--gw) / 2); top: 50%; width: 58px; height: 58px; box-shadow: 0 0 0 5px var(--mt-ink), 0 0 0 6.5px color-mix(in srgb, var(--mt-paper) 14%, transparent); }
   [data-ui-theme="metro"] .gslot > .gcard .cback::after { left: calc(var(--gw) + 12px); }
 }
