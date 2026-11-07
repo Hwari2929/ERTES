@@ -1,6 +1,6 @@
 /* ───────── 기물 전체 상세 팝업 (대기실 · 편성 확대) */
 .um-back { position: fixed; inset: 0; z-index: var(--z-tip); background: rgb(6 8 12 / .62); backdrop-filter: blur(2px); }
-.um { position: fixed; z-index: var(--z-um); inset: max(16px, 3vh) max(16px, 3vw); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 20px 60px color-mix(in srgb, var(--c-black) 60%, transparent); overflow: hidden; }
+.um { position: fixed; z-index: var(--z-um); inset: max(16px, 3vh) max(16px, 3vw); display: flex; flex-direction: column; background: var(--panel); border: var(--stroke) solid var(--edge); border-radius: var(--r-win); box-shadow: 0 20px 60px color-mix(in srgb, var(--c-black) 60%, transparent); overflow: hidden; }
 .um-head { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .um-id { display: grid; justify-items: center; text-align: center; gap: 2px; } .um-id b { font-size: var(--fs-2xl); font-family: var(--f-body); font-weight: 800; line-height: 1.2; }
 .um-idblk { display: grid; gap: 8px; }

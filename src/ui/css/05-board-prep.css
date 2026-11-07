@@ -97,7 +97,7 @@
 .inv-items .ir-sep { width: 1px; height: 28px; margin: 0 4px; }
 /* 대기열 */
 .bench { position: relative; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 64px; margin: 18px auto 0; width: min(100%, 560px);
-  background: var(--panel); border: 1px dashed var(--line); border-radius: var(--r-lg); padding: 12px 10px 8px; }
+  background: var(--panel); border: var(--stroke) dashed var(--edge); border-radius: var(--r-panel); padding: 12px 10px 8px; }
 .bench-label { position: absolute; top: 0; left: 12px; transform: translateY(-50%); padding: 0 6px; border-radius: var(--r-sm); background: var(--bg); font-size: var(--fs-xs); line-height: 1.6; color: var(--c-text-2); } /* 테두리 위 이름표 */
 .bench-label b { color: var(--c-text); font-variant-numeric: tabular-nums; }
 /* 대기석 숨기기 · 보이기 (app/prep.ts benchTog, prefs benchOff): 상자 오른쪽 위 테두리에 붙은 단추 — 이름표 (대기석 n)와 같은 줄.
