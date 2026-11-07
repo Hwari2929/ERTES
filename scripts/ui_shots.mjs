@@ -35,7 +35,7 @@ const SCREENS = [
   ['priv', 'priv'], ['council', 'council'], ['supply', 'supply'], ['recruit', 'recruit'], ['muster', 'muster'],
   ['rankup', 'rankup'], ['item', 'item'], ['turret', 'turret'], ['blessing', 'blessing'], ['despair', 'despair'],
   ['branch', 'branch'], ['fork', 'fork'], ['notice', 'notice'],
-  ['shop', 'shop'], ['shopback', 'shop', click('[data-a=shop-close]')], ['ws', 'ws'], ['news', 'news'], ['invest', 'invest'], ['pilgrim', 'pilgrim'],
+  ['shop', 'shop'], ['shopback', 'shop', click('[data-a=shop-close]')], ['shopinv', 'shop', click('[data-a=shop-inv]')], ['ws', 'ws'], ['news', 'news'], ['invest', 'invest'], ['pilgrim', 'pilgrim'],
   ['win', 'win'], ['lose', 'lose'], ['codex', 'win', click('[data-a=codex]')],
   ['battle', 'prep', click('[data-a=fight]'), 4200, true], ['bossbattle', 'bossprep', click('[data-a=fight]'), 6500, true],
 ];

@@ -75,7 +75,7 @@ import { fieldBrief, foeModal, newRunScreen, releaseModal, titleScreen } from '.
 import { CAN_HOVER, relicTok } from './app/unitparts';
 import { pilgrimAct } from './app/pilgrim';
 import { CR, ic, mapScreen, nodeHint, phaseBoss } from './app/map';
-import { devicePop, itemBrief, placeAt, placingSel, popKey, prepScreen, setTacShownPrev, setTouchPtr, tgTip, toolMark, touchPtr } from './app/prep';
+import { devicePop, invStrip, itemBrief, placeAt, placingSel, popKey, prepScreen, setTacShownPrev, setTouchPtr, tgTip, toolMark, touchPtr } from './app/prep';
 import { detailHeadBind, foeItemTip, umCompactBind, unitModal } from './app/abilities';
 import { animateResult, applySpeed, battleScreen, craneOn, crateGroup, updateMeter } from './app/battle';
 import { advSync, goAfterOk, injectFx, investScreen, kvChip, menuModal, miniCard, newsScreen, overScreen, pendingModal, recoModal, routeHold, setInjHold, shopScreen, useModal } from './app/modals';
@@ -897,7 +897,7 @@ Object.assign(CTR.hooks, {
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작
 SHOP.shopInit({ // 상인 상점 덮개 (ui/shop.ts): main 의 그림 조각 · 확인 팝업 · 알림
-  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), miniCard, consColor, itemTone, itemBrief, statIc, devicePop, kvChip, rerollBtn, CR,
+  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), miniCard, consColor, itemTone, itemBrief, statIc, devicePop, kvChip, rerollBtn, invStrip, CR,
   ask: (anchor, html, okLabel, ok) => { app.ask = { anchor, at: 'below', html, okLabel, ok }; },
   toast: (m) => toast(m), persist: () => persist(), sfx: (n) => SND.sfx(n),
 });

@@ -429,8 +429,8 @@ export const TUTORIAL_TIPS: Record<string, [string, string, string][]> = {
     ['lindiwe', `상점 진열대: 재료 장비 (기본 ${CFG.price.C})`, `재료 장비는 기본 ${CFG.price.C}크레딧. 주요 능력치 하나를 +3 올려 줘요.`],
     ['lindiwe', `상점 진열대 가격표: 희귀 ${CFG.price.A} · 고급 ${CFG.price.G} / 전설 ${CFG.price.L}`, `${CFG.price.A === CFG.price.G ? `희귀와 고급은 ${CFG.price.A}` : `희귀는 ${CFG.price.A}, 고급은 ${CFG.price.G}`}, 전설은 ${CFG.price.L}이 기본값. 전장에 따라 달라져요.`],
     ['lindiwe', '재료 장비 구매', '재료 하나 사 보세요. 산 장비는 보관함으로 들어가요.'],
-    ['lindiwe', '상점 머리 · 이자 지키며 쓸 수 있음 칩', `${CFG.interestPer} 단위는 지키세요. ${CFG.interestPer}마다 이자 1, 최대 ${CFG.interestMax}예요. 여기 적힌 만큼은 이자를 안 깎고 쓸 수 있어요.`],
-    ['lindiwe', '상점 머리 · 보관함 칩 (장비는 되팔 수 없음)', '산 장비는 보관함에 쌓여요. 장비는 되팔 수 없으니 필요한 것만 사세요. 팔 수 있는 건 소모품뿐이에요.'],
+    ['lindiwe', '상점 머리 · 여유 칩', `${CFG.interestPer} 단위는 지키세요. ${CFG.interestPer}마다 이자 1, 최대 ${CFG.interestMax}예요. 여유에 적힌 만큼은 이자를 안 깎고 쓸 수 있어요.`],
+    ['lindiwe', '상점 바닥 줄 · 보관함 단추 (장비는 되팔 수 없음)', '산 장비는 보관함에 쌓여요. 이 단추로 바로 펼쳐 볼 수 있어요. 장비는 되팔 수 없으니 필요한 것만 사세요. 팔 수 있는 건 소모품뿐이에요.'],
     ['lindiwe', '상점 나가기', '다 샀으면 나가요. 남은 돈은 이자로 일하게 두고요.'],
   ],
   ch2_xp: [

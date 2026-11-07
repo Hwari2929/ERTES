@@ -172,6 +172,21 @@ export function undefinedVars(decls: Decl[]) {
   return bad;
 }
 
+/** 메트로 그림자 숫자 채널(--ch-*-r/g/b, 01-themes.css)이 그 색 토큰과 같은 값인지 — 26-metro.css 누를 것 그림자색(오버레이 계산식)이 숫자로 읽는다 */
+export function channelDrift(decls: Decl[]) {
+  const mt: Record<string, string> = {};
+  for (const d of decls) if (d.sel === '[data-ui-theme="metro"]') mt[d.prop] = d.value.trim();
+  const hex = (v?: string) => { const m = /^#([0-9a-f]{6})$/i.exec(v || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
+  const p = hex(mt['--mt-paper']), k = hex(mt['--mt-ink']);
+  const want: Record<string, number[] | null> = { sel: hex(mt['--c-select']), paper: p, on: hex(mt['--mt-on']), gray: p && k ? p.map((v, i) => v * 0.3 + k[i] * 0.7) : null }; // 잿빛 = 종이 30% + 잉크 (--mt-sh)
+  const out: string[] = [];
+  for (const [n, rgb] of Object.entries(want)) {
+    const got = ['r', 'g', 'b'].map((c) => parseFloat(mt[`--ch-${n}-${c}`]));
+    if (!rgb || got.some((v, i) => !(Math.abs(v - rgb[i]) <= 0.15))) out.push(`--ch-${n}-r/g/b (${got.join(' ')}) ≠ 색 토큰 (${rgb ? rgb.map((v) => +v.toFixed(1)).join(' ') : '없음'})`);
+  }
+  return out;
+}
+
 function summary(st: Stats) {
   const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0);
   return { colors: sum(st.colors), legacy: sum(st.legacy), fontSizeKinds: Object.keys(st.fontSize).length, fontSize: sum(st.fontSize), radiusKinds: Object.keys(st.radius).length, radius: sum(st.radius), zKinds: Object.keys(st.zIndex).length, zIndex: sum(st.zIndex), important: st.important };
@@ -214,6 +229,7 @@ function main() {
   for (const e of fileBrace) fails.push(`괄호 짝이 맞지 않음 — ${e}`);
   const tm = themeMissing(decls);
   for (const m of tm.miss) fails.push(`테마 '${m.theme}' 에 빠진 토큰 ${m.props.length}개: ${m.props.join(' · ')} (${at(m.line)})\n    고치기: 기본 테마 블록(:root, [data-ui-theme="galaxy"])에 있는 역할 · 면 · 선 토큰은 모든 [data-ui-theme] 블록이 다시 정의한다`);
+  for (const c of channelDrift(decls)) fails.push(`그림자 숫자 채널이 색 토큰과 다름: ${c}\n    고치기: 01-themes.css 메트로 블록의 --ch-* 를 색 토큰 값으로`);
   for (const u of undefinedVars(decls)) fails.push(`정의되지 않은 변수 ${u.name} (${at(u.line)} ${u.sel})\n    고치기: :root 에 정의하거나, JS 가 주입하는 변수라면 tests/css_check.ts 의 JS_VARS 에 추가`);
   const shrunk = (['colors', 'legacy', 'fontSize', 'radius', 'zIndex'] as const).some((k) => Object.entries(base[k]).some(([key, n]) => (st[k][key] || 0) < n)) || st.important < base.important;
   if (fails.length) {

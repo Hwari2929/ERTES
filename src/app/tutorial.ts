@@ -128,10 +128,10 @@ export function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[
       return [{ target: '.modal .sup-cards', pend: true }, { target: '.modal [data-a="supply-all"]', pend: true, until: () => !sp()?.options.some((c) => !c.open) },
         { target: '.modal [data-a="supply-done"]', pend: true, until: () => !sp() }];
     }
-    case 'ch2_shop': return [ // 상인 상점 (ui/shop.ts): 재료 칸 · 희귀 칸 → 재료 카드 (누르면 아래에 ✕ / ✓ 확인) → 이자 지키며 쓸 수 있음 · 보관함 칩 → 떠나기
+    case 'ch2_shop': return [ // 상인 상점 (ui/shop.ts): 재료 칸 · 희귀 칸 → 재료 카드 (누르면 아래에 ✕ / ✓ 확인) → 여유 칩 · 바닥 줄 보관함 단추 → 떠나기
       { target: '.sg .card.mn.tC' }, { target: '.sg .card.mn.tA' },
       { target: '.sg .card.mn.tC', need: true, until: () => !!r.node?.shop?.some((x) => x.sold) }, // 확인 팝업이 뜨면 안내는 잠시 숨는다 (tutCoach hold)
-      { target: ['.shop-ov .kv-keep', '.top .pill.cr'] }, { target: '.shop-ov .kv-inv' },
+      { target: ['.shop-ov .kv-keep', '.top .pill.cr'] }, { target: '.shop-ov [data-a="shop-inv"]' },
       { target: '.shop-ov [data-a="leave-shop"]', need: true, until: () => app.screen !== 'shop' },
     ];
     case 'ch2_xp': {

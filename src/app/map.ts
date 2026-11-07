@@ -31,7 +31,7 @@ import { app, esc, jackpotTxt, pctTxt } from './state';
 import { NODE_ICON, itemIcon, rankPips, recommendedMajors, sprite, statPopHtml, synergyPanel, xpBar } from './common';
 import { despairEnv } from './title';
 import { dBar, enemyCategory } from './unitparts';
-import { invGroups, kingDetail } from './prep';
+import { invStrip, kingDetail } from './prep';
 import { detailPanel, tchip } from './abilities';
 import { tendOf } from './battle';
 import { fieldCard, kvChip } from './modals';
@@ -90,7 +90,7 @@ export function mapScreen(run: RunState) {
       <h2>파티 <span class="muted small">출전 ${deployed(run).length}/${R.deployCap(run)} · 보유 ${run.units.length}/${CFG.maxParty}</span></h2>
       <div class="party">${run.units.map(rosterTile).join('')}</div>
       <h2>보관함 <span class="muted small">${run.inventory.length}개</span></h2>
-      ${run.inventory.length ? `<div class="inv-strip">${invGroups(run).map(({ i, all }) => itemIcon(run.inventory[i], '', '', all.length)).join('')}</div>` : '<p class="muted small">보관 중인 장비가 없습니다.</p>'}
+      ${invStrip(run)}
       </section>
       <section class="st-pane" role="tabpanel" aria-label="환경">
       <div class="env-hero" style="--c:${fieldOf(run.field).color};background-image:url('${bgURL(`field_${fieldOf(run.field).id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${fieldOf(run.field).color} 40%, #0b0d14), #0b0d14 75%)"><span class="env-kicker">현재 전장</span><b data-k="DESTINATION">${esc(fieldOf(run.field).name)}</b><span class="env-reg">${esc(fieldOf(run.field).region)}</span>${envPoster(fieldOf(run.field))}</div>

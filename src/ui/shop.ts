@@ -1,5 +1,5 @@
 // 상인 상점 덮개 (상단 바 아래 전체, docs/UI.md): 왼쪽 30% 상인 (스탠딩 · 이름 · 말풍선 · 고르곤 교환), 오른쪽 70% 진열대
-// (머리 = 상점 이름 + 상태 칩, 3×3 진열대에 6~9개 (남는 칸은 빈 선반) · 고른 물품 상세 · 새로고침 · [지정 소집] (티켓) · 편성 / 닫기 / 떠나기). 좁은 화면은 상인이 위쪽 띠, 상세는 하단 시트.
+// (머리 = 상점 이름 + 여유 칩 + 새로고침, 3×3 진열대에 6~9개 (남는 칸은 빈 선반) · 고른 물품 상세 · 바닥 줄 [보관함] (위로 펼침) · [지정 소집] (티켓) · 편성 / 닫기 / 떠나기). 좁은 화면은 상인이 위쪽 띠, 상세는 하단 시트.
 // 지정 소집 티켓을 들고 지도를 열면 지정 소집 단추 위에 페트라 광고판 (adHtml · adMount).
 // 엔진 규칙 (진열 · 할인 · 새로고침 · 교환 · 티켓)은 engine/run.ts, 상인 · 대사는 data/merchants.ts 에서 읽는다.
 import { CFG } from '../config';
@@ -26,6 +26,8 @@ export interface ShopDeps {
   statIc(html: string): string;
   devicePop(run: RunState, id: string): string;
   kvChip(label: string, val: string, title?: string, cls?: string): string;
+  /** 보관함 줄 (app/prep.ts invStrip — 지도 파티 탭과 같은 부품: 같은 소모품은 겹치고 개수) */
+  invStrip(run: RunState): string;
   /** 새로고침 단추 (app/common.ts rerollBtn — 다시 뽑는 단추는 모두 이 부품) */
   rerollBtn(a: string, left: number, label: string, o?: { cls?: string; tip?: string; cost?: number; short?: boolean }): string;
   /** 크레딧 아이콘 */
@@ -42,12 +44,13 @@ export function shopInit(d: ShopDeps) { D = d; }
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** 화면 상태 (저장하지 않음): 상세를 보는 칸 · 가격표 옆 오류 · 말풍선 · 교환 고르기 */
+/** 화면 상태 (저장하지 않음): 상세를 보는 칸 · 가격표 옆 오류 · 말풍선 · 교환 고르기 · 보관함 판 열림 */
 export const SHOP = {
   key: '',
   sel: null as number | null,
   err: null as { i: number; msg: string } | null,
   tradeMsg: '',
+  inv: false,
   talk: { text: '', n: 0 },
   shown: -1,
   trade: null as null | { pick: number | null },
@@ -62,7 +65,7 @@ const nodeKey = (run: RunState) => `${run.phase}:${run.step}:${run.node?.merchan
 function sync(run: RunState) {
   const k = nodeKey(run);
   if (k === SHOP.key) return;
-  Object.assign(SHOP, { key: k, sel: null, err: null, tradeMsg: '', trade: null, pitched: false });
+  Object.assign(SHOP, { key: k, sel: null, err: null, tradeMsg: '', trade: null, pitched: false, inv: false });
 }
 /** 대사 한 줄 고르기 (같은 상황에서 바로 앞 줄은 피한다) */
 export function line(m: MerchantDef, k: TalkKey): string {
@@ -141,12 +144,8 @@ export function shopOverlay(run: RunState): string {
   if (!SHOP.talk.text) say(run, run.node?.met ? 'again' : 'greet');
   if (SHOP.sel !== null && !stock[SHOP.sel]) SHOP.sel = null;
   const k = R.interestKeep(run), I = R.interestInfo(run);
-  const chips = [
-    D.kvChip('보유', `${D.CR}<b>${run.credits}</b>`, '에너지 크레딧', 'cr'),
-    D.kvChip('이자 지키며 쓸 수 있음', `${D.CR}<b>${k.spend}</b>`, `지금 이자(크레딧 ${k.per}당 1, 상한 ${I.cap})를 줄이지 않고 쓸 수 있는 크레딧 = 보유 ${run.credits} − ${k.per} × ${I.direct ? 0 : I.raw}`, `cr kv-keep${k.spend ? '' : ' zero'}`),
-    D.kvChip('이자', `<b>+${k.keep}</b><small>유지</small>`, '위 금액까지만 쓰면 다음 전투를 마칠 때 받는 이자', 'kv-int'),
-    D.kvChip('보관함', `<b>${R.invSlots(run)}</b>/${CFG.inventoryMax}`, '산 물품이 들어가는 곳', `kv-inv${R.invSlots(run) >= CFG.inventoryMax ? ' full' : ''}`),
-  ].join('');
+  // 머리 칩 = 여유 하나 (2026-11-07 사용자 결정 시안 1): 보유 · 이자는 상단 바에 있다. 보관함은 바닥 줄 [보관함] → 위로 펼치는 판 (시안 3)
+  const chips = D.kvChip('여유', `${D.CR}<b>${k.spend}</b>`, `이자(+${k.keep})를 줄이지 않고 쓸 수 있는 크레딧 = 보유 ${run.credits} − ${k.per} × ${I.direct ? 0 : I.raw} (크레딧 ${k.per}당 이자 1, 상한 ${I.cap})`, `cr kv-keep${k.spend ? '' : ' zero'}`);
   const sold = stock.filter((s) => s.sold).length;
   const rf = R.refreshInfo(run), mul = R.shopMul(run);
   const rfCost = rf.cost ? `${rf.cost} 크레딧${Math.abs(mul - 1) > 1e-6 ? ` (${rf.base} × 상점 배율 ${+mul.toFixed(2)})` : ''}` : '무료';
@@ -171,11 +170,17 @@ export function shopOverlay(run: RunState): string {
           <div class="sg cards mn-row mn-buy">${cards}</div>
         </div>
       </div>
-      <div class="so-foot">${musterBtn(run)}<button class="btn" data-a="manage">편성 · 장비</button><button class="btn" data-a="shop-close" title="상점을 닫고 지도로 (이 칸은 그대로 — 지도에서 다시 열 수 있음)">닫기</button><button class="btn primary" data-a="leave-shop" title="이 상점을 떠나 다음 칸으로">떠나기</button></div>
+      <div class="so-foot">${invBtn(run)}${musterBtn(run)}<button class="btn" data-a="manage">편성 · 장비</button><button class="btn" data-a="shop-close" title="상점을 닫고 지도로 (이 칸은 그대로 — 지도에서 다시 열 수 있음)">닫기</button><button class="btn primary" data-a="leave-shop" title="이 상점을 떠나 다음 칸으로">떠나기</button></div>
     </section>
   </div>`;
 }
 
+/** 상점 바닥 줄 [보관함 n/32] → 그 위로 펼치는 판 (2026-11-07 사용자 결정 시안 3): 보관함 줄은 지도 파티 탭과 같은 부품. 다시 누르면 접힌다 (같은 자리 · UI.md 9번) */
+function invBtn(run: RunState) {
+  const n = R.invSlots(run), cap = CFG.inventoryMax, open = SHOP.inv;
+  const cnt = `<b>${n}</b>/${cap}`;
+  return `<span class="so-invw"><button class="btn so-inv${open ? ' on' : ''}${n >= cap ? ' full' : ''}" data-a="shop-inv" aria-expanded="${open}" title="보관함 — 산 물품이 들어가는 곳 (${n}/${cap})">${lineIcon('r.part', 'li')}<span>보관함</span><small>${cnt}</small></button>${open ? `<div class="so-invp" role="region" aria-label="보관함"><h3>보관함 <small>${cnt}</small></h3>${D.invStrip(run)}</div>` : ''}</span>`;
+}
 /** 상점 바닥 줄 [지정 소집]: 지정 소집 티켓이 있을 때만 (상점 칸에서는 티켓 소집만 — engine/run.ts musterBlock). 소집 · 영입 창은 상점 위에 뜨고, 닫으면 같은 상점으로 */
 function musterBtn(run: RunState) {
   const tk = R.ticketCount(run);
@@ -267,6 +272,7 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
       say(run, 'tradeOffer');
       break;
     }
+    case 'shop-inv': SHOP.inv = !SHOP.inv; break; // 보관함 판 펼치기 · 접기
     case 'shop-trade-pick': if (SHOP.trade) SHOP.trade.pick = +v; break;
     case 'shop-trade-x': SHOP.trade = null; break;
     case 'shop-trade-ok': {

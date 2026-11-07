@@ -704,6 +704,10 @@ export function invGroups(run: RunState): { i: number; all: number[] }[] {
   });
   return out;
 }
+/** 보관함 줄 (보기 전용): 지도 파티 탭 · 상점 바닥 줄 [보관함] 판이 같은 부품을 쓴다 (같은 소모품은 겹치고 개수) */
+export function invStrip(run: RunState) {
+  return run.inventory.length ? `<div class="inv-strip">${invGroups(run).map(({ i, all }) => itemIcon(run.inventory[i], '', '', all.length)).join('')}</div>` : '<p class="muted small">보관 중인 물품이 없습니다.</p>';
+}
 export function invTokens(run: RunState, selIdx: number) {
   return invGroups(run).map(({ i, all }) => {
     const id = run.inventory[i], on = all.includes(selIdx) || all.some((k) => app.ask?.hl?.includes(k));

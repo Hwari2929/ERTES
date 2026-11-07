@@ -95,6 +95,10 @@
     color-mix(in srgb, var(--mt-paper) 80%, transparent) 9px 13px, transparent 13px 14px, color-mix(in srgb, var(--mt-paper) 80%, transparent) 14px 15px, transparent 15px 19px); /* 잉크 면 위 바코드 */
   --mt-barcode-ink: repeating-linear-gradient(90deg, var(--mt-on) 0 3px, transparent 3px 5px, var(--mt-on) 5px 6px, transparent 6px 9px, var(--mt-on) 9px 13px, transparent 13px 14px, var(--mt-on) 14px 15px, transparent 15px 19px); /* 종이 표 머리 바코드 (26-metro.css .mt-hd) */
   --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
+  --ch-gray-r: 79.2; --ch-gray-g: 79.6; --ch-gray-b: 81.9;   /* 그림자색 숫자 채널 (26-metro.css 누를 것 그림자색 = 오버레이 계산식): 잿빛 --mt-sh (종이 30% + 잉크) */
+  --ch-sel-r: 255; --ch-sel-g: 155; --ch-sel-b: 106;          /* 선택색 --c-select #ff9b6a */
+  --ch-paper-r: 236; --ch-paper-g: 235; --ch-paper-b: 231;    /* 종이 --mt-paper #ecebe7 */
+  --ch-on-r: 17; --ch-on-g: 18; --ch-on-b: 22;                /* 잉크 --mt-on #111216 — 색 토큰을 바꾸면 이 숫자도 같이 (tests/css_check 가 대조) */
   --mt-sh: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
   --mt-sh-p: var(--c-select);          /* 주 동작 그림자 = 선택색(복숭아): 모양은 일반 단추와 같고 그림자 색 하나만 다르다 — 다음 행동 = 강조색 (2026-11-06 피드백: 전투 시작 · 맵으로가 계산값까지 같았다) */
   /* 별 하늘 (2026-11-06 피드백 '별이 부족하다' → '타일 무늬보다 불규칙하게'): 큰 타일 두 장(600×400 · 470×330)에 무작위로 흩뿌린 별 — 크기 · 색(종이 · 민트 · 보라) · 밝기가 제각각,

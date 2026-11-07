@@ -155,18 +155,34 @@
 @media (max-width: 640px) { .mg-tk::before, .mg-tk::after { right: 48px; } .mg-code { width: 22px; margin-right: 12px; padding-left: 10px; } .mg-tk-a { padding: 14px 14px 16px 18px; } }
 
 /* ── 단추: 평평한 판 + 단단한 그림자 (쿠폰형 주 동작은 아래 보존 주석 — 2026-11-06 사용자 결정으로 일반 단추) */
+/* ── 누를 것 그림자색 = 오버레이 · 불투명도 .8 (2026-11-07 사용자 결정): 그림자색(--shr · --shg · --shb 숫자 채널, 없음 = --sha 0)을 단추 뒤 바탕(--sh-bg)에 오버레이로 섞고
+   바탕과 80 : 20 으로 얹은 색을 계산해 그림자에 쓴다 — 채널마다 바탕 b ≤ 127.5 이면 2·b·s/255, 아니면 255 − 2·(255−b)·(255−s)/255 (오버레이 식 그대로).
+   혼합 모드(mix-blend-mode)로 그리지 않는 까닭: 바닥 줄(sticky) · 고정 단추 묶음(z-index) · 보드 열처럼 쌓임 층 안에 있는 단추는 그 층 밖 바탕과 섞이지 않아
+   섞이지 않은 원색 띠가 비친다 (실측 13종). 그림자 구조(drop-shadow · box-shadow · 단축키 표까지 미는 모양 · 뜨기 · 누름)는 그대로.
+   바탕 --sh-bg = 단추가 놓인 면 (기본 바탕 · 창 · 상단 바 종이 · 표 머리 띠 오른쪽 · 지금 칸 종이 · 탑승권 잉크). 그림자 숫자 채널은 01-themes.css --ch-* (색 토큰과 같은 값).
+   단추 · 함대 확장 · 지정 소집 · 분대 칸 · 소집 시너지 칸 · 전장 카드 단추가 같은 식을 쓴다 (UI.md 42번). 상대 색 문법이 없는 브라우저는 그림자색 그대로 */
+[data-ui-theme="metro"] { --sh-bg: var(--bg); }
+[data-ui-theme="metro"] .modal { --sh-bg: var(--panel); }
+[data-ui-theme="metro"] .top { --sh-bg: var(--mt-paper); }
+[data-ui-theme="metro"] .mt-hd { --sh-bg: color-mix(in srgb, var(--mt-paper) 40%, var(--hdc, var(--mt-a))); } /* 표 머리 도구 = 띠 오른쪽 (종이 → 노드색 그라디언트 76% 근처) */
+[data-ui-theme="metro"] .ah-card.cur { --sh-bg: var(--mt-paper); }
+[data-ui-theme="metro"] .pcard { --sh-bg: var(--mt-ink); }
+[data-ui-theme="metro"] :is(.btn, .ship-btn, .pb-sq, .ms-syn, .field-btn) { --shr: var(--ch-gray-r); --shg: var(--ch-gray-g); --shb: var(--ch-gray-b); --sha: 1; --sh: rgb(var(--shr) var(--shg) var(--shb) / var(--sha)); }
+@supports (color: rgb(from red r g b)) {
+  [data-ui-theme="metro"] :is(.btn, .ship-btn, .pb-sq, .ms-syn, .field-btn) { --sh: rgb(from color-mix(in srgb, rgb(from var(--sh-bg) calc(2 * r * var(--shr) / 255 + clamp(0, (r - 127.5) * 1000, 1) * (255 - 2 * (255 - r) * (255 - var(--shr)) / 255 - 2 * r * var(--shr) / 255)) calc(2 * g * var(--shg) / 255 + clamp(0, (g - 127.5) * 1000, 1) * (255 - 2 * (255 - g) * (255 - var(--shg)) / 255 - 2 * g * var(--shg) / 255)) calc(2 * b * var(--shb) / 255 + clamp(0, (b - 127.5) * 1000, 1) * (255 - 2 * (255 - b) * (255 - var(--shb)) / 255 - 2 * b * var(--shb) / 255))) 80%, var(--sh-bg)) r g b / var(--sha)); }
+}
 /* 단추 그림자 = 디자인 시스템 shadow-sm: 흐리지 않은 잉크(종이색) 그림자를 오른쪽 아래로 4px. 가리키면 살짝 떠서 6px, 누르면 그림자 거리만큼 내려앉는다.
    drop-shadow 라 단축키 표까지 같은 모양으로 민다. 켜진 것(.on) = 선택색, 비활성 · 유령 = 없음. 작은 단추는 거리를 줄인다 */
-[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 4px; --so-up: 6px; --sx: var(--so); --sh: var(--sh-press); border: var(--stroke) solid var(--edge); border-radius: var(--r-press); box-shadow: none;
+[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 4px; --so-up: 6px; --sx: var(--so); border: var(--stroke) solid var(--edge); border-radius: var(--r-press); box-shadow: none;
   filter: drop-shadow(var(--sx) var(--sx) 0 var(--sh)); transition: border-color .15s, background-color .15s, translate .09s cubic-bezier(.2, .9, .2, 1), filter .09s cubic-bezier(.2, .9, .2, 1); }
 [data-ui-theme="metro"] :is(.bar, .ct, .title-screen, .adv) .btn { --stroke: 1px; --edge: var(--line); } /* 제외 구역 단추 = 갤럭시 구조선 */
 [data-ui-theme="metro"] .btn.small:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 3px; --so-up: 4px; } [data-ui-theme="metro"] .btn.tiny:not(:is(.bar, .ct, .title-screen, .adv) *) { --so: 2px; --so-up: 3px; }
 [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { --sx: var(--so-up); translate: -1px -1px; border-color: var(--mt-hover); background-color: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); } /* 가리킴 = 밝은 회색 (선택색은 고른 것 · 다음 행동에만) */
 [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *, .dpv-btn):active:not(:disabled) { --sx: 0px; translate: var(--so) var(--so); background-color: color-mix(in srgb, var(--mt-deep) 45%, var(--panel-2)); } /* 누름 = 그림자 거리만큼 내려앉는다 */
 [data-ui-theme="metro"] .btn:is(.ghost, .danger-ghost):not(:is(.bar, .ct, .title-screen, .adv) *):not(:hover) { background-color: var(--panel-2); } /* 바탕을 채운다 — 투명하면 그림자가 단추 속으로 비쳐 테두리 · 아이콘이 이중으로 보인다 (메뉴 · 기물 방출) */
-[data-ui-theme="metro"] .btn.ghost:not(:is(.bar, .ct, .title-screen, .adv) *):not(.menu-btn) { --sh: transparent; } /* 유령 단추(취소 · 닫기류) = 그림자 없음 — 메뉴 아이콘 단추는 그림자를 둔다 */
-[data-ui-theme="metro"] .btn.on:not(:is(.bar, .ct, .title-screen, .adv) *) { --sh: var(--c-select); border-color: var(--c-select); color: var(--c-select); } /* 켜짐 = 선택색 그림자 */
-[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *):disabled { --sh: transparent; border-color: color-mix(in srgb, var(--mt-edge) 70%, transparent);
+[data-ui-theme="metro"] .btn.ghost:not(:is(.bar, .ct, .title-screen, .adv) *):not(.menu-btn) { --sha: 0; } /* 유령 단추(취소 · 닫기류) = 그림자 없음 — 메뉴 아이콘 단추는 그림자를 둔다 */
+[data-ui-theme="metro"] .btn.on:not(:is(.bar, .ct, .title-screen, .adv) *) { --shr: var(--ch-sel-r); --shg: var(--ch-sel-g); --shb: var(--ch-sel-b); border-color: var(--c-select); color: var(--c-select); } /* 켜짐 = 선택색 그림자 */
+[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *):disabled { --sha: 0; border-color: color-mix(in srgb, var(--mt-edge) 70%, transparent);
   background-image: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 2px, transparent 2px 7px); } /* 잠김 = 빗금 */
 /* ── (보존) 쿠폰형 주 동작 단추 — 2026-11-06 사용자 결정: 진입 · 닫기 · ✓ · 상점 떠나기 · 결과 계속 같은 단추는 쿠폰일 이유가 없어 일반 단추로 돌렸다.
    다시 쓰려면 아래를 되살린다 (안쪽 주석 표시는 괄호 별표로 바꿔 두었다 — 되살릴 때 원래 주석 표시로 돌린다).
@@ -190,17 +206,17 @@
   border-color: transparent; background: none; color: color-mix(in srgb, var(--c-text) 86%, transparent); } (* 비활성 = 옅은 채움 + 밝은 글씨 ('증강을 고르세요' 같은 안내가 읽혀야 한다) *)
 ── 보존 끝 */
 /* 주 동작 = 일반 단추와 같은 모양 · 바탕 · 그림자 (기본 테마의 호박 채움 · 밝기 필터를 덮는다) */
-[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *) { --sh: var(--mt-sh-p); background-color: var(--panel-2); border-color: var(--edge); color: var(--c-text); font-weight: inherit; }
+[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *) { --shr: var(--ch-sel-r); --shg: var(--ch-sel-g); --shb: var(--ch-sel-b); background-color: var(--panel-2); border-color: var(--edge); color: var(--c-text); font-weight: inherit; }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { filter: drop-shadow(var(--sx) var(--sx) 0 var(--sh)); }
 /* 주 동작 = 복숭아 면 + 잉크 테두리 + 잉크 글자 + 종이 그림자 + 좌상단 흰 망점(글자 아래) (2026-11-07 사용자 결정 2단계 B3-3 · 테두리 시안 1 — 테두리가 없으면 흰색과 피치가 섞이지 않는다.
    이전: 일반 단추 + 복숭아 그림자). 종이 면 위(종이 머리 · 지금 칸 표)에서는 그림자 = 잉크 */
-[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .pc-pick):not(:disabled) { --sh: var(--mt-paper); background-color: var(--c-select); border-color: var(--mt-on); color: var(--c-select-ink); font-weight: 700; }
+[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .pc-pick):not(:disabled) { --shr: var(--ch-paper-r); --shg: var(--ch-paper-g); --shb: var(--ch-paper-b); background-color: var(--c-select); border-color: var(--mt-on); color: var(--c-select-ink); font-weight: 700; }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .pc-pick):not(:disabled):hover { background-color: color-mix(in srgb, var(--c-select) 86%, var(--c-white)); border-color: var(--mt-on); }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .pc-pick):not(:disabled):active { background-color: color-mix(in srgb, var(--c-select) 84%, var(--mt-deep)); }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .pc-pick, .rc-back) { position: relative; }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .pc-pick):not(:disabled)::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--mt-paper); opacity: .5;
   -webkit-mask: var(--mt-dot-tl) left top / 110px 110px no-repeat; mask: var(--mt-dot-tl) left top / 110px 110px no-repeat; }
-[data-ui-theme="metro"] :is(.mt-hd, .ah-card.cur) .btn.primary:not(:disabled) { --sh: var(--mt-on); }
+[data-ui-theme="metro"] :is(.mt-hd, .ah-card.cur) .btn.primary:not(:disabled) { --shr: var(--ch-on-r); --shg: var(--ch-on-g); --shb: var(--ch-on-b); }
 [data-ui-theme="metro"] .btn.danger-ghost:not(:is(.bar, .ct, .title-screen, .adv) *) { border-color: color-mix(in srgb, var(--c-danger-line) 55%, var(--mt-edge)); } /* 기물 방출: 붉은 윤곽 유지 */
 [data-ui-theme="metro"] .btn.danger-ghost:not(:is(.bar, .ct, .title-screen, .adv) *):is(:hover:not(:disabled), [aria-expanded="true"]) { background-color: color-mix(in srgb, var(--c-danger-bg) 30%, var(--panel-2)); }
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *) { background-color: var(--c-bad); border-color: transparent; color: var(--mt-on); }
@@ -280,7 +296,7 @@
     radial-gradient(circle at 100% calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) right / 51% 100% no-repeat;
   mask: radial-gradient(circle at 0 calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) left / 51% 100% no-repeat,
     radial-gradient(circle at 100% calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) right / 51% 100% no-repeat; }
-[data-ui-theme="metro"] .pcard .btn.pc-pick.primary { --sh: var(--sh-press); padding-inline: 14px; border: var(--mt-stroke) solid var(--mt-edge); background: var(--panel-2); color: var(--c-text); } /* 카드 안 '선택' = 보조 단추 (쿠폰은 창의 '영입' 하나) */
+[data-ui-theme="metro"] .pcard .btn.pc-pick.primary { --shr: var(--ch-gray-r); --shg: var(--ch-gray-g); --shb: var(--ch-gray-b); padding-inline: 14px; border: var(--mt-stroke) solid var(--mt-edge); background: var(--panel-2); color: var(--c-text); } /* 카드 안 '선택' = 보조 단추 (쿠폰은 창의 '영입' 하나) */
 [data-ui-theme="metro"] .pcard .btn.pc-pick.primary::after { display: none; }
 [data-ui-theme="metro"] .pcard .btn.pc-pick.primary:hover:not(:disabled) { border-color: var(--mt-hover); background: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); }
 [data-ui-theme="metro"] .pcard.sel { border-color: var(--c-select); box-shadow: inset 0 0 0 1.5px var(--c-select); }
@@ -798,9 +814,9 @@
 [data-ui-theme="metro"] .field-card .mu-box { margin-top: 4px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
 [data-ui-theme="metro"] .field-card .mu-k { font: 700 var(--fs-xs)/1.2 var(--f-body); letter-spacing: .02em; }
 [data-ui-theme="metro"] .field-btn { border-radius: var(--mt-r-md); }
-[data-ui-theme="metro"] .field-btn .field-card { box-shadow: 4px 4px 0 var(--sh-press); transition: translate .12s, box-shadow .12s; }
-[data-ui-theme="metro"] .field-btn:is(:hover, :focus-visible) .field-card { translate: -2px -2px; box-shadow: 6px 6px 0 var(--sh-press); border-color: var(--mt-hover); }
-[data-ui-theme="metro"] .field-btn:active .field-card { translate: 4px 4px; box-shadow: 0 0 0 var(--sh-press); }
+[data-ui-theme="metro"] .field-btn .field-card { box-shadow: 4px 4px 0 var(--sh); transition: translate .12s, box-shadow .12s; }
+[data-ui-theme="metro"] .field-btn:is(:hover, :focus-visible) .field-card { translate: -2px -2px; box-shadow: 6px 6px 0 var(--sh); border-color: var(--mt-hover); }
+[data-ui-theme="metro"] .field-btn:active .field-card { translate: 4px 4px; box-shadow: 0 0 0 var(--sh); }
 /* ── 환경 탭 전장 = 여행 포스터 (2026-11-07 사용자 결정 C2-1 — 피드백 보고서 3단계 '목적지가 주인공', app/map.ts envPoster): 위 = 전장 그림 (::after),
    아래 = 종이 띠 (::before — DESTINATION 머리표 · 전장 이름 · 지역 · 한 줄 문구 = 설명 첫 문장), 그림 아래 오른쪽 = 현상 도장 (PHENOMENON · 첫 조건 이름 — 피치 · 잉크 윤곽 · 조금 기울임).
    그림은 원래 바탕(인라인 background-image)을 물려받아 위 칸에만 꽉 채운다. 천천히 흐르는 바탕은 끈다 (포스터는 멈춘 그림).
@@ -849,7 +865,7 @@
 /* ── 메뉴 · 설정 (디자인 시스템 Tabs · Controls): 메뉴 / 설정 = 서류철 탭 (순번 01 · 02 모노 · 고른 탭 = 종이 면), 구획 제목 = 민트 네모,
    고르기 줄(.seg) = 세그먼트 (붙은 칸 · 고른 칸 = 종이 면), 슬라이더 = 눈금 자 위 네모 손잡이, 숫자 칸 = 1.5px 모노 칸 */
 [data-ui-theme="metro"] .menu-tabs { counter-reset: mtab; gap: 4px; margin-bottom: 4px; border-bottom: var(--mt-stroke) solid var(--mt-edge); }
-[data-ui-theme="metro"] .menu-tabs > .btn { --sh: transparent; counter-increment: mtab; min-height: 34px; margin-bottom: -1.5px; padding-inline: 14px; border: var(--mt-stroke) solid var(--mt-edge); border-bottom: 0; border-radius: var(--mt-r-sm) var(--mt-r-sm) 0 0;
+[data-ui-theme="metro"] .menu-tabs > .btn { --sha: 0; counter-increment: mtab; min-height: 34px; margin-bottom: -1.5px; padding-inline: 14px; border: var(--mt-stroke) solid var(--mt-edge); border-bottom: 0; border-radius: var(--mt-r-sm) var(--mt-r-sm) 0 0;
   background: var(--panel-2); color: var(--c-text-2); box-shadow: none; translate: none; filter: none; }
 [data-ui-theme="metro"] .menu-tabs > .btn::before { content: counter(mtab, decimal-leading-zero); margin-right: 7px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .1em; opacity: .75; }
 [data-ui-theme="metro"] .menu-tabs > .btn:not(.on):hover { border-color: var(--mt-hover); color: var(--c-text); }
@@ -857,7 +873,7 @@
 [data-ui-theme="metro"] .modal:has(> .menu-tabs) > h3 { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
 [data-ui-theme="metro"] .modal:has(> .menu-tabs) > h3::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); }
 [data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) { gap: 0; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-sm); overflow: hidden; background: var(--mt-ink); }
-[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn { --sh: transparent; margin: 0; border: 0; border-radius: 0; background: none; color: var(--c-text-2); box-shadow: none; translate: none; filter: none; }
+[data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn { --sha: 0; margin: 0; border: 0; border-radius: 0; background: none; color: var(--c-text-2); box-shadow: none; translate: none; filter: none; }
 [data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn + .btn { border-left: var(--mt-stroke) solid var(--mt-edge); }
 [data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn:not(.on):hover { background: color-mix(in srgb, var(--mt-paper) 8%, transparent); color: var(--c-text); }
 [data-ui-theme="metro"] :is(.pref .seg, .meter-tabs, .board-head .speed):not(:has(input)) > .btn.on { background: var(--mt-paper); color: var(--mt-on); }
@@ -882,11 +898,11 @@
 [data-ui-theme="metro"] .ms-pick.on { height: 28px; padding: 0 10px 0 3px; border: var(--mt-stroke) solid var(--c); border-radius: var(--r-pill); background: var(--mt-ink); }
 [data-ui-theme="metro"] .ms-pick.on .syn-dia { width: 20px; height: 20px; transform: none; border: 0; border-radius: 50%; background: var(--c); color: var(--mt-on); }
 [data-ui-theme="metro"] .ms-pick.on .syn-dia > i { transform: none; }
-[data-ui-theme="metro"] .ms-syn { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 3px 3px 0 var(--sh-press); transition: translate .09s, box-shadow .09s, border-color .15s; }
+[data-ui-theme="metro"] .ms-syn { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 3px 3px 0 var(--sh); transition: translate .09s, box-shadow .09s, border-color .15s; }
 [data-ui-theme="metro"] .ms-syn.own { border-color: color-mix(in srgb, var(--c) 50%, var(--mt-edge)); }
-[data-ui-theme="metro"] .ms-syn:not(:disabled, .on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--sh-press); }
-[data-ui-theme="metro"] .ms-syn:not(:disabled):active { translate: 3px 3px; box-shadow: 0 0 0 var(--sh-press); }
-[data-ui-theme="metro"] .ms-syn.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--mt-ink)); box-shadow: 4px 4px 0 var(--c-select); }
+[data-ui-theme="metro"] .ms-syn:not(:disabled, .on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--sh); }
+[data-ui-theme="metro"] .ms-syn:not(:disabled):active { translate: 3px 3px; box-shadow: 0 0 0 var(--sh); }
+[data-ui-theme="metro"] .ms-syn.on { --shr: var(--ch-sel-r); --shg: var(--ch-sel-g); --shb: var(--ch-sel-b); border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--mt-ink)); box-shadow: 4px 4px 0 var(--sh); }
 [data-ui-theme="metro"] .ms-syn.on::after { content: ''; position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--mt-ink), 0 0 0 3.5px var(--c); } /* 펀치 구멍 */
 [data-ui-theme="metro"] .ms-syn:disabled { box-shadow: none; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--mt-paper) 9%, transparent) 6px 7.5px), var(--mt-ink); }
 [data-ui-theme="metro"] .ms-syn.ms-demo { box-shadow: none; }
@@ -1013,10 +1029,10 @@
   border-radius: 0 var(--mt-r-md-in) var(--mt-r-md-in) 0; background: color-mix(in srgb, var(--mt-paper) 8%, var(--mt-ink)); font: 400 var(--fs-xl)/1 var(--f-display); } /* 뜯는 칸 = 인원 */
 [data-ui-theme="metro"] .pb-foe .pb-n:empty::before { content: '×1'; color: var(--c-text-2); }
 /* 분대 줄 = 누르는 것: 작은 단추 그림자 (3px), 고른 분대 = 선택색 */
-[data-ui-theme="metro"] .pb-sq { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-md); background: var(--panel-2); box-shadow: 3px 3px 0 var(--sh-press); transition: translate .09s, box-shadow .09s, border-color .15s; }
-[data-ui-theme="metro"] .pb-sq:not(.on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--sh-press); }
-[data-ui-theme="metro"] .pb-sq:active { translate: 3px 3px; box-shadow: 0 0 0 var(--sh-press); }
-[data-ui-theme="metro"] .pb-sq.on { border-color: var(--c-select); box-shadow: 4px 4px 0 var(--c-select); }
+[data-ui-theme="metro"] .pb-sq { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-md); background: var(--panel-2); box-shadow: 3px 3px 0 var(--sh); transition: translate .09s, box-shadow .09s, border-color .15s; }
+[data-ui-theme="metro"] .pb-sq:not(.on):hover { translate: -1px -1px; border-color: var(--mt-hover); box-shadow: 4px 4px 0 var(--sh); }
+[data-ui-theme="metro"] .pb-sq:active { translate: 3px 3px; box-shadow: 0 0 0 var(--sh); }
+[data-ui-theme="metro"] .pb-sq.on { --shr: var(--ch-sel-r); --shg: var(--ch-sel-g); --shb: var(--ch-sel-b); border-color: var(--c-select); box-shadow: 4px 4px 0 var(--sh); }
 /* 전투: 미터 = 눈금 게이지, 기록 = 로그 (줄 · 아군/적 색 막대 · 모노 숫자) */
 [data-ui-theme="metro"] .mbar { height: 8px; border: 1px solid var(--mt-edge); border-radius: var(--r-sm);
   background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), color-mix(in srgb, var(--mt-paper) 10%, transparent) calc(10% - 1px) 10%), var(--mt-ink); }
@@ -1033,9 +1049,9 @@
 [data-ui-theme="metro"] .ci-name { text-shadow: 3px 3px 0 var(--c-black); }
 [data-ui-theme="metro"] .ci-line { padding: 5px 12px; border: 0; border-radius: var(--r-sm); background: var(--mt-paper); color: var(--mt-on); box-shadow: 4px 4px 0 var(--c1); }
 /* 지도: 함선 관리 = 누르는 줄 (단추 그림자), 값은 모노 */
-[data-ui-theme="metro"] .ship-btn { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-md); background: var(--panel-2); box-shadow: 4px 4px 0 var(--sh-press); transition: translate .09s, box-shadow .09s, border-color .15s; }
-[data-ui-theme="metro"] .ship-btn:not(:disabled):hover { translate: -1px -1px; border-color: var(--mt-hover); background: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); box-shadow: 6px 6px 0 var(--sh-press); } /* 일반 단추와 같은 가리킴 */
-[data-ui-theme="metro"] .ship-btn:not(:disabled):active { translate: 4px 4px; box-shadow: 0 0 0 var(--sh-press); }
+[data-ui-theme="metro"] .ship-btn { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-md); background: var(--panel-2); box-shadow: 4px 4px 0 var(--sh); transition: translate .09s, box-shadow .09s, border-color .15s; }
+[data-ui-theme="metro"] .ship-btn:not(:disabled):hover { translate: -1px -1px; border-color: var(--mt-hover); background: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); box-shadow: 6px 6px 0 var(--sh); } /* 일반 단추와 같은 가리킴 */
+[data-ui-theme="metro"] .ship-btn:not(:disabled):active { translate: 4px 4px; box-shadow: 0 0 0 var(--sh); }
 [data-ui-theme="metro"] .ship-btn:disabled { box-shadow: none; }
 /* HUD · 메뉴 · 설정 */
 [data-ui-theme="metro"] .top .pill { font-variant-numeric: tabular-nums; }
