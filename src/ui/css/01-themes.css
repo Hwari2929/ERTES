@@ -78,7 +78,7 @@
   --mt-r-sm: 10px;                     /* 탭 · 알림 (디자인 시스템 radius-sm) */
   --mt-r-md: 12px;                     /* 고르는 카드 · 노드 표 · 사진 창 (radius-md) */
   --mt-deep: #05060a;                  /* 누를 수 있는 것의 아래 두께 (카드) */
-  --mt-edge: color-mix(in srgb, var(--mt-paper) 42%, var(--mt-ink)); /* 카드 · 창 외곽선 (stroke 1.5px) — 판 바탕 대비 3:1 (2026-11-06 일상 브루탈 시안 3, 이전 30% = 2.1:1) */
+  --mt-edge: color-mix(in srgb, var(--mt-paper) 42%, var(--mt-ink)); /* 카드 · 창 외곽선 (--mt-stroke 2px) — 판 바탕 대비 3:1 (2026-11-06 일상 브루탈 시안 3, 이전 30% = 2.1:1) */
   --mt-r-panel: 4px;                   /* 담는 판 (정보 패널 · 대기석 · 항로도 · 상점 설명) — 각지게 (2026-11-06 일상 브루탈 시안 3). 누를 것 · 표는 각자 둥글기 그대로 */
   --mt-r-win: 6px;                     /* 창 (덮는 창 · 기물 전체 상세) */
   --f-body: 'IBM Plex Sans KR', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; /* 본문 = IBM Plex Sans KR (2026-11-07 사용자 결정 글꼴 시안 3 — 디자인 시스템 ADMIT ONE 본문 글꼴) */
@@ -86,11 +86,14 @@
   --f-num: 'Archivo', var(--f-body); /* 값 숫자 = Archivo 좁은 폭 (디자인 시스템 ADMIT ONE 숫자 글꼴, 한글은 본문 글꼴로 넘어간다) */
   --fs-xs: .75rem; --fs-sm: .8125rem; /* 글자 한 단계 (2026-11-07 피드백 보고서 1단계: 한글 최소 읽기 크기 13px — 디자인 시스템 caption). 제외 구역은 26-metro.css 에서 원래 값 */
   --r-pill: var(--r-sm); /* 알약 → 각진 칩 (2026-11-07 피드백 보고서: 999px 알약이 각진 판과 부딪힌다). 원은 50% 그대로 */
-  --stroke: 1.5px; --edge: var(--mt-edge); --r-panel: var(--mt-r-panel); --r-win: var(--mt-r-win); --sh-press: var(--mt-sh); --head-bg: var(--mt-deep); /* 구조 토큰 메트로 값 (00-tokens.css): 1.5px 윤곽 · 담는 판 각지게 · 누를 것 그림자 잿빛 · 표 머리 잉크 띠 */
-  --mt-r-win-in: calc(var(--mt-r-win) - 1.5px); --mt-r-panel-in: calc(var(--mt-r-panel) - 1.5px); --mt-r-md-in: calc(var(--mt-r-md) - 1.5px); /* 1.5px 윤곽 안쪽에 붙는 머리 · 칸의 둥글기 */
+  --rm-paper: var(--mt-paper); --rm-ink: var(--mt-on); /* 항로도 = 인쇄 노선표 (2026-11-07 사용자 결정 2단계 B5 — ui/routemap.ts palette 가 이 둘이 있으면 종이 위 잉크로 그린다) */
+  --mt-stroke: 2px;                    /* 구조선 굵기 (2026-11-07 사용자 결정 2단계 B6 — 1.5px 는 배율 100% 에서 1px 로 그려졌다) */
+  --stroke: var(--mt-stroke); --edge: var(--mt-edge); --r-panel: var(--mt-r-panel); --r-win: var(--mt-r-win); --sh-press: var(--mt-sh); --head-bg: var(--mt-paper); /* 구조 토큰 메트로 값 (00-tokens.css): 2px 윤곽 · 담는 판 각지게 · 누를 것 그림자 잿빛 · 표 머리 종이 (B1, 26-metro.css .mt-hd 에서 노드색으로 번진다) */
+  --mt-r-win-in: calc(var(--mt-r-win) - var(--mt-stroke)); --mt-r-panel-in: calc(var(--mt-r-panel) - var(--mt-stroke)); --mt-r-md-in: calc(var(--mt-r-md) - var(--mt-stroke)); /* 윤곽 안쪽에 붙는 머리 · 칸의 둥글기 */
   --mt-head: linear-gradient(100deg, var(--mt-paper) 0 42%, color-mix(in srgb, var(--mt-paper) 45%, var(--mt-a)) 74%, var(--mt-a)); /* 종이 머리 (알림 · 의뢰 성공 창 · 이번 전투) — 노드 화면 · 고르기 창 머리는 표 머리 (--mt-barcode · 26-metro.css .mt-hd) */
   --mt-barcode: repeating-linear-gradient(90deg, color-mix(in srgb, var(--mt-paper) 80%, transparent) 0 3px, transparent 3px 5px, color-mix(in srgb, var(--mt-paper) 80%, transparent) 5px 6px, transparent 6px 9px,
-    color-mix(in srgb, var(--mt-paper) 80%, transparent) 9px 13px, transparent 13px 14px, color-mix(in srgb, var(--mt-paper) 80%, transparent) 14px 15px, transparent 15px 19px); /* 표 머리 바코드 (26-metro.css .mt-hd) */
+    color-mix(in srgb, var(--mt-paper) 80%, transparent) 9px 13px, transparent 13px 14px, color-mix(in srgb, var(--mt-paper) 80%, transparent) 14px 15px, transparent 15px 19px); /* 잉크 면 위 바코드 */
+  --mt-barcode-ink: repeating-linear-gradient(90deg, var(--mt-on) 0 3px, transparent 3px 5px, var(--mt-on) 5px 6px, transparent 6px 9px, var(--mt-on) 9px 13px, transparent 13px 14px, var(--mt-on) 14px 15px, transparent 15px 19px); /* 종이 표 머리 바코드 (26-metro.css .mt-hd) */
   --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
   --mt-sh: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
   --mt-sh-p: var(--c-select);          /* 주 동작 그림자 = 선택색(복숭아): 모양은 일반 단추와 같고 그림자 색 하나만 다르다 — 다음 행동 = 강조색 (2026-11-06 피드백: 전투 시작 · 맵으로가 계산값까지 같았다) */

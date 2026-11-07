@@ -28,7 +28,8 @@ export function routeMapOn(run: RunState): boolean {
 }
 
 // ── 색: 테마 토큰을 읽어 #rrggbb 로 (섞기 · 보간용)
-type Pal = { bg: string; panel: string; panel2: string; line: string; soft: string; text: string; t2: string; t3: string; sel: string; streak: string; bad: string; divine: string; info: string };
+type Pal = { bg: string; panel: string; panel2: string; line: string; soft: string; text: string; t2: string; t3: string; sel: string; streak: string; bad: string; divine: string; info: string;
+  /** 지금 칸 원판 · 아이콘 · 고리 (없으면 바탕 · 선택색 · 선택색) */ curFill?: string; curIc?: string; curRing?: string };
 function hexOf(v: string): string {
   const p = document.createElement('i');
   p.style.color = v; p.style.display = 'none';
@@ -42,6 +43,11 @@ const rgb = (c: string) => [1, 3, 5].map((j) => parseInt(c.slice(j, j + 2), 16))
 const mix = (a: string, b: string, k: number) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, j) => Math.round(v + (B[j] - v) * k).toString(16).padStart(2, '0')).join(''); };
 function palette(): Pal {
   const cs = getComputedStyle(document.documentElement), t = (n: string) => hexOf(cs.getPropertyValue(n).trim() || 'currentColor');
+  if (cs.getPropertyValue('--rm-paper').trim()) { // 인쇄 노선표 (메트로, 2026-11-07 사용자 결정 2단계 B5): 종이 위 잉크 선 · 짙게 누른 노선색, 지금 칸 = 피치 원판 + 검정 아이콘
+    const P = t('--rm-paper'), K = t('--rm-ink'), sel = t('--c-select'), t2 = mix(K, P, .34), line = mix(K, P, .55), deep = (c: string) => mix(t(c), K, .32);
+    return { bg: P, panel: mix(P, K, .06), panel2: mix(P, K, .1), line, soft: mix(line, P, .4), text: K, t2, t3: mix(t2, P, .38), sel: mix(sel, K, .22), streak: deep('--c-streak'), bad: deep('--c-bad'), divine: deep('--c-divine'), info: deep('--c-info'),
+      curFill: sel, curIc: K, curRing: K };
+  }
   const bg = t('--bg'), line = t('--line'), t2 = t('--c-text-2');
   return { bg, panel: t('--panel'), panel2: t('--panel-2'), line, soft: mix(line, bg, .4), text: t('--c-text'), t2, t3: mix(t2, bg, .38), sel: t('--c-select'), streak: t('--c-streak'), bad: t('--c-bad'), divine: t('--c-divine'), info: t('--c-info') };
 }
@@ -173,7 +179,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   };
 
   // ── 노드 토큰: 현재 = 굵은 강조색 · 살짝 큼 · 조준 괄호가 벌어지며 45° / 앞 = 얇은 유형 색 / 지난 = 흐린 회색 (배경 불투명)
-  type St = { kind: 'cur' | 'next' | 'past'; r: number; sw: number; isw: number; sc: number; ny: number; op: number; bs: number; ba: number; bo: number; col: string; ncol: string; bcol: string };
+  type St = { kind: 'cur' | 'next' | 'past'; r: number; sw: number; isw: number; sc: number; ny: number; op: number; bs: number; ba: number; bo: number; col: string; ncol: string; bcol: string; icol: string; fill: string };
   type Tok = { g: SVGElement; sg: SVGElement; ring: SVGElement; ic: SVGElement; num: SVGElement; call: SVGElement; brk: SVGElement; t: NodeType; st: St | null };
   const STATE = {
     cur: { r: 23, sw: 3, isw: 2.3, sc: 1.08, ny: -32, op: 1, bs: 1.22, ba: 45, bo: 1 },
@@ -195,16 +201,17 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   }
   function target(k: Tok, i: number): St {
     const kd = i === cur ? 'cur' : i < cur ? 'past' : 'next';
-    return { kind: kd, ...STATE[kd], col: kd === 'cur' ? C.sel : kd === 'past' ? C.t3 : colOf(k.t), ncol: kd === 'cur' ? C.sel : C.t3, bcol: kd === 'cur' ? C.sel : C.t3 };
+    const col = kd === 'cur' ? (C.curRing ?? C.sel) : kd === 'past' ? C.t3 : colOf(k.t);
+    return { kind: kd, ...STATE[kd], col, ncol: kd === 'cur' ? C.sel : C.t3, bcol: kd === 'cur' ? C.sel : C.t3, icol: kd === 'cur' ? (C.curIc ?? C.sel) : col, fill: kd === 'cur' ? (C.curFill ?? C.bg) : C.bg };
   }
   function lerp(a: St, b: St, k: number): St {
-    const o = { ...b, col: mix(a.col, b.col, k), ncol: mix(a.ncol, b.ncol, k), bcol: mix(a.bcol, b.bcol, k) };
+    const o = { ...b, col: mix(a.col, b.col, k), ncol: mix(a.ncol, b.ncol, k), bcol: mix(a.bcol, b.bcol, k), icol: mix(a.icol, b.icol, k), fill: mix(a.fill, b.fill, k) };
     for (const f of ['r', 'sw', 'isw', 'sc', 'ny', 'op', 'bs', 'ba', 'bo'] as const) o[f] = a[f] + (b[f] - a[f]) * k;
     return o;
   }
   function apply(k: Tok, v: St) {
-    k.ring.setAttribute('r', String(v.r)); k.ring.setAttribute('stroke', v.col); k.ring.setAttribute('stroke-width', String(v.sw));
-    k.ic.style.color = v.col; k.ic.firstElementChild?.setAttribute('stroke-width', String(v.isw));
+    k.ring.setAttribute('r', String(v.r)); k.ring.setAttribute('stroke', v.col); k.ring.setAttribute('stroke-width', String(v.sw)); k.ring.setAttribute('fill', v.fill);
+    k.ic.style.color = v.icol; k.ic.firstElementChild?.setAttribute('stroke-width', String(v.isw));
     k.sg.setAttribute('transform', `scale(${v.sc})`);
     k.num.setAttribute('y', String(v.ny)); k.num.setAttribute('fill', v.ncol); k.num.style.opacity = String(v.op);
     k.call.style.opacity = String(v.op);
@@ -1610,12 +1617,12 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       rows.forEach((row, i) => row.forEach((t, j) => {
         const k = toks[i][j];
         const kind = i < step ? (path[i] === j ? 'past' : 'gone') : i === step ? (j === pj ? 'cur' : S0.opts.includes(j) ? 'opt' : 'gone') : S0.mine[i].has(j) ? 'next' : S0.all[i].has(j) ? 'alt' : 'gone';
-        const v: St = kind === 'cur' ? { kind: 'cur', ...STATE.cur, col: C.sel, ncol: C.sel, bcol: C.sel }
-          : kind === 'opt' ? { kind: 'next', ...ST_OPT, col: C.sel, ncol: C.sel, bcol: C.sel }
-          : kind === 'past' ? { kind: 'past', ...STATE.past, col: C.t3, ncol: C.t3, bcol: C.t3 }
-          : kind === 'next' ? { kind: 'next', ...STATE.next, col: colOf(t), ncol: C.t3, bcol: C.t3 }
-          : kind === 'alt' ? { kind: 'next', ...STATE.next, op: .75, col: mix(colOf(t), C.bg, .35), ncol: C.t3, bcol: C.t3, bo: .4 }
-          : { kind: 'past', ...STATE.past, op: .22, col: C.t3, ncol: C.t3, bcol: C.t3, bo: .15 };
+        const v: St = kind === 'cur' ? { kind: 'cur', ...STATE.cur, col: C.curRing ?? C.sel, ncol: C.sel, bcol: C.sel, icol: C.curIc ?? C.sel, fill: C.curFill ?? C.bg }
+          : kind === 'opt' ? { kind: 'next', ...ST_OPT, col: C.sel, ncol: C.sel, bcol: C.sel, icol: C.sel, fill: C.bg }
+          : kind === 'past' ? { kind: 'past', ...STATE.past, col: C.t3, ncol: C.t3, bcol: C.t3, icol: C.t3, fill: C.bg }
+          : kind === 'next' ? { kind: 'next', ...STATE.next, col: colOf(t), ncol: C.t3, bcol: C.t3, icol: colOf(t), fill: C.bg }
+          : kind === 'alt' ? { kind: 'next', ...STATE.next, op: .75, col: mix(colOf(t), C.bg, .35), ncol: C.t3, bcol: C.t3, bo: .4, icol: mix(colOf(t), C.bg, .35), fill: C.bg }
+          : { kind: 'past', ...STATE.past, op: .22, col: C.t3, ncol: C.t3, bcol: C.t3, bo: .15, icol: C.t3, fill: C.bg };
         jobs.push({ k, from: k.st || v, to: v, w: kind === 'past' || kind === 'gone' ? [0, .55] : kind === 'cur' ? [.35, 1] : [0, 1] });
         k.g.style.opacity = kind === 'gone' ? '.28' : kind === 'alt' ? '.8' : '1';
         const keyNode = kind === 'cur' || kind === 'opt' || kind === 'next' || row.length === 1; // 고른 길에서 갈 수 있는 노드는 칸 번호를 보인다 (몇 번째 칸까지 이어지는지)
