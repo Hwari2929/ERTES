@@ -353,7 +353,7 @@ export function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="RANK UP · AUGMENT">${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
-          ${rerollBtn('reroll', p.rerolls, p.rerolls > 0 ? `새로고침 ${p.rerolls}` : '새로고침 없음', 'small ru-reroll')}</div>
+          ${rerollBtn('reroll', p.rerolls, p.rerolls > 0 ? `새로고침 ${p.rerolls}` : '새로고침 없음', { cls: 'ru-reroll' })}</div>
         ${p.kind === 'school' ? matchupChips(run.field) : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];

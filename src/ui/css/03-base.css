@@ -1,6 +1,10 @@
 /* ── 버튼 */
 .btn { background: var(--panel-2); border: var(--stroke) solid var(--edge); border-radius: var(--r-press); padding: 8px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
-.rf .rf-ic, .rf .rf-n { display: none; } /* 새로고침 단추 (app/common.ts rerollBtn): 갤럭시 = 글자, 메트로 = 아이콘 · 남은 수 (26-metro.css) */
+.rf .rf-ic, .rf .rf-n { display: none; } /* 새로고침 단추 (app/common.ts rerollBtn — 다시 뽑는 단추는 모두 이 부품): 갤럭시 = 글자 (+ 값), 메트로 = 아이콘 · 모서리 남은 수 / 값 (26-metro.css) */
+.rf:has(.rf-c) { display: inline-flex; align-items: center; gap: 6px; }
+.rf .rf-c { display: inline-flex; align-items: center; gap: 2px; font: 700 var(--fs-md) var(--f-mono); color: var(--c-credit); }
+.rf .rf-c .li { width: 13px; height: 13px; }
+.rf .rf-c.no { color: var(--c-bad); } /* 크레딧 모자람 */
 .btn:hover:not(:disabled) { border-color: var(--c-select); }
 .btn:disabled { opacity: calc(.45 + var(--op-lift)); cursor: not-allowed; }
 .btn.primary { background: var(--c-select); color: var(--c-select-ink); border-color: var(--c-select); font-weight: 800; }
@@ -17,7 +21,7 @@
 .brand { font-family: var(--f-display); font-size: var(--fs-2xl); color: var(--c-brand); letter-spacing: .04em; }
 .brand-mt { display: none; } /* 메트로 로고 INFINITE METRO Express (26-metro.css) */
 .stat-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-/* 런 리본의 칩 줄: 높이를 고정하고 한 줄만 쓴다. 칩이 늘어나도 (절망 서약 · 절망 증강 · 영수 증서 · 인과) 리본이 두꺼워지지 않고 옆으로 밀어 본다 */
+/* 런 리본의 칩 줄: 높이를 고정하고 한 줄만 쓴다. 칩이 늘어나도 (절망 서약 · 절망 증강 · 인과) 리본이 두꺼워지지 않고 옆으로 밀어 본다 */
 /* 칩 묶음: 남는 폭을 차지하고, 그 안에서 칩 줄은 내용 폭만큼 · 기타 칩은 바로 뒤 (이자 칩 옆). 칩이 넘치면 칩 줄만 줄어 옆으로 밀어 본다 */
 .top-chips { display: flex; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; }
 .top .stat-row { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; align-items: center; height: var(--top-pill-h); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }

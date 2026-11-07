@@ -17,7 +17,7 @@ export interface PlanDef {
   short: string;
   /** 차림표 작은 글자: 약관을 낸 페트라 부서 */
   dept: string;
-  /** 계약 종류 (짧은 이름: 지도 상단 영수 증서 칩 · 전표) */
+  /** 계약 종류 (짧은 이름: 전표 · 지도 환경 탭 '계약') */
   label: string;
   /** 한 줄 사연 (도감 · 기록용, 차림표에는 쓰지 않는다) */
   quip: string;

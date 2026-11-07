@@ -70,7 +70,7 @@ import * as RM from './ui/routemap';
 import * as LAB from './ui/lab';
 import * as SHOP from './ui/shop';
 import { CAMP_SLOT, Screen, TUT_SLOT, app, applyFxPrefs, applyTheme, canFullscreen, enterFullscreen, esc, isFullscreen, loadPrefs, openContract, persist, root, savePref, toast, toggleFullscreen } from './app/state';
-import { banner, consColor, interestLines, itemIcon, itemTip, itemTone, statIc, topbar } from './app/common';
+import { banner, consColor, interestLines, itemIcon, itemTip, itemTone, rerollBtn, statIc, topbar } from './app/common';
 import { fieldBrief, foeModal, newRunScreen, releaseModal, titleScreen } from './app/title';
 import { CAN_HOVER, relicTok } from './app/unitparts';
 import { pilgrimAct } from './app/pilgrim';
@@ -388,7 +388,7 @@ export function act(a: string, v: string) {
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), OATH.sel()); // 절망 서약: 고난 이상일 때만 옮긴다
-      { const sc = CTR.signedContract(); if (sc && sc.field === app.introField) { app.run.contract = sc.contract; metaDeed(sc.field, sc.diff); } } // 영수 증서 (상단 바 칩 · 보수 가감) · 전표 번호 · 늘 하던 대로
+      { const sc = CTR.signedContract(); if (sc && sc.field === app.introField) { app.run.contract = sc.contract; metaDeed(sc.field, sc.diff); } } // 영수 증서 (보수 가감 — 지도 환경 탭 '계약') · 전표 번호 · 늘 하던 대로
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
@@ -897,7 +897,7 @@ Object.assign(CTR.hooks, {
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작
 SHOP.shopInit({ // 상인 상점 덮개 (ui/shop.ts): main 의 그림 조각 · 확인 팝업 · 알림
-  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), miniCard, consColor, itemTone, itemBrief, statIc, devicePop, kvChip, CR,
+  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), miniCard, consColor, itemTone, itemBrief, statIc, devicePop, kvChip, rerollBtn, CR,
   ask: (anchor, html, okLabel, ok) => { app.ask = { anchor, at: 'below', html, okLabel, ok }; },
   toast: (m) => toast(m), persist: () => persist(), sfx: (n) => SND.sfx(n),
 });

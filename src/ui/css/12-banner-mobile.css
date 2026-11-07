@@ -33,7 +33,7 @@
   
   .top .stat-row { gap: 4px; }
   .top .pill { flex: none; padding: 1px 7px; }
-  .pill.more summary { padding: 1px 7px; }
+  .top .pill.more { padding: 0; aspect-ratio: 1; } .pill.more summary { width: 100%; padding: 0; justify-content: center; } /* 글자를 숨기면 아이콘 하나짜리 = 테두리까지 정사각 (UI.md 34번 — 칩 여백 1px 7px 를 덮는다) */
   .pill.more .more-tx { display: none; }
   .menu-btn { width: 32px; height: 32px; margin-left: auto; }
   .top-syns .syn-tk { flex: none; }

@@ -250,7 +250,7 @@
 .ct.sealing :is(.ct-light, .ct-glow) { opacity: 0; transition: opacity .6s; } /* 램프 빛이 걷혀 표시기 화면이 제 색 (브리핑 바탕과 같은 청사진) */
 .ct.sealing .ct-bp-scr > * { opacity: 0; transition: opacity .45s; }
 @keyframes ct-fade { from { opacity: 0; } }
-/* 명부 · 지도는 게임 토큰 그대로. 계약의 흔적은 머리 띠(의뢰한 전장)와 카본 영수 증서 칩 하나 */
+/* 명부 · 지도는 게임 토큰 그대로. 계약의 흔적은 머리 띠(의뢰한 전장) 하나 */
 /* 명부 머리 띠 = 의뢰한 전장 (ui/briefing.ts). 브리핑 수신 중에는 화면을 채운 '태블릿 속'(청사진 모눈 · 흐린 전장 그림 · 제목 · 진행 바 · 상태문) → 끝나면 위로 올라와 이 자리에 붙고(도킹) 영수 증서 칩이 찍힌다 */
 .nr-bandslot { position: fixed; top: 0; left: 0; width: 100vw; height: var(--nr-bh); z-index: -1; pointer-events: none; } /* 화면 위쪽을 가로지르는 배경 (카드 윗단까지 그대로, 그 아래로 옅어진다) */
 .nr.roster { --nr-bh: 300px; isolation: isolate; } /* 배경 띠(z -1)가 화면 바탕 위 · 머리 · 카드 아래 */
@@ -369,9 +369,6 @@
   .nr-band { --tk: 1.125; } /* 휴대폰: 브리핑 제목 18px ↔ 머리 16px */
   .nr-brief-tk { height: 1.6em; } /* 휴대폰: 한 줄 티커 */
 }
-.pill.ct-pill { gap: 6px; white-space: nowrap; } /* 런 안의 영수 증서 칩 = 일반 칩 (카본 · 고정폭 · 크림색은 바에만) */
-.pill.ct-pill em { font-style: normal; font-weight: 700; color: var(--c-good); }
-.pill.ct-pill em.dn { color: var(--c-bad); }
 @media (max-width: 1180px) { /* 태블릿: 도면 · 차림표는 출력기 · 벨 자리를 남기고 넓게 */
   .ct-bp { left: 2vw; width: calc(100vw - 340px); height: 39vh; }
   .ct-menu { left: .5vw; width: calc(100vw - 320px); height: 55vh; }

@@ -206,7 +206,8 @@
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *) { background-color: var(--c-bad); border-color: transparent; color: var(--mt-on); }
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { background-color: color-mix(in srgb, var(--c-bad) 85%, var(--c-white)); border-color: transparent; }
 [data-ui-theme="metro"] :focus-visible { outline: 2px solid var(--mt-a); outline-offset: 3px; }
-@media (pointer: coarse) { [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny) { min-height: 44px; } } /* 터치 = 누를 것 44px (디자인 시스템 hit-min, 2026-11-07 피드백 보고서) */
+@media (pointer: coarse) { [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny) { min-width: 44px; min-height: 44px; } } /* 터치 = 누를 것 44px (디자인 시스템 hit-min, 2026-11-07 피드백 보고서).
+   폭도 44px — 높이만 늘리면 폭이 고정된 아이콘 하나짜리 단추(메뉴 · 상세 뒤로 · 확대 · 접기)가 36×44 세로로 길어진다 (아이콘 단추는 어느 조건에서도 1:1, UI.md 34번 · 2026-11-07 사용자 피드백) */
 
 /* ── 창 · 판: 누를 수 없는 것 = 평평한 판 (1.5px 윤곽 · 위 노선 띠 · 그림자 없음). 덮개 = 망점 */
 [data-ui-theme="metro"] .modal:not(.privilege, .despair) { border: var(--stroke) solid var(--edge); border-radius: var(--r-win); box-shadow: none;
@@ -419,6 +420,7 @@
 [data-ui-theme="metro"] .ah-card.cur .ah-lead { background: var(--c-select); }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead .ah-ic { background: transparent; border-color: var(--mt-on); color: var(--mt-on); }
 [data-ui-theme="metro"] .ah-card.cur .ah-body :is(*):not(.btn, .btn *, svg, svg *) { color: var(--mt-on); }
+[data-ui-theme="metro"] .ah-card.cur .btn { color: var(--c-text); } /* 종이 표 위 누를 것 = 잉크 단추 + 밝은 글자 (상단 바 · 표 머리와 같다) — 표의 잉크 글자색을 물려받으면 검은 단추에 검은 글씨가 된다 (상점 칸 [떠나기], 2026-11-07 사용자 피드백) */
 [data-ui-theme="metro"] .ah-card.cur::after { border-left-color: color-mix(in srgb, var(--mt-on) 40%, transparent); }
 /* 지금 칸의 예상 수입 · 조건 · 등급 칩 = 잉크 면 + 밝은 글자 (2026-11-07 사용자 결정 — 예상 수입 시안 2, 종이 표 위 스티커). 아이콘은 제 색 그대로 */
 [data-ui-theme="metro"] .ah-card.cur .ah-body :is(.ah-in, .ah-md, .tchip) { background: var(--mt-ink); border-color: var(--mt-ink); color: var(--mt-paper); }
@@ -1236,16 +1238,19 @@
 [data-ui-theme="metro"] .rc-head.mt-hd > h1 { align-self: center; }
 /* 머리 도구 = 바코드 바로 왼쪽 (검토 B 1): 전역 증강 다시 뽑기 · 특권 · 절망은 머리 글씨 줄 오른쪽 끝 (영입 = 머리 도구 줄, 상점 새로고침 · 순례 마치기 · 공명 증강 새로고침은 머리 안 그대로) */
 [data-ui-theme="metro"] .modal.global > .row-btns { position: absolute; top: calc(var(--mt-stroke) + 14px + 15px - 20px); right: calc(var(--hdx, 16px) + var(--hdw) + 15px); z-index: 1; margin: 0; } /* 새로고침 = 바코드 왼쪽 · 바코드(위 14px · 높이 30)와 가운데 맞춤 (C6-1) */
-/* ── 새로고침 = 아이콘 단추 (2026-11-07 사용자 결정 C6-1, app/common.ts rerollBtn): ↻ 잉크 단추 40px (터치 44px) · 글자는 숨김 (가리키면 title) · 남은 수가 2 이상이면 아래 오른쪽 작은 수 · 다 쓰면 흐림.
-   자리 = 큰 머리는 바코드 왼쪽 · 바코드와 가운데 맞춤 (항로 회의 · 공명 증강), 한 줄 머리는 도구 줄 맨 앞 (영입 · 상점 — 상점은 값이 있어 아이콘 + 값), 머리 띠가 없는 창(특권 · 절망)은 오른쪽 위 그대로 */
-[data-ui-theme="metro"] .btn.rf { position: relative; flex: none; }
-[data-ui-theme="metro"] .btn.rf:not(.so-rf) { display: inline-grid; place-items: center; width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; }
-[data-ui-theme="metro"] .btn.rf :is(.rf-t, .li:not(.rf-ic)) { display: none; }
+/* ── 새로고침 = 아이콘 단추 (2026-11-07 사용자 결정 C6-1, app/common.ts rerollBtn — 다시 뽑는 단추는 모두 이 부품, 화면마다 모양을 따로 두지 않는다): ↻ 잉크 단추 40px 정사각 (터치 44px) · 글자는 숨김 (가리키면 title) ·
+   모서리 배지 = 남은 수가 2 이상이면 작은 수 (선택색) / 값이 있으면 크레딧 값 (잉크 판 · 크레딧색, 상점) · 다 쓰면 흐림.
+   자리 = 큰 머리는 바코드 왼쪽 · 바코드와 가운데 맞춤 (항로 회의 · 공명 증강), 한 줄 머리는 도구 줄 맨 앞 (영입 · 상점), 머리 띠가 없는 창(특권 · 절망)은 오른쪽 위 그대로 */
+[data-ui-theme="metro"] .btn.rf { position: relative; flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; }
+[data-ui-theme="metro"] .btn.rf .rf-t { display: none; }
 [data-ui-theme="metro"] .btn.rf .rf-ic { display: block; width: 20px; height: 20px; }
-[data-ui-theme="metro"] .btn.rf.so-rf { height: 40px; gap: 6px; padding: 0 12px 0 10px; }
-[data-ui-theme="metro"] .btn.rf .rf-n { display: block; position: absolute; right: -7px; bottom: -7px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border: 1.5px solid var(--mt-on); border-radius: var(--r-pill); background: var(--c-select); color: var(--c-select-ink); font: 700 var(--fs-2xs)/15px var(--f-num); text-align: center; }
+[data-ui-theme="metro"] .btn.rf :is(.rf-n, .rf-c) { position: absolute; right: -7px; bottom: -7px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border: 1.5px solid var(--mt-on); border-radius: var(--r-pill); font: 700 var(--fs-2xs)/15px var(--f-num); text-align: center; white-space: nowrap; }
+[data-ui-theme="metro"] .btn.rf .rf-n { display: block; background: var(--c-select); color: var(--c-select-ink); }
+[data-ui-theme="metro"] .btn.rf .rf-c { display: inline-flex; align-items: center; gap: 1px; background: var(--mt-ink); color: var(--c-credit); }
+[data-ui-theme="metro"] .btn.rf .rf-c .li { width: 10px; height: 10px; }
+[data-ui-theme="metro"] .btn.rf .rf-c.no { color: var(--c-bad); }
 [data-ui-theme="metro"] .ru-head.mt-hd > .ru-reroll { position: absolute; top: calc(14px + 15px - 20px); right: calc(var(--hdx) + var(--hdw) + 12px); } /* 공명 증강 머리: 바코드 왼쪽 · 가운데 맞춤 */
-@media (pointer: coarse) { [data-ui-theme="metro"] .btn.rf:not(.so-rf) { width: 44px; height: 44px; } [data-ui-theme="metro"] .btn.rf.so-rf { height: 44px; } }
+@media (pointer: coarse) { [data-ui-theme="metro"] .btn.rf { width: 44px; height: 44px; } }
 [data-ui-theme="metro"] :is(.pv-body, .dp-body) { position: relative; }
 [data-ui-theme="metro"] :is(.pv-body, .dp-body) > .row-btns { position: absolute; top: 0; right: 0; z-index: 1; margin: 0; }
 @media (max-width: 1000px) { /* 좁은 화면 (폰 가로 · 작은 태블릿): 바코드는 빼고 정차 번호만 */

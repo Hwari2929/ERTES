@@ -42,19 +42,13 @@
 .so-main { --so-px: 16px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; padding: 12px var(--so-px) 0; }
 .so-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 10px; }
 .so-hd h1 { font-size: var(--fs-2xl); }
-.so-hd .so-rfw { margin-left: auto; } /* 새로고침 = 머리 오른쪽 끝 (진열대 바로 위) */
+.so-hd > .so-rf { margin-left: auto; } /* 새로고침 = 머리 오른쪽 끝 (진열대 바로 위) — 단추 모양은 공용 새로고침 단추 (03-base.css .rf) */
 .kv-inv.full b, .kv-keep.zero b { color: var(--c-text-2); }
 .so-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-height: 0; overflow: hidden auto; align-content: start; margin-inline: -8px; padding: 0 8px 8px; } /* 가로 스크롤 없음: 양옆 8px 여백 = 카드 홈 고리 · 떠오른 그림자가 잘리지 않을 자리 */
 .so-shelf { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .so-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .so-cnt { font-size: var(--fs-sm); color: var(--c-text-2); }
 .so-cnt b { color: var(--c-text); font-family: var(--f-mono); }
-.so-rfw { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.so-rf { display: inline-flex; align-items: center; gap: 6px; }
-.so-rf .li { width: 15px; height: 15px; }
-.so-rf b { display: inline-flex; align-items: center; gap: 2px; font: 700 var(--fs-md) var(--f-mono); color: var(--c-credit); }
-.so-rf b .li { width: 13px; height: 13px; }
-.so-rf b.free { color: var(--c-text); font-family: var(--f-body); font-size: var(--fs-sm); }
 /* 잠재능력 줄 (장비 팝업 · 백수정 조각 합성 확인 · 미니 카드 상세): 마름모 + 이름 + 값 */
 .ip-pots { display: grid; gap: 3px; margin-top: 4px; }
 .ip-pot { display: flex; align-items: baseline; gap: 6px; font-size: var(--fs-sm); color: var(--c-text-2); }

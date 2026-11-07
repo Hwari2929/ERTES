@@ -26,6 +26,8 @@ export interface ShopDeps {
   statIc(html: string): string;
   devicePop(run: RunState, id: string): string;
   kvChip(label: string, val: string, title?: string, cls?: string): string;
+  /** 새로고침 단추 (app/common.ts rerollBtn — 다시 뽑는 단추는 모두 이 부품) */
+  rerollBtn(a: string, left: number, label: string, o?: { cls?: string; tip?: string; cost?: number; short?: boolean }): string;
   /** 크레딧 아이콘 */
   CR: string;
   /** 대상 옆 ✕ / ✓ 확인 팝업 (app/popups.ts askPop) */
@@ -40,12 +42,11 @@ export function shopInit(d: ShopDeps) { D = d; }
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** 화면 상태 (저장하지 않음): 상세를 보는 칸 · 가격표 옆 오류 · 말풍선 · 교환 고르기 · 새로고침 오류 */
+/** 화면 상태 (저장하지 않음): 상세를 보는 칸 · 가격표 옆 오류 · 말풍선 · 교환 고르기 */
 export const SHOP = {
   key: '',
   sel: null as number | null,
   err: null as { i: number; msg: string } | null,
-  rfErr: '',
   tradeMsg: '',
   talk: { text: '', n: 0 },
   shown: -1,
@@ -61,7 +62,7 @@ const nodeKey = (run: RunState) => `${run.phase}:${run.step}:${run.node?.merchan
 function sync(run: RunState) {
   const k = nodeKey(run);
   if (k === SHOP.key) return;
-  Object.assign(SHOP, { key: k, sel: null, err: null, rfErr: '', tradeMsg: '', trade: null, pitched: false });
+  Object.assign(SHOP, { key: k, sel: null, err: null, tradeMsg: '', trade: null, pitched: false });
 }
 /** 대사 한 줄 고르기 (같은 상황에서 바로 앞 줄은 피한다) */
 export function line(m: MerchantDef, k: TalkKey): string {
@@ -147,10 +148,12 @@ export function shopOverlay(run: RunState): string {
     D.kvChip('보관함', `<b>${R.invSlots(run)}</b>/${CFG.inventoryMax}`, '산 물품이 들어가는 곳', `kv-inv${R.invSlots(run) >= CFG.inventoryMax ? ' full' : ''}`),
   ].join('');
   const sold = stock.filter((s) => s.sold).length;
-  const rf = R.refreshInfo(run), rfOff = rf.used || !!run.tutorial, mul = R.shopMul(run);
-  const rfWhy = run.tutorial ? '튜토리얼' : rf.used ? `이번 페이즈 사용함 · 다음 ${rf.cost ? `${rf.cost}` : '무료'}` : '';
+  const rf = R.refreshInfo(run), mul = R.shopMul(run);
   const rfCost = rf.cost ? `${rf.cost} 크레딧${Math.abs(mul - 1) > 1e-6 ? ` (${rf.base} × 상점 배율 ${+mul.toFixed(2)})` : ''}` : '무료';
-  const rfBtn = `<button class="btn small so-rf rf" data-a="shop-refresh"${rfOff ? ' aria-disabled="true"' : ''} title="${esc(`진열 수 (${CFG.shop.count[0][0]}~${CFG.shop.count[CFG.shop.count.length - 1][0]}개) · 물품 · 할인을 모두 새로 (품절 칸 포함, 상인 그대로). 페이즈마다 1번 · 의뢰 첫 번 무료, 그다음 ${CFG.shop.refresh.base}부터 +${CFG.shop.refresh.step} × 상점 배율 — 지금 ${rfCost}`)}">${lineIcon('a.cd', 'li')}${lineIcon('a.reload', 'li rf-ic')}<span class="rf-t">새로고침</span>${rf.cost ? `<b>${D.CR}${rf.cost}</b>` : '<b class="free">무료</b>'}</button>`;
+  const rfTip = run.tutorial ? '튜토리얼 상점은 새로고침할 수 없습니다'
+    : rf.used ? `이번 페이즈에 새로고침했습니다 — 다음 페이즈에 ${rfCost}`
+    : `진열 수 (${CFG.shop.count[0][0]}~${CFG.shop.count[CFG.shop.count.length - 1][0]}개) · 물품 · 할인을 모두 새로 (품절 칸 포함, 상인 그대로). 페이즈마다 1번 · 의뢰 첫 번 무료, 그다음 ${CFG.shop.refresh.base}부터 +${CFG.shop.refresh.step} × 상점 배율 — 지금 ${rfCost}`;
+  const rfBtn = D.rerollBtn('shop-refresh', rf.used || run.tutorial ? 0 : 1, '새로고침', { cls: 'so-rf', tip: rfTip, cost: rf.cost, short: run.credits < rf.cost }); // 다른 새로고침과 같은 부품: 다 쓰면 비활성 (이유는 가리키면), 값은 단추 모서리
   const shelf = '<span class="tslot mslot off" aria-hidden="true"><span class="card mn mn-empty"><span class="mn-hd"></span><span class="mn-lo"></span></span></span>';
   const cards = stock.map((s, i) => slotCard(run, s, i)).join('') + shelf.repeat(Math.max(0, CFG.shop.slots - stock.length)); // 진열하지 않은 칸 = 빈 선반 (품절과 다른 모양, 9칸 자리는 그대로)
   return `<div class="shop-ov" style="--c:${m.color}" role="region" aria-label="${esc(m.shop)}">
@@ -161,7 +164,7 @@ export function shopOverlay(run: RunState): string {
     </section>
     ${m.trade && SHOP.trade ? tradePop(run) : ''}
     <section class="so-main">
-      <div class="so-hd mt-hd hd-row" style="--hdc:var(--c-credit)"><h1 data-k="MARKET · DUTY FREE">${esc(m.shop)}</h1><div class="sh-row">${chips}</div><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
+      <div class="so-hd mt-hd hd-row" style="--hdc:var(--c-credit)"><h1 data-k="MARKET · DUTY FREE">${esc(m.shop)}</h1><div class="sh-row">${chips}</div>${rfBtn}</div>
       <div class="so-body">
         <div class="so-shelf">
           <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length}</b>${sold ? ` · 품절 <b>${sold}</b>` : ''}</span></div>
@@ -224,7 +227,7 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
     case 'shop-buy': {
       const [si, src] = v.split(':'), i = +si, s = stock[i];
       if (!s) break;
-      SHOP.sel = i; SHOP.rfErr = '';
+      SHOP.sel = i;
       if (s.sold) { say(run, 'sold'); break; }
       if (run.credits < s.price) { SHOP.err = { i, msg: '크레딧 부족' }; say(run, 'poor'); D.sfx('error'); break; }
       if (R.invFull(run, s.item)) { SHOP.err = { i, msg: '보관함 가득' }; say(run, 'full'); D.sfx('error'); break; }
@@ -248,8 +251,8 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
     }
     case 'shop-refresh': {
       const e = R.refreshShop(run);
-      if (e) { SHOP.rfErr = e === '크레딧 부족' ? '크레딧 부족' : ''; say(run, e === '크레딧 부족' ? 'poor' : 'norefresh'); D.sfx('error'); break; }
-      SHOP.sel = null; SHOP.err = null; SHOP.rfErr = '';
+      if (e) { say(run, e === '크레딧 부족' ? 'poor' : 'norefresh'); D.sfx('error'); break; } // 오류는 상인의 말 + 소리 (단추 옆 문구 없음)
+      SHOP.sel = null; SHOP.err = null;
       say(run, 'refresh');
       D.sfx('reroll');
       D.persist();
