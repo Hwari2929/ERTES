@@ -81,6 +81,8 @@
   --mt-edge: color-mix(in srgb, var(--mt-paper) 42%, var(--mt-ink)); /* 카드 · 창 외곽선 (stroke 1.5px) — 판 바탕 대비 3:1 (2026-11-06 일상 브루탈 시안 3, 이전 30% = 2.1:1) */
   --mt-r-panel: 4px;                   /* 담는 판 (정보 패널 · 대기석 · 항로도 · 상점 설명) — 각지게 (2026-11-06 일상 브루탈 시안 3). 누를 것 · 표는 각자 둥글기 그대로 */
   --mt-r-win: 6px;                     /* 창 (덮는 창 · 기물 전체 상세) */
+  --f-body: 'IBM Plex Sans KR', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; /* 본문 = IBM Plex Sans KR (2026-11-07 사용자 결정 글꼴 시안 3 — 디자인 시스템 ADMIT ONE 본문 글꼴) */
+  --f-display: 'Archivo', 'Black Han Sans', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif; /* 제목 · 숫자 = Archivo 좁은 폭 · 굵게 + 한글은 Black Han Sans (같은 시안 3) */
   --f-num: 'Archivo', var(--f-body); /* 값 숫자 = Archivo 좁은 폭 (디자인 시스템 ADMIT ONE 숫자 글꼴, 한글은 본문 글꼴로 넘어간다) */
   --fs-xs: .75rem; --fs-sm: .8125rem; /* 글자 한 단계 (2026-11-07 피드백 보고서 1단계: 한글 최소 읽기 크기 13px — 디자인 시스템 caption). 제외 구역은 26-metro.css 에서 원래 값 */
   --r-pill: var(--r-sm); /* 알약 → 각진 칩 (2026-11-07 피드백 보고서: 999px 알약이 각진 판과 부딪힌다). 원은 50% 그대로 */

@@ -224,12 +224,14 @@
 | `--r-win` | `--r-lg` (10px) | `--mt-r-win` (6px) | 창 · 기물 전체 상세 |
 | `--sh-press` | transparent | `--mt-sh` (잿빛) | 누를 것 그림자 색 (단추 · 고르는 카드 · 탑승권) |
 | `--head-bg` | transparent | `--mt-deep` (잉크) | 표 머리 `.mt-hd` 바탕 |
+| `--f-body` | Gothic A1 | IBM Plex Sans KR (2026-11-07 사용자 결정 글꼴 시안 3) | 본문 |
+| `--f-display` | Black Han Sans | `'Archivo'` (좁은 폭 · 800) + Black Han Sans (한글) | 제목 · 큰 숫자 (페이즈 · 가격 · 정차 번호 · 결과 수치) |
 | `--f-num` | `--f-body` | `'Archivo'` + 본문 글꼴 | 값 숫자 (상단 바 · 편성 머리 칩 · 비용) |
 | `--r-pill` | 999px | `--r-sm` (4px) | 알약 칩 → 각진 칩 (원은 50% 그대로) |
 | `--fs-xs` · `--fs-sm` | 11px · 12px | 12px · 13px | 글자 한 단계 (한글 최소 읽기 크기 13px = 디자인 시스템 caption) |
 
 - 제외 구역(바 · 계약 · 타이틀 · 모험 `:is(.bar, .ct, .title-screen, .adv)`)은 단추 구조선(`--stroke` · `--edge`) · 글자 크기 · 알약 둥글기를 갤럭시 값으로 되돌린다 (26-metro.css). 타이틀은 색 토큰만 메트로를 따른다 (2026-11-07 사용자 결정 D3).
-- 글자 폭: 메트로 body `font-stretch: 68%` — 폭 축이 있는 Archivo 에만 걸린다 (한글 · 모노 글꼴은 그대로). Archivo 는 index.html 에서 숫자 · 영문 글자만 받는다 (`text=`).
+- 글자 폭 · 굵기: 메트로 body `font-stretch: 68%` · `font-variation-settings: 'wght' 800` — 폭 · 굵기 축이 있는 글꼴은 Archivo 하나라 다른 글꼴은 그대로, `font-synthesis-weight: none` (굵은 면이 없는 Black Han Sans 를 가짜로 굵히지 않는다). 제외 구역은 원래 글꼴 · 폭 · 굵기. Archivo 는 index.html 에서 숫자 · 영문 글자만 받는다 (`text=`).
 - 둥글기 단계: 담는 판 4px (`--r-panel`) · 누를 것 6px (`--r-press`) · 탭 · 알림 10px (`--mt-r-sm`, 디자인 시스템 radius-sm) · 카드 12px (`--mt-r-md`) · 큰 표 16px (`--mt-r`) · 원 50%. 안쪽에 붙는 머리 · 칸은 `*-in` (윤곽 두께만큼 작게).
 - 터치 화면(`pointer: coarse`): 단추 최소 높이 44px (디자인 시스템 hit-min). `.tiny` 는 뺀다.
 - 한글이 들어가는 작은 라벨(지도 배율 줄 · 탑승권 소개 · 환경 머리표 · 도감 역할 · 절망 기록 · 주요 적 칩 · 순례 책갈피 · 노드 구획 · 전장 카드 이름 · 상점 카드 등급 · 대기석 이름표 등)은 `--fs-sm`(13px) — `--fs-xs`(12px)는 영문 · 숫자 표식 몫. 항로도 SVG 안 주석(7 ~ 9.5px)은 그림의 일부라 그대로 둔다 (지도 = 기존 항로도 표현 그대로).

@@ -6,8 +6,10 @@
        고르는 카드 = 같은 그림자 문법 (티켓형은 실제 구멍 절취 홈 + 칸 · 판 그림자), 가리키면 밝은 회색 윤곽(--mt-hover), 고른 것은 선택색
    · 모노 글꼴 = 영문 · 숫자 전용 (한글 라벨 = 본문 글꼴), 패널 장식은 하나
    · 연출(themefx.ts): 창밖 별빛 · 런 출발 바코드 게이트 · 보스 빨간 급행 · 상점 MARKET · 전투 진입(노선색 패널 와이프 + 신호등) */
-[data-ui-theme="metro"] body { background: var(--mt-floor); font-stretch: 68%; } /* 글자 폭 = Archivo 좁은 폭 (폭 축이 있는 글꼴에만 걸린다 — 한글 · 모노 글꼴은 그대로) */
-[data-ui-theme="metro"] :is(.bar, .ct, .title-screen, .adv) { --fs-xs: .6875rem; --fs-sm: .75rem; --r-pill: 999px; } /* 제외 구역 = 원래 글자 크기 · 알약 둥글기 */
+[data-ui-theme="metro"] body { background: var(--mt-floor); font-stretch: 68%; font-variation-settings: 'wght' 800; font-synthesis-weight: none; }
+  /* Archivo = 좁은 폭(68%) · 굵게(800) — 폭 · 굵기 축이 있는 글꼴은 Archivo 하나라 다른 글꼴은 그대로. 굵은 면이 없는 Black Han Sans 를 가짜로 굵히지 않는다 (글꼴 시안 3) */
+[data-ui-theme="metro"] :is(.bar, .ct, .title-screen, .adv) { --fs-xs: .6875rem; --fs-sm: .75rem; --r-pill: 999px; font-stretch: normal; font-variation-settings: normal; font-synthesis-weight: auto;
+  --f-body: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; --f-display: 'Black Han Sans', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif; } /* 제외 구역 = 원래 글자 크기 · 알약 둥글기 · 글꼴 (00-tokens.css 값) */
 /* 한글 라벨 = 13px 이상 (2026-11-07 피드백 보고서 1단계 — 디자인 시스템 caption 13px). --fs-xs(12px)는 영문 · 숫자 표식 몫이라, 한글이 들어가는 작은 라벨은 --fs-sm 으로 */
 [data-ui-theme="metro"] :is(.map-scale, .pc-blurb, .env-kicker, .cx-role, .cx-st, .ir-empty, .dp-rec, .tchip, .pil-bk, .ah-sec, .fc-k, .card.mn.buy .mn-rk, .bench-label):not(:is(.bar, .ct, .title-screen, .adv) *) { font-size: var(--fs-sm); }
 [data-ui-theme="metro"] .sticky-actions, [data-ui-theme="metro"] .prep .board-head { background: var(--mt-floor); } /* 화면에 붙는 띠: 같은 고정 바닥 → 모눈 위에 네모가 드러나지 않는다 */
