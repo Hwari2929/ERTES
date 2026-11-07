@@ -7126,8 +7126,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* 구획 제목: 큰 제목 글꼴 + 노선색 네모 표식 */
 [data-ui-theme="metro"] :is(.side > h2, .ship > h2, .ahead > h2, .detail.pb h3) { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
 [data-ui-theme="metro"] :is(.side > h2, .ship > h2, .ahead > h2, .detail.pb h3)::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); }
-/* 시너지 목록: 줄마다 구분선, 단계 숫자 = 펀치 칸 (도달 = 시너지 색 윤곽, 지금 단계 = 시너지 색 면) */
-[data-ui-theme="metro"] .side .syn-list > .syn-tk { padding-block: 4px; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 45%, transparent); }
+/* 시너지 목록: 구분선 없이 줄 간격만 (2026-11-07 사용자 결정 — 줄마다 있던 구분선 삭제), 단계 숫자 = 펀치 칸 (도달 = 시너지 색 윤곽, 지금 단계 = 시너지 색 면) */
+[data-ui-theme="metro"] .side .syn-list > .syn-tk { padding-block: 4px; }
 [data-ui-theme="metro"] .syn-steps { gap: 3px; }
 [data-ui-theme="metro"] .syn-steps span { min-width: 17px; padding: 0 3px; border: 1px solid color-mix(in srgb, var(--mt-edge) 80%, transparent); text-align: center; line-height: 14px; font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .syn-steps span.on { border-color: color-mix(in srgb, var(--c) 70%, var(--mt-edge)); color: var(--c-text); }
