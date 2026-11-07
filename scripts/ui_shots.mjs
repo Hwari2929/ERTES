@@ -47,13 +47,14 @@ function collect() {
   const scaleOf = (el) => { let e = el; while (e && !(e.offsetWidth > 0)) e = e.parentElement; if (!e) return 1; return e.getBoundingClientRect().width / e.offsetWidth || 1; };
   const key = (el) => el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '');
   const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
-  // 1) 한글 글자 크기 (보이는 글자만, 조상 transform 배율 반영)
-  let ko = 0, koSmall = 0; const koSize = {}, koOff = {};
+  // 1) 한글 글자 크기 (보이는 글자만, 조상 transform 배율 반영). SVG 안 글자(항로도 주석 등 그림의 일부)는 koSvg 로 따로 센다 — 보고서 지표와 같게
+  let ko = 0, koSmall = 0, koSvg = 0; const koSize = {}, koOff = {};
   const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = tw.nextNode(); n; n = tw.nextNode()) {
     const m = n.nodeValue.match(/[가-힣]/g); if (!m) continue;
     const el = n.parentElement; if (!el || !vis(el)) continue;
     const rg = document.createRange(); rg.selectNodeContents(n); if (!inView(rg.getBoundingClientRect())) continue;
+    if (el.closest('svg')) { koSvg += m.length; continue; }
     const fs = parseFloat(getComputedStyle(el).fontSize) * scaleOf(el);
     ko += m.length; bump(koSize, String(Math.round(fs * 2) / 2), m.length);
     if (fs < 12.95) { koSmall += m.length; bump(koOff, `${key(el)} ${Math.round(fs * 10) / 10}px`, m.length); }
@@ -87,7 +88,7 @@ function collect() {
     if (!(el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) || !vis(el)) continue;
     clip.push(`${key(el)} ${el.scrollWidth - el.clientWidth}/${el.scrollHeight - el.clientHeight}`);
   }
-  return { ko, koSmall, koSize, koOff, tgt, t44, t24, tOff, radius, clip, docH: document.documentElement.scrollHeight, docW: document.documentElement.scrollWidth };
+  return { ko, koSmall, koSvg, koSize, koOff, tgt, t44, t24, tOff, radius, clip, docH: document.documentElement.scrollHeight, docW: document.documentElement.scrollWidth };
 }
 
 const finish = () => document.getAnimations().forEach((a) => { try { a.finish(); } catch (e) { /* 무한 반복 */ } });

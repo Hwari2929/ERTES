@@ -12,6 +12,15 @@
 """
 import json
 import sys
+
+
+def ko_stats(m: dict) -> tuple[int, int]:
+    """(한글 글자 수, 13px 미만) — SVG 안 글자(그림의 일부)는 뺀다. koSvg 가 없는 옛 기록은 text · tspan 요소 글자를 빼서 맞춘다"""
+    ko, small = m.get('ko', 0), m.get('koSmall', 0)
+    if 'koSvg' not in m:
+        svg = sum(n for k, n in m.get('koOff', {}).items() if k.split(' ')[0].split('.')[0] in ('text', 'tspan'))
+        ko, small = ko - svg, small - svg
+    return ko, small
 from pathlib import Path
 
 import numpy as np
@@ -50,7 +59,8 @@ def cmd_area(d: Path, theme: str | None):
             continue
         b, c = area(p)
         m = met.get(k, {})
-        ko = m.get('koSmall', 0) / m['ko'] * 100 if m.get('ko') else float('nan')
+        k0, k1 = ko_stats(m)
+        ko = k1 / k0 * 100 if k0 else float('nan')
         tg = m.get('t44', 0) / m['tgt'] * 100 if m.get('tgt') else float('nan')
         rows.append((k, b, c, ko, tg, m.get('docH', 0)))
         print(f'{k:<26}{b:7.1f}{c:7.1f}{ko:9.1f}{tg:9.1f}{m.get("docH", 0):9}')
@@ -61,8 +71,8 @@ def cmd_area(d: Path, theme: str | None):
         groups.setdefault(f'{th} {rest.rsplit("_", 1)[1]}', []).append(k)
     print()
     for g, ks in groups.items():
-        ko = sum(met.get(k, {}).get('ko', 0) for k in ks)
-        kos = sum(met.get(k, {}).get('koSmall', 0) for k in ks)
+        ko = sum(ko_stats(met.get(k, {}))[0] for k in ks)
+        kos = sum(ko_stats(met.get(k, {}))[1] for k in ks)
         tg = sum(met.get(k, {}).get('tgt', 0) for k in ks)
         t44 = sum(met.get(k, {}).get('t44', 0) for k in ks)
         br = [r[1] for r in rows if r[0] in ks]
