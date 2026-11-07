@@ -7412,6 +7412,40 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .pot-st { bottom: -8px; z-index: var(--z-raise); gap: 0; }
 [data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .pot-st svg { width: 10px; fill: var(--k-paper); stroke: var(--it-edge); stroke-width: 2px; stroke-linejoin: round; paint-order: stroke; }
 [data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .pot-st svg + svg { margin-left: -1px; } /* 별끼리 끝이 1px 겹치게 */
+/* === 편성 보드 기물 카드 = 다이컷 스티커 (2026-11-07 사용자 결정 보드 시안 3): 장비 토큰과 같은 문법 — 밤 면 카드 + 흰 여백 2px + 잉크 윤곽 + 색 판 오프셋
+   (아군 민트 · 적 빨강 · 포탑 강철), 고른 것 = 흰 여백 대신 선택색. 색은 고정이라 어두운 보드 · 밝은 대기석에서 같은 카드다. 전투 화면 토큰(.tkb)은 그대로.
+   카드는 칸의 84% — 색 판(오른쪽 아래 6px)이 칸 안에 들어와 옆 칸 카드를 덮지 않는다 (UI.md 44) === */
+[data-ui-theme="metro"] .u.tk { --tkc-plate: var(--mt-b); }
+[data-ui-theme="metro"] .u.side1.tk { --tkc-plate: var(--night-c-bad); }
+[data-ui-theme="metro"] .u.turret-tk { --tkc-plate: var(--c-steel); }
+[data-ui-theme="metro"] .u.tk .tk-card { --tkc-ring: var(--k-paper); width: 84%; padding: 2px; gap: 2px; border: 1px solid var(--k-ink); border-radius: var(--r-md); background: var(--night-panel-2); color: var(--night-c-text);
+  box-shadow: 0 0 0 2px var(--tkc-ring), 0 0 0 3px var(--k-ink), 3px 3px 0 3px var(--tkc-plate); }
+[data-ui-theme="metro"] .u.tk.sel .tk-card, [data-ui-theme="metro"] .u.side1.tk.sel .tk-card { --tkc-ring: var(--c-select); border-color: var(--k-ink); }
+[data-ui-theme="metro"] main.syn-focus .u.syn-hl .tk-card { --tkc-ring: var(--c); border-color: var(--k-ink); box-shadow: 0 0 0 2px var(--tkc-ring), 0 0 0 3px var(--k-ink), 3px 3px 0 3px var(--tkc-plate); } /* 시너지 가리킴 = 흰 여백이 시너지 색 (번지는 빛 대신 — 시너지 표현은 다시 그릴 예정) */
+[data-ui-theme="metro"] .u.duo-b.tk .tk-card { box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--night-c-bad) 70%, transparent), 0 0 0 2px var(--tkc-ring), 0 0 0 3px var(--k-ink), 3px 3px 0 3px var(--tkc-plate); }
+[data-ui-theme="metro"] .bench-u.u.tk .tk-card { width: calc(100% - 9px); } /* 대기석: 흰 여백 3px + 색 판 6px 가 옆 카드에 닿지 않게 */
+[data-ui-theme="metro"] .u.tk .tk-art img.pt { border-radius: var(--r-sm); }
+[data-ui-theme="metro"] .u.tk .tk-art::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: var(--r-sm); background: var(--c-white); opacity: .55; pointer-events: none;
+  -webkit-mask: radial-gradient(circle, var(--c-black) .9px, transparent 1.3px) 0 0 / 3px 3px, linear-gradient(135deg, var(--c-black) 0, transparent 45%); -webkit-mask-composite: source-in;
+  mask: radial-gradient(circle, var(--c-black) .9px, transparent 1.3px) 0 0 / 3px 3px, linear-gradient(135deg, var(--c-black) 0, transparent 45%); mask-composite: intersect; } /* 그림 좌상단 흰 망점 (장비 토큰과 같은 문법) */
+[data-ui-theme="metro"] .u.tk .tk-mod { z-index: 1; } /* 개조부품 표식은 망점 위 */
+[data-ui-theme="metro"] .u.tk .tk-side > * { background: var(--k-paper); color: var(--k-ink); border-radius: var(--r-sm); }
+[data-ui-theme="metro"] .u.tk .tk-side > .tk-rank { background: var(--k-ink); color: var(--k-paper); border: 1px solid var(--k-paper); font-weight: 800; }
+[data-ui-theme="metro"] .u.tk .tk-side > .tk-rank:is(.tier-boss, .tier-elite) { background: var(--night-c-bad); color: var(--k-ink); }
+/* 카드 안 장비 칸 = 작은 스티커 (등급색 면 + 잉크 1px 테 + 잉크 아이콘). 제련 · 잠재능력 표식은 카드에서 뺀다 — 상세 창 · 보관함 토큰에만 (같은 날 사용자 결정) */
+[data-ui-theme="metro"] .u.tk :is(.tk-it .item, .tk-items > .item:not(.empty)) { --itf: var(--it-C); border: 1px solid var(--k-ink); border-radius: var(--r-sm); background: var(--itf); color: var(--k-ink); box-shadow: none; }
+[data-ui-theme="metro"] .u.tk .tk-items .item.tG { --itf: var(--it-G); }
+[data-ui-theme="metro"] .u.tk .tk-items .item.tA { --itf: var(--it-A); }
+[data-ui-theme="metro"] .u.tk .tk-items .item.tS { --itf: var(--it-S); }
+[data-ui-theme="metro"] .u.tk .tk-items .item.tT { --itf: var(--it-T); }
+[data-ui-theme="metro"] .u.tk .tk-items .item.tL { --itf: linear-gradient(135deg, var(--it-L) 22%, var(--c-select)); }
+[data-ui-theme="metro"] .u.tk .tk-items .item.tU { --itf: linear-gradient(135deg, var(--it-U) 22%, var(--it-sky)); }
+[data-ui-theme="metro"] .u.tk .tk-items .item .ii { color: var(--k-ink); }
+[data-ui-theme="metro"] .u.tk .tk-items > .item.empty { border: 1px dashed color-mix(in srgb, var(--k-paper) 28%, transparent); background: transparent; }
+[data-ui-theme="metro"] .u.tk .item :is(.rf-gem, .pot-st) { display: none; }
+[data-ui-theme="metro"] .u.tk .tk-mod .item { background: transparent; border: 0; color: var(--k-ink); }
+[data-ui-theme="metro"] .u.tk .tk-mod .item.tM::before { background: var(--sc, var(--it-M)); border: 1px solid var(--k-ink); }
+[data-ui-theme="metro"] .u.tk .tk-mod .item .ii { color: var(--k-ink); }
 /* 튜토리얼 말풍선 = 디자인 시스템 Dialogue: 이름표 = 탑승권 머리 (잉크 → 보라 띠 · 절취선 · 양옆 홈), 몸통 = 대사. 가리키는 고리 = 선택색 실선 (번지는 빛 대신 바깥 고리가 퍼지며 사라진다) */
 [data-ui-theme="metro"] .co-bub { gap: 10px; padding: 0 0 12px; overflow: hidden; border: 0; border-radius: var(--mt-r); background: var(--panel); box-shadow: inset 0 0 0 1.5px var(--mt-edge), 0 0 0 1.5px var(--mt-ink); }
 [data-ui-theme="metro"] .co-head { position: relative; margin: 1.5px 1.5px 0; padding: 10px 12.5px; border-radius: var(--mt-r) var(--mt-r) 0 0; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
