@@ -7201,12 +7201,12 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .syn-steps span.on { border-color: color-mix(in srgb, var(--c) 70%, var(--mt-edge)); color: var(--c-text); }
 [data-ui-theme="metro"] .syn-steps span.cur { border-color: var(--c); background: var(--c); color: var(--mt-on); }
 /* === 시너지 판 = 줄 띠 + 단계색 마름모 스티커 (2026-11-07 사용자 결정: 시너지 판 시안 4 + 단계 칸은 시안 1, 지금 단계만 강조) — 편성 · 지도 왼쪽 목록과 휴대폰 상단 줄.
-   단계색 고정 (색만으로 단수를 안다, 장비 등급색과 같은 사다리): 1 흰(재료) · 2 파랑(희귀) · 3 빨강(전설 그라디언트) · 4 이상 고유(보라 → 하늘).
+   단계색 고정 (색만으로 단수를 안다, 장비 등급색과 같은 사다리): 1 초록(고급) · 2 파랑(희귀) · 3 빨강(전설 그라디언트) · 4 이상 고유(보라 → 하늘).
    예외: 단계 수가 다른 시너지도 색 = 단계 번호 (보안위원회 · 호이슌 끝 = 빨강, 출항기 끝 = 파랑, 범은하 4~7 = 고유), 단계 하나뿐인 인물 시너지(탐험가 · R · 공왕 · 산군)는 켜지면 고유.
    마름모 = 단계색 면 + 흰 여백 + 잉크 윤곽 + 오른쪽 아래 잉크 그림자(회전 전 x 방향), 인원 = 귀퉁이 잉크 알약(장비 제련 알약과 같은 모양), 켜진 줄 = 뒤로 단계색 옅은 띠,
    단계 칸 = 지금 단계 한 칸만 단계색 · 잉크 테 (나머지는 옅은 칸). 꺼진 시너지 = 종이 마름모 점선 · 회색 알약 === */
 [data-ui-theme="metro"] .syn-tk[data-tier] { --tf: var(--k-paper); --tb: transparent; }
-[data-ui-theme="metro"] .syn-tk[data-tier="1"] { --tf: var(--it-C); --tb: var(--it-C); }
+[data-ui-theme="metro"] .syn-tk[data-tier="1"] { --tf: var(--it-G); --tb: var(--it-G); } /* 1단계 = 초록 (고급) — 2026-11-07 사용자 결정 (이전: 흰 · 재료, 줄 띠가 거의 안 보였다) */
 [data-ui-theme="metro"] .syn-tk[data-tier="2"] { --tf: var(--it-A); --tb: var(--it-A); }
 [data-ui-theme="metro"] .syn-tk[data-tier="3"] { --tf: linear-gradient(135deg, var(--it-L) 22%, var(--c-select)); --tb: var(--it-L); }
 [data-ui-theme="metro"] .syn-tk:is([data-tier="4"], [data-tier="5"], [data-tier="6"], [data-tier="7"]), [data-ui-theme="metro"] .syn-tk.active[data-tiers="1"] { --tf: linear-gradient(135deg, var(--it-U) 22%, var(--it-sky)); --tb: var(--it-U); }
