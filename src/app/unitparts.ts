@@ -98,12 +98,12 @@ export function nextMilestone(tt: TType, rank: number): number | null {
 export function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
   const left = p.options.filter((c) => !c.open).length;
   const face = (c: SupplyCard, i: number) => {
-    if (!c.open) return `<button class="card sup-card" data-a="pick-supply" data-v="${i}" aria-label="보급품 ${i + 1} 뒤집기"><i class="cback" aria-hidden="true"></i></button>`;
+    if (!c.open) return `<button class="card sup-card" data-a="pick-supply" data-v="${i}" aria-label="보급품 ${i + 1} 뒤집기"><i class="cback" aria-hidden="true" data-k="METRO&#10;SUPPLY "></i></button>`;
     const jp = c.mult > 1 ? `<span class="sup-jp">대박 ×${c.mult}</span>` : ''; // ×2 파랑 · ×4 빨강 (jpClass)
     const body = c.kind === 'credits' ? `<span class="sup-ic">${CR}</span><b>+${c.credits}</b><span>에너지 크레딧</span>`
       : c.kind === 'xp' ? `<span class="sup-ic">${RES}</span><b>+${c.xp}</b><span>공명도 — 파티에 분배</span>`
       : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${tierKey(id)}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
-    return `<div class="card sup-card open sup-${c.kind}${jpClass(c)}" data-sup="${i}">${jp}${body}<i class="sup-dt" aria-hidden="true"></i></div>`; // sup-dt = 메트로 우하단 망점 (갤럭시는 숨김)
+    return `<div class="card sup-card open sup-${c.kind}${jpClass(c)}" data-sup="${i}" data-k="${{ credits: 'CREDIT', xp: 'RESONANCE', gear: 'PART' }[c.kind] || ''}" data-ks="SUPPLY ">${jp}${body}<i class="sup-dt" aria-hidden="true"></i></div>`; // sup-dt = 메트로 우하단 망점 (갤럭시는 숨김)
   };
   return `<h1 class="mt-hd" data-k="SUPPLY" style="--hdc:var(--mt-b)">보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`} · 마지막 장: ${app.run && R.solventOn(app.run) ? '분리 용제 또는 재구성 회로' : '재구성 회로 또는 공명도'}.</p>
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>
@@ -340,7 +340,7 @@ export function teamCount(ids: string[]) {
 export function pickCard(d: UnitDef, o: PickOpts) {
   const { clone, on, full } = o;
   return `<div class="pslot" style="--i:${Math.min(o.i ?? 0, 7)}"><div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-ct="${d.ctype}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
-    <i class="cback" aria-hidden="true"><i class="cb-l"></i></i><i class="gc-scan" aria-hidden="true"></i>
+    <i class="cback" aria-hidden="true"><i class="cb-l"></i></i><i class="gc-scan" aria-hidden="true" data-k="SCAN"></i>
     <span class="mt-pass" aria-hidden="true"><b>BOARDING PASS</b><i></i><span class="mt-pass-stub"><i class="mt-code"></i><b>METRO</b><em>${String((o.i ?? 0) + 1).padStart(2, '0')}</em></span></span>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     <button class="btn pc-full" data-a="card-max" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''} title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>

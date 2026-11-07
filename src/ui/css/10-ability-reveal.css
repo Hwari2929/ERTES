@@ -210,7 +210,7 @@
 .sc-who { font-weight: 800; color: color-mix(in srgb, var(--c, var(--c-text)) var(--data-mix), var(--c-text)); font-size: var(--fs-md); text-align: right; overflow-wrap: anywhere; }
 .sc-think { margin: 0; color: var(--c-text-2); font-style: italic; padding-left: 104px; position: relative; }
 .sc-think .sc-who { position: absolute; left: 0; width: 92px; font-style: normal; opacity: .75; }
-.sc-think .sc-who::after { content: ' · 속마음'; font-weight: 400; font-size: var(--fs-xs); }
+.sc-think .sc-who .sc-tk { font-weight: 400; font-size: var(--fs-xs); } /* ' · 속마음' = 마크업 (app/modals.ts) */
 .sc-result { color: var(--c-text); font-size: var(--fs-md); }
 @media (max-width: 860px) {
   .scene { max-height: 52vh; padding: 12px; }

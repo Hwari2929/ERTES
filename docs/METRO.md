@@ -50,6 +50,7 @@
 - **머리표 어휘 = 성간 여행** (2026-11-07 사용자 결정 C1 — 피드백 보고서 3단계: 지하철로 읽히는 말을 항공 · 우주 여행 말로):
     - 바꾼 것: 다음 칸 NEXT PORT (← NEXT STOP) · 상점 머리 MARKET · DUTY FREE (← MARKET · NEXT STATION) · 상점 전환 표 NEXT PORT (← NEXT STATION) · 분기점 카드 GATE 01 (← PLATFORM 01) · 특권 막 NOW BOARDING · GATE ∞ (← PLATFORM ∞) · 페이즈 배너 COURSE CHANGE (← LINE CHANGE) · 런 출발 표 PHASE n · ROUTE ∞ (← LINE ∞) · 역경 배너 TURBULENCE (← RAPID) · 보스 배너 · 급행 차체 띠 EXPRESS · NON-STOP (← NO STOP).
     - 그대로: NOW BOARDING · DEPARTURE · BOARDING PASS · ADMIT ONE · GATE ∞ · GATE OPEN · TRANSFER · JUNCTION · TERMINAL · METRO (항공 · 우주 여행에도 쓰는 말).
+- **머리표 문구는 마크업에 둔다** (2026-11-07 피드백 보고서 4단계-1): 메트로에서만 보이는 영문 머리표 · 장식 문구는 CSS `content` 문자열로 적지 않고 그 요소의 `data-k` 속성(덧붙는 둘째 문구 `data-ks` · 도장 `data-stamp`)에 적는다 — 26-metro.css 는 `content: attr(data-k)` (번호가 붙으면 `attr(data-k) counter(…)`)로 보이기만 하고, 갤럭시는 속성을 읽지 않는다. 문구를 바꿀 때는 TS(마크업)만 고친다. 예외: 기호 글리프(∞ · → · ← · ×1)와 상태를 CSS 변수로 받는 정차 번호(`NO. ` + `--mt-no`).
 - **가상 브랜드 로고는 보류** (2026-11-07 사용자 결정 C7 — 벡터 로고 시안 6개는 디자인이 쉽지 않아, 나중에 그림 생성(NovelAI)으로 뽑는다 · 요청할 때만): 성간 항로 조합 · 주식회사 페트라 · 호이슌 홀딩스. 함께 미정 = METRO ∞ PASS 를 조합 승객용 패스 앱으로 설정에 적을지(D2 — 설정상 조합이 고대 열차 플랫폼 '메트로'를 복구 · 운영한다), 조합 영문 이름(제안 INTERSTELLAR ROUTE UNION · IRU), 호이슌 영문 표기(설정 Hoishun · 투자 데스크 머리표 HOISUN).
 
 ## 5. 별 하늘 · 창밖

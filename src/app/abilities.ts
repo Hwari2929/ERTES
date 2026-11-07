@@ -457,7 +457,7 @@ export function unitModal(run: RunState, pv = false) {
     <div class="um-grid">
       <div class="um-col um-a">
         <div class="um-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main"><b class="um-sc-name">${esc(d.name)}</b>${rankRow}${synRow}</div></div></div>
-        <div class="um-art">${hero(d.id) || sprite(d, 'spr big')}</div>
+        <div class="um-art" data-k="AGENT">${hero(d.id) || sprite(d, 'spr big')}</div>
         <div class="um-idblk"><div class="um-id"><b>${esc(d.name)}</b><span class="muted small">${esc(d.title || '')}</span></div>
         ${rankRow}
         ${synRow}</div>
@@ -597,7 +597,7 @@ export function prepBrief(run: RunState) {
   ].join('');
   const elRows = mu.elems.map((x) => muRow(lineIcon(`e.${x.e}`, 'li'), x.name, `${x.allies}명`, `${x.weak ? muTag(`적 ${x.weak}명 취약`, 'good') : ''}${x.resist ? muTag(`적 ${x.resist}명 저항`, 'bad') : ''}`, '', `--c:var(--el-${x.e})`)).join('');
   return `<div class="detail pb" aria-label="이번 전투 적 구성">
-    <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span>${diffAddChip(run, enc.phase ?? run.phase, enc.add || 0)}</div>
+    <div class="pb-head" data-k="THIS BATTLE"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span>${diffAddChip(run, enc.phase ?? run.phase, enc.add || 0)}</div>
     <div class="pb-map">${lineIcon('n.battle', 'li')}<b>${esc(encName(enc))}</b><span>${esc(mapOf(enc.map).desc)}</span></div>
     ${squadList(enc)}
     <ul class="pb-foes">${rows.map(foe).join('')}</ul>

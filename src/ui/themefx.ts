@@ -170,7 +170,7 @@ function expressIn(ghost: HTMLElement, st: Stop): Ride {
   const el = document.createElement('div');
   el.className = 'mt-ex';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = `<i class="mg-pan p1"></i><i class="mg-pan p2"></i><i class="mg-pan p3"></i><div class="ex-car"><div class="ex-win"><div class="ex-view">${st.img ? `<i class="ex-boss"><img alt="" decoding="async" src="${esc(st.img)}" onerror="this.remove()"></i>` : ''}</div></div>
+  el.innerHTML = `<i class="mg-pan p1"></i><i class="mg-pan p2"></i><i class="mg-pan p3"></i><div class="ex-car" data-k="EXPRESS ∞ METRO · NON-STOP · TERMINAL"><div class="ex-win"><div class="ex-view">${st.img ? `<i class="ex-boss"><img alt="" decoding="async" src="${esc(st.img)}" onerror="this.remove()"></i>` : ''}</div></div>
     <i class="ex-lv"></i><b class="ex-word">${'EXPRESS ∞ NON-STOP · '.repeat(4)}</b><i class="ex-skirt"></i><i class="ex-tail"></i>
     <div class="ex-panel"><i class="ex-hz"><i></i></i><b class="ex-ic">!</b><span class="ex-k">${esc(st.kick)}</span><b class="ex-t">${esc(st.name)}</b><span class="ex-en">${esc(st.en)}</span><span class="mt-bd-stops"></span></div></div>`;
   document.body.appendChild(el);

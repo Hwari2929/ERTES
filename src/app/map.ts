@@ -181,7 +181,7 @@ export function musterModal(run: RunState) {
   return `<h1 class="mt-hd" data-k="MUSTER · TICKET" style="--hdc:var(--mt-b)">지정 소집</h1>
     <div class="ms-legend small muted"><span><i class="ms-syn ms-demo"><span class="ms-n">5</span></i>후보 수</span><span><i class="ms-syn ms-demo own" style="--c:var(--c-text)"></i>보유 중인 시너지</span></div>
     ${group('faction', '세력')}${group('trait', '특성')}
-    <div class="row-btns ms-foot"><div class="ms-state"><div class="ms-picks" aria-label="고른 시너지 ${sel.length}/${CFG.musterPicks}">${picks}</div>
+    <div class="row-btns ms-foot"><div class="ms-state"><div class="ms-picks" data-k="PUNCH" aria-label="고른 시너지 ${sel.length}/${CFG.musterPicks}">${picks}</div>
       ${kvChip('후보', sel.length ? `<b>${pool.length}</b>명` : '<b>—</b>', `고른 시너지 중 하나라도 가진 기물이 후보 (${CFG.musterPicks}개를 모두 골라야 소집)`, full ? '' : 'zero')}</div>
       <button class="btn" data-a="muster-cancel">취소</button>
       <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${R.ticketCount(run) ? `${CR}<s>${R.musterCost(run)}</s> 0 · 티켓 1장` : `${CR}${R.musterCost(run)}`}</button></div>`;
@@ -321,18 +321,18 @@ export function mapAhead(run: RunState, pick: NodeType | undefined, buttons: str
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = tendOf(e), rk = foeRank(run, e, run.phase, R.encounterMult('boss', R.routeStep(run, i), !!run.campaign));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
-      <div class="ah-body"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${R.bossMustWin(run) ? tchip(lineIcon('m.elite', 'li'), '최종 보스', 'bad', '의뢰의 마지막 보스: 이길 때까지 다시 싸운다 (다른 보스는 져도 다음 페이즈로)') : ''}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
+      <div class="ah-body" data-k="${cur ? 'NOW BOARDING' : 'NEXT PORT'}"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${R.bossMustWin(run) ? tchip(lineIcon('m.elite', 'li'), '최종 보스', 'bad', '의뢰의 마지막 보스: 이길 때까지 다시 싸운다 (다른 보스는 져도 다음 페이즈로)') : ''}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
   const nodeCard = (i: number, o: NodeType, cur: boolean) => {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
     if (e) return bossCard(i, e, cur);
     const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : '';
     const mc = cur ? SHOP.merchantOf(run) : null; // 진행 중인 상점: 상인 이름
-    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}">${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}${mc ? ` · ${esc(mc.name)}` : ''}</b>${cur ? `${about(o)}${income(o)}${mods(o)}` : desc(nodeHint(o))}${note}</div></li>`;
+    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}">${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body" data-k="${cur ? 'NOW BOARDING' : 'NEXT PORT'}"><b>${esc(NODE_NAME[o])}${mc ? ` · ${esc(mc.name)}` : ''}</b>${cur ? `${about(o)}${income(o)}${mods(o)}` : desc(nodeHint(o))}${note}</div></li>`;
   };
   // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들: 같은 카드 토큰으로 한 흐름
   const cur = pick ? nodeCard(run.step, pick, true)
-    : `<li class="ah-card cur tl-info">${act(true)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON.boss}</i>${step(run.step)}</span><div class="ah-body"><b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span></div></li>`;
+    : `<li class="ah-card cur tl-info">${act(true)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON.boss}</i>${step(run.step)}</span><div class="ah-body" data-k="NOW BOARDING"><b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span></div></li>`;
   // 분기 항로: 다음 칸은 지금 고른 노드에서 이어지는 노드만
   const nextOf = (i: number) => { if (!run.links) return run.map[i]; const j = run.node ? run.path?.[run.step] : R.reachIdx(run).find((k) => run.map[run.step][k] === pick); return (run.links[i - 1]?.[j ?? 0] || []).map((k) => run.map[i][k]); };
   return `<section class="ahead" aria-label="현재 칸과 앞으로 올 칸"><ol class="ah-list">${cur}${idx.flatMap((i) => run.map[i].includes('boss') ? [nodeCard(i, 'boss', false)] : nextOf(i).map((o) => nodeCard(i, o, false))).join('')}</ol></section>`;

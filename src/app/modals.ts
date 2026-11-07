@@ -180,7 +180,7 @@ export function sceneHtml(beats: Beat[]): string {
     if (!b.who) return `${pre}<p class="sc-narr">${esc(b.text)}</p>`;
     const sp = speakerOf(b.who);
     const name = b.name || sp.name;
-    if (b.think) return `${pre}<p class="sc-think"><span class="sc-who" style="--c:${sp.color}">${esc(name)}</span>${esc(b.text)}</p>`;
+    if (b.think) return `${pre}<p class="sc-think"><span class="sc-who" style="--c:${sp.color}">${esc(name)}<span class="sc-tk"> · 속마음</span></span>${esc(b.text)}</p>`;
     return `${pre}<div class="sc-say"><span class="sc-who" style="--c:${sp.color}">${esc(name)}</span><p>${esc(b.text)}</p></div>`;
   }).join('')}</div>`;
 }
@@ -291,7 +291,7 @@ export function pendingModal(run: RunState): string {
     mcls = 'global';
     body = `<h1 class="mt-hd" data-k="GLOBAL · COUNCIL" style="--hdc:var(--mt-a)">${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
-        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
+        <i class="cback" aria-hidden="true" data-k="METRO&#10;GLOBAL PASS "></i><i class="gc-scan" aria-hidden="true" data-k="SCAN"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span>${passHead(i, '전역', GLOBALS.indexOf(g) + 1, [['등급', `${GLOBAL_TIER_NAME[g.tier || 'N']}${g.unique ? ' · 고유' : ''}`], ['유효', '런 종료까지']])}<b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns">${rerollBtn('reroll-global', p.rerolls, `새로고침 (${p.rerolls}회)`)}</div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
@@ -307,9 +307,9 @@ export function pendingModal(run: RunState): string {
       <div class="row-btns"><button class="btn primary" data-a="field-ok">출격 준비</button></div>`;
   } else if (p.t === 'privilege') {
     mcls = 'privilege';
-    body = `<div class="pv-body"><span class="pv-flap" aria-hidden="true">${[...'PRIVILEGE'].map((c, i) => `<i style="--n:${i}">${c}</i>`).join('')}</span><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
+    body = `<div class="pv-body"><span class="pv-flap" aria-hidden="true" data-k="NOW BOARDING · GATE ∞">${[...'PRIVILEGE'].map((c, i) => `<i style="--n:${i}">${c}</i>`).join('')}</span><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
       <div class="pv-row">${p.options.map((o, i) => { const desc = R.privilegeDesc(o); return `<span class="tslot gslot gt-P" style="--i:${i}"><button class="gcard pv-card gt-P" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${desc.length > 70 ? ` title="${esc(desc)}"` : ''}>
-        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
+        <i class="cback" aria-hidden="true" data-k="METRO&#10;PRIVILEGE PASS "></i><i class="gc-scan" aria-hidden="true" data-k="SCAN"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
         <span class="gc-kind">특권</span>${passHead(i, '특권', PRIVILEGES.findIndex((d) => d.id === o.id) + 1, [['종류', '특권'], ['유효', '이번 런']])}<b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
       <div class="row-btns">${rerollBtn('reroll-privilege', p.rerolls, `새로고침 (${p.rerolls}회)`)}</div></div>`;
   } else if (p.t === 'despair') {
@@ -319,7 +319,7 @@ export function pendingModal(run: RunState): string {
     const held = despairsOf(run); // 페이즈 시작 때 더 고르는 것: 이미 짊어진 절망을 함께 보여 준다
     body = `<div class="dp-body"><span class="dp-kicker">${p.phase ? `${p.phase}페이즈 · 깊어지는 절망` : `${esc(diffName(run.diff) || '고난')}의 대가`}</span><h1>절망 증강</h1><p class="small dp-sub">${p.phase ? `절망이 하나 더 쌓입니다. 의뢰가 끝날 때까지 이미 짊어진 절망과 함께 걸립니다. 고르지 않고는 나아갈 수 없습니다.` : '이번 의뢰 내내 짊어질 절망을 하나 고르세요. 고르지 않고는 출격할 수 없습니다.'}</p>
       ${held.length ? `<p class="dp-held"><span>짊어진 절망</span>${held.map((d) => `<b title="${esc(d.desc())}">${lineIcon(d.icon, 'li')}${esc(d.name)}</b>`).join('')}</p>` : ''}
-      <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<span class="dp-slot" style="--i:${i}"><button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"${d.brief ? ` title="${esc(d.desc())}"` : ''}><span class="dp-sigil" aria-hidden="true">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc((d.brief || d.desc)()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button></span>`; }).join('')}</div>
+      <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<span class="dp-slot" style="--i:${i}"><button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"${d.brief ? ` title="${esc(d.desc())}"` : ''}><span class="dp-sigil" aria-hidden="true" data-k="DESPAIR">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc((d.brief || d.desc)()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button></span>`; }).join('')}</div>
       <div class="row-btns">${rerollBtn('reroll-despair', p.rerolls, `새로고침 (${p.rerolls}회)`)}</div></div>`;
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
@@ -358,7 +358,7 @@ export function pendingModal(run: RunState): string {
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
-          return `<span class="tslot aslot"><button class="aug-opt${app.augPick === i ? ' on' : ''}${isLegendAug(a.id) ? ' lg' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button></span>`;
+          return `<span class="tslot aslot"><button class="aug-opt${app.augPick === i ? ' on' : ''}${isLegendAug(a.id) ? ' lg' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd data-k="${isLegendAug(a.id) ? 'LEGEND' : 'AUG'}">${i + 1}</kbd></button></span>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         ${p.kind === 'school' && app.abilPop && /^(cantrip|psipass):/.test(app.abilPop) ? `<div class="ru-pop">${abilPopHtml(app.abilPop, d, pv.b, pv.c)}</div>` : ''}
         <div class="ru-foot">${opts.length
@@ -396,7 +396,7 @@ export function pendingModal(run: RunState): string {
       news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
       invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `제례 ${CFG.rite.choices} · 나눔 1 중 1장 무료 · 권능 ${run.power}으로 성유물 · 개종`,
     };
-    body = `<h1 class="mt-hd" data-k="JUNCTION" style="--hdc:var(--mt-b)">분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
+    body = `<h1 class="mt-hd" data-k="JUNCTION" style="--hdc:var(--mt-b)">분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic" data-k="GATE ">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
   } else if (p.t === 'muster') {
     body = musterModal(run);
   } else if (p.t === 'fork') {
@@ -405,9 +405,9 @@ export function pendingModal(run: RunState): string {
     const ot = R.occultTier(run), off = ot ? OCCULT_SYNTH.disc[ot - 1] : 0;
     const rows = (r: [string, string][]) => `<dl class="fk-rows">${r.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     body = `<h1 class="mt-hd" data-k="TRANSFER" style="--hdc:var(--c-streak)">전환</h1><p class="muted small">페이즈의 갈림길입니다. 숨을 고를지, 한 걸음 앞서 나갈지 고르세요.</p><div class="cards">
-      <button class="card br-card n-supply" data-a="pick-fork" data-v="rest"><span class="br-ic">${NODE_ICON.supply}</span><b>휴식</b>${rows([['체력', `+${CFG.forkRestHp + Math.floor((run.maxHp - run.hp) * CFG.forkRestLost)} <small>기본 ${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%</small>`], [ic('공명도'), `풀 ${xp} 분배`]])}</button>
-      <button class="card br-card n-adversity" data-a="pick-fork" data-v="challenge"><span class="br-ic">${NODE_ICON.challenge}</span><b>도전</b>${rows([['전투', `다음 페이즈(${run.phase + 1}) 역경 수준`], ['승리', ic(`대량의 공명도 + 남은 역경 · 사건 · 보급 · 보스 보상 → ${run.phase >= CFG.victoryPhase ? '곧바로 보스' : '바로 다음 페이즈'}`)], ['패배', '역경 패배와 같은 체력 피해']])}</button>
-      ${ot ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic">${synIcon('OCCULT') || '✶'}</span><b>합성</b>${rows([['상품', `${OCCULT_SYNTH.base + ot}개`], ...(off ? [['가격', `−${Math.round(off * 100)}%`] as [string, string]] : [])])}<span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다.</span></button>` : ''}
+      <button class="card br-card n-supply" data-a="pick-fork" data-v="rest"><span class="br-ic" data-k="GATE ">${NODE_ICON.supply}</span><b>휴식</b>${rows([['체력', `+${CFG.forkRestHp + Math.floor((run.maxHp - run.hp) * CFG.forkRestLost)} <small>기본 ${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%</small>`], [ic('공명도'), `풀 ${xp} 분배`]])}</button>
+      <button class="card br-card n-adversity" data-a="pick-fork" data-v="challenge"><span class="br-ic" data-k="GATE ">${NODE_ICON.challenge}</span><b>도전</b>${rows([['전투', `다음 페이즈(${run.phase + 1}) 역경 수준`], ['승리', ic(`대량의 공명도 + 남은 역경 · 사건 · 보급 · 보스 보상 → ${run.phase >= CFG.victoryPhase ? '곧바로 보스' : '바로 다음 페이즈'}`)], ['패배', '역경 패배와 같은 체력 피해']])}</button>
+      ${ot ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic" data-k="GATE ">${synIcon('OCCULT') || '✶'}</span><b>합성</b>${rows([['상품', `${OCCULT_SYNTH.base + ot}개`], ...(off ? [['가격', `−${Math.round(off * 100)}%`] as [string, string]] : [])])}<span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다.</span></button>` : ''}
     </div>`;
   } else if (p.t === 'supply') {
     body = supplyHtml(p);
@@ -431,7 +431,7 @@ export function pendingModal(run: RunState): string {
   const veil = mcls === 'despair' ? `<div class="dp-veil" aria-hidden="true">${Array.from({ length: 24 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 6) * 0.7}s;--s:${6 + (i % 4)}s"></i>`).join('')}</div>` : '';
   const curtain = mcls === 'privilege' ? `<div class="pv-curtain" aria-hidden="true"><i class="pv-half l"></i><i class="pv-half r"></i><span class="pv-seam"></span>
     <span class="pv-stars">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 41) % 100}%;--d:${(i % 6) * 0.5}s;--s:${3 + (i % 5)}s"></i>`).join('')}</span></div>` : '';
-  return `<div class="modal-bg${pvCls}">${curtain}${veil}<div class="modal ${mcls}">${body}</div></div>`;
+  return `<div class="modal-bg${pvCls}">${curtain}${veil}<div class="modal ${mcls}"${mcls === 'victory' ? ' data-k="MISSION COMPLETE" data-stamp="VALID"' : mcls === 'notice' ? ' data-k="NOTICE"' : ''}>${body}</div></div>`;
 }
 export const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',

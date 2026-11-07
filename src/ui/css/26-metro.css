@@ -55,7 +55,7 @@
    노선 띠 · 큰 윤곽 글자 · 경고 빗금 치마 · 잉크 꼬리판. 경고 패널 = 종이 판 + 굵은 잉크 윤곽 + 흐림 없는 잉크 그림자 + 흐르는 빗금 + ! 판 */
 .ex-car { position: absolute; top: 0; bottom: 0; left: -10vw; width: 130vw; background: var(--mt-d); transform: translateX(110vw); clip-path: polygon(0 34%, 8vw 0, 100% 0, 100% 100%, 0 100%); }
 .ex-car::before { content: ''; position: absolute; left: 1.2vw; top: 62%; width: 4vw; height: 2.4vmin; background: var(--mt-paper); box-shadow: 0 3.4vmin 0 var(--mt-ink); } /* 전조등 · 앞 범퍼 */
-.ex-car::after { content: 'EXPRESS ∞ METRO · NON-STOP · TERMINAL'; position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
+.ex-car::after { content: attr(data-k); position: absolute; left: 13vw; top: 2.4%; color: color-mix(in srgb, var(--mt-ink) 72%, transparent); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .3em; white-space: nowrap; } /* 지붕 표기 */
 .ex-win { --ww: 34vw; --wp: 2.6vw; position: absolute; left: 3vw; right: 4vw; top: 7%; height: 45%; background: var(--mt-ink); }
 .ex-view { position: absolute; inset: 7% 0; overflow: hidden;
   background: var(--mt-sky), radial-gradient(22px 1px at 50% 50%, color-mix(in srgb, var(--mt-paper) 55%, transparent), transparent) 0 0 / 230px 41px,
@@ -372,7 +372,7 @@
 [data-ui-theme="metro"] .pv-body > :not(.pv-flap) { animation: pv-in .5s ease .85s both; }
 [data-ui-theme="metro"] .pv-bg.played .pv-body > * { animation-delay: 0s; }
 [data-ui-theme="metro"] .pv-flap { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 4px; perspective: 600px; }
-[data-ui-theme="metro"] .pv-flap::before { content: 'NOW BOARDING · GATE ∞'; flex-basis: 100%; margin-bottom: 6px; color: var(--mt-b); font: 600 var(--fs-xs)/1 var(--f-mono); letter-spacing: .3em; text-align: center; }
+[data-ui-theme="metro"] .pv-flap::before { content: attr(data-k); flex-basis: 100%; margin-bottom: 6px; color: var(--mt-b); font: 600 var(--fs-xs)/1 var(--f-mono); letter-spacing: .3em; text-align: center; }
 [data-ui-theme="metro"] .pv-flap i { display: grid; place-items: center; width: 56px; height: 74px; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-md); font-style: normal;
   background: linear-gradient(var(--mt-deep) 0 49%, var(--mt-ink) 49% 51%, var(--mt-deep) 51%); color: var(--mt-paper); font: 400 var(--mt-fs-hero)/1 var(--f-display);
   animation: mt-pv-flap .32s cubic-bezier(.3, 0, .2, 1) both; animation-delay: calc(.15s + var(--n) * 55ms); }
@@ -391,7 +391,6 @@
    색 = 노선 보라 (특권은 등급이 없다 — 증강 등급색 흰 · 파랑 · 빨강과 겹치지 않게), 뒷면 = PRIVILEGE PASS. 등장은 아래 '특권 공개' (막이 닫힌 뒤 같은 개찰 스캔) */
 [data-ui-theme="metro"] .gcard.gt-P { --tc: var(--mt-a); --gds: 96px; --gdo: .55; border-color: color-mix(in srgb, var(--mt-a) 45%, var(--mt-edge)); }
 [data-ui-theme="metro"] .gslot.gt-P { --cs: var(--mt-a); }
-[data-ui-theme="metro"] .gcard.gt-P .cback::after { content: 'METRO\A PRIVILEGE PASS ' counter(gc, decimal-leading-zero); }
 
 /* ── 항로도 아래 노드 = 승차 표: 왼쪽 스텁(노드 아이콘 · 순서) | 절취선 | 몸통 (머리표 NOW BOARDING / NEXT PORT). 누르는 것은 진입 단추뿐 → 표는 평평 */
 [data-ui-theme="metro"] .ah-list { gap: 12px; }
@@ -411,10 +410,10 @@
 /* 절취선 (--mt-perf): 위 · 아래 홈 사이만 — 고리에서 3px 떨어져 끝난다 */
 [data-ui-theme="metro"] .ah-card::after { content: ''; position: absolute; left: calc(var(--ahw) - 1px); top: calc(var(--ah-r) + 2px); bottom: calc(var(--ah-r) + 2px); border-left: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 22%, transparent); pointer-events: none; }
 [data-ui-theme="metro"] .ah-body { padding: 12px 16px; }
-[data-ui-theme="metro"] .ah-body::before { content: 'NEXT PORT'; display: block; margin-bottom: 4px; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .ah-body::before { content: attr(data-k); display: block; margin-bottom: 4px; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .ah-card.cur { --ah-edge: var(--c-select); box-shadow: none; }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead { background: color-mix(in srgb, var(--c-select) 16%, var(--mt-ink)); }
-[data-ui-theme="metro"] .ah-card.cur .ah-body::before { content: 'NOW BOARDING'; color: color-mix(in srgb, var(--c-select) 55%, var(--mt-on)); }
+[data-ui-theme="metro"] .ah-card.cur .ah-body::before { color: color-mix(in srgb, var(--c-select) 55%, var(--mt-on)); }
 /* 지금 칸 = 종이 표 (2026-11-07 사용자 결정 2단계 B4 — 시안 2 바탕): 스텁 = 피치 면 · 잉크 아이콘, 몸통 = 종이 · 잉크 글자 + 우하단으로 짙어지는 피치 망점 */
 [data-ui-theme="metro"] .ah-card.cur { background: var(--mt-paper); color: var(--mt-on); }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead { background: var(--c-select); }
@@ -442,7 +441,7 @@
     linear-gradient(118deg, transparent 0 56%, var(--mt-b) 56% 66%, transparent 66% 69%, color-mix(in srgb, var(--mt-b) 45%, transparent) 69% 73%, transparent 73%) 0 0 / 100% 70% no-repeat, /* 사선은 위쪽에서 끝난다 (아래 글씨를 지나지 않게) */
     radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); }
 [data-ui-theme="metro"] .sup-card .cback::before { content: '∞'; position: absolute; left: 26%; top: 30%; translate: -50% -52%; color: var(--mt-paper); font: 400 var(--fs-2xl)/1 var(--f-display); }
-[data-ui-theme="metro"] .sup-card .cback::after { content: 'METRO\A SUPPLY ' counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 11px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
+[data-ui-theme="metro"] .sup-card .cback::after { content: attr(data-k) counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 11px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
   color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .12em; line-height: 1.5; text-align: left; white-space: pre; overflow: hidden; } /* 일련번호 두 줄 (좁은 카드 폭에 맞게) */
 [data-ui-theme="metro"] .card.sup-card.open { --kc: var(--g-C); --sdw: 112px; --sdo: .38; isolation: isolate; grid-template-rows: 52% auto 1fr 26px; align-content: stretch; gap: 8px; padding: 0 12px; box-shadow: none; border-color: color-mix(in srgb, var(--kc) 55%, var(--mt-edge));
   background: linear-gradient(150deg, color-mix(in srgb, var(--kc) 34%, var(--mt-ink)), var(--mt-ink) 75%) 0 0 / 100% 52% no-repeat, var(--panel); }
@@ -454,10 +453,8 @@
 [data-ui-theme="metro"] .card.sup-card.open .sup-ic { align-self: stretch; justify-self: stretch; display: grid; place-items: center; margin-inline: -12px; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 24%, transparent); } /* 머리 칸 | 절취선 (--mt-perf) */
 [data-ui-theme="metro"] .card.sup-card.open > b { padding-top: 4px; font-family: var(--f-display); font-weight: 400; }
 [data-ui-theme="metro"] .card.sup-card.open::before { position: absolute; left: 12px; top: 11px; color: var(--kc); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
-[data-ui-theme="metro"] .card.sup-card.open.sup-credits::before { content: 'CREDIT'; }
-[data-ui-theme="metro"] .card.sup-card.open.sup-xp::before { content: 'RESONANCE'; }
-[data-ui-theme="metro"] .card.sup-card.open.sup-gear::before { content: 'PART'; }
-[data-ui-theme="metro"] .card.sup-card.open::after { content: 'SUPPLY ' counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 10px; padding-top: 6px; border-top: var(--mt-stroke) solid var(--mt-edge);
+[data-ui-theme="metro"] .card.sup-card.open.sup-card::before { content: attr(data-k); } /* 종류 머리표 CREDIT · RESONANCE · PART = 마크업 (app/unitparts.ts) */
+[data-ui-theme="metro"] .card.sup-card.open::after { content: attr(data-ks) counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 10px; padding-top: 6px; border-top: var(--mt-stroke) solid var(--mt-edge);
   color: var(--c-text-2); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; text-align: left; }
 [data-ui-theme="metro"] .card.sup-card .sup-jp { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 52px; height: 52px; padding: 0 9px; border: 2.5px solid var(--jp-c); border-radius: 50%; background: var(--mt-ink);
   box-shadow: inset 0 0 0 3px var(--mt-ink), inset 0 0 0 4.5px var(--jp-c); color: var(--jp-c); font: 700 var(--fs-xs)/1.1 var(--f-mono); text-align: center; rotate: -14deg; } /* 대박 = 도장 (안쪽 여백으로 '대박' / '×2' 두 줄 — 글자가 테두리 고리에 걸리지 않게) */
@@ -508,7 +505,7 @@
 [data-ui-theme="metro"] .rs-grid h3 { color: var(--c-text-2); font: 700 var(--fs-sm)/1.4 var(--f-body); letter-spacing: .02em; }
 /* MVP = 플레이트 */
 [data-ui-theme="metro"] .rs-grid > .rs-mvp { margin: 14px 0 14px 14px; padding: 0 0 46px; overflow: hidden; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--mt-ink); }
-[data-ui-theme="metro"] .rs-mvp::after { content: 'MVP FILE'; position: absolute; left: 0; right: 0; bottom: 0; height: 36px; display: flex; align-items: center; padding-left: 74px; background: linear-gradient(100deg, var(--mt-b), var(--mt-a)); color: var(--mt-on);
+[data-ui-theme="metro"] .rs-mvp::after { content: attr(data-k); position: absolute; left: 0; right: 0; bottom: 0; height: 36px; display: flex; align-items: center; padding-left: 74px; background: linear-gradient(100deg, var(--mt-b), var(--mt-a)); color: var(--mt-on);
   font: 400 var(--fs-md)/1 var(--f-display); letter-spacing: .08em; }
 [data-ui-theme="metro"] .rs.lose .rs-mvp::after { background: linear-gradient(100deg, var(--mt-c), var(--mt-d)); } /* 패배: MVP 파일 띠도 패배 색 */
 [data-ui-theme="metro"] .rs-mvp::before { content: ''; position: absolute; left: 14px; bottom: 10px; z-index: var(--z-raise); width: 48px; height: 16px; background: repeating-linear-gradient(90deg, var(--mt-on) 0 2px, transparent 2px 3px, var(--mt-on) 3px 4px, transparent 4px 7px, var(--mt-on) 7px 10px, transparent 10px 11px); }
@@ -616,7 +613,7 @@
 [data-ui-theme="metro"] .gcard .cback::before { content: '∞'; position: absolute; left: 50%; top: calc((100% - 62px) / 2); translate: -50% -50%; display: grid; place-items: center; box-sizing: border-box; width: 78px; height: 78px;
   border: 1.5px solid color-mix(in srgb, var(--mt-paper) 32%, transparent); border-radius: 50%; background: var(--mt-ink);
   box-shadow: 0 0 0 6px var(--mt-ink), 0 0 0 7.5px color-mix(in srgb, var(--mt-paper) 14%, transparent); color: color-mix(in srgb, var(--mt-paper) 75%, transparent); font: 400 var(--fs-2xl)/1 var(--f-display); } /* 가는 테 두 겹 동전 */
-[data-ui-theme="metro"] .gcard .cback::after { content: 'METRO\A GLOBAL PASS ' counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
+[data-ui-theme="metro"] .gcard .cback::after { content: attr(data-k) counter(gc, decimal-leading-zero); position: absolute; left: 14px; right: 14px; bottom: 14px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
   color: color-mix(in srgb, var(--mt-paper) 50%, transparent); font: 600 var(--fs-2xs)/1.5 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: pre; overflow: hidden; }
 @media (max-width: 640px) {
   [data-ui-theme="metro"] .gslot { --gh: 64px; } [data-ui-theme="metro"] .gcard { --gds: 44px; padding-bottom: 14px; } [data-ui-theme="metro"] .gcard.gt-R { --gds: 54px; } [data-ui-theme="metro"] .gcard.gt-L { --gds: 64px; }
@@ -727,8 +724,7 @@
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd { position: relative; align-self: stretch; display: grid; place-content: center; justify-items: center; gap: 5px; margin: -12px 0; padding: 0; border: 0; border-left: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 30%, transparent);
   border-radius: 0 var(--mt-r-md) var(--mt-r-md) 0; background: var(--stc); color: transparent; font-size: 0; transition: background-color .2s; }
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::before { content: counter(ao, decimal-leading-zero); color: var(--sti); font: 400 var(--fs-xl)/.85 var(--f-display); font-variant-numeric: tabular-nums; }
-[data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::after { content: 'AUG'; color: var(--sti); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; opacity: .8; }
-[data-ui-theme="metro"] .aug-opt.lg:not(.sch-opt) kbd::after { content: 'LEGEND'; }
+[data-ui-theme="metro"] .aug-opt:not(.sch-opt) kbd::after { content: attr(data-k); color: var(--sti); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; opacity: .8; }
 [data-ui-theme="metro"] .aug-opt:not(.sch-opt) {
   -webkit-mask: radial-gradient(circle at calc(100% - 62.75px) 0, transparent 8.5px, var(--c-black) 9px) top / 100% 51% no-repeat, radial-gradient(circle at calc(100% - 62.75px) 100%, transparent 8.5px, var(--c-black) 9px) bottom / 100% 51% no-repeat;
   mask: radial-gradient(circle at calc(100% - 62.75px) 0, transparent 8.5px, var(--c-black) 9px) top / 100% 51% no-repeat, radial-gradient(circle at calc(100% - 62.75px) 100%, transparent 8.5px, var(--c-black) 9px) bottom / 100% 51% no-repeat; }
@@ -747,7 +743,7 @@
 [data-ui-theme="metro"] .br-card .br-ic > :is(svg, span) { width: 26px; height: 26px; }
 [data-ui-theme="metro"] .br-card .br-ic::after { content: '→'; order: 1; margin-left: auto; font: 400 var(--fs-2xl)/1 var(--f-display); }
 [data-ui-theme="metro"] .br-card:first-child .br-ic::after { content: '←'; }
-[data-ui-theme="metro"] .br-card .br-ic::before { content: 'GATE ' counter(br, decimal-leading-zero); order: 2; font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .08em; }
+[data-ui-theme="metro"] .br-card .br-ic::before { content: attr(data-k) counter(br, decimal-leading-zero); order: 2; font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .08em; }
 [data-ui-theme="metro"] .card.br-card > b { padding: 4px 14px 0; font-size: var(--fs-2xl); }
 [data-ui-theme="metro"] .card.br-card > :is(.fk-rows, span:last-child) { width: auto; margin-inline: 14px; text-align: left; }
 [data-ui-theme="metro"] .fk-rows { gap: 0 12px; }
@@ -773,7 +769,7 @@
 [data-ui-theme="metro"] .dp-sigil { position: relative; display: grid; place-items: center; height: var(--dh); border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent); border-radius: var(--mt-r-md) var(--mt-r-md) 0 0; color: var(--mt-paper);
   background: linear-gradient(120deg, var(--mt-ink) 0 42%, color-mix(in srgb, var(--mt-ink) 35%, var(--c-despair)) 72%, var(--c-despair) 100%); }
 [data-ui-theme="metro"] .dp-sigil .li { width: 38px; height: 38px; }
-[data-ui-theme="metro"] .dp-sigil::before { content: 'DESPAIR'; position: absolute; left: 11px; top: 9px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .dp-sigil::before { content: attr(data-k); position: absolute; left: 11px; top: 9px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
 [data-ui-theme="metro"] .dp-sigil::after { content: counter(dp, decimal-leading-zero); position: absolute; right: 10px; bottom: 9px; color: var(--mt-on); font: 400 var(--fs-2xl)/.8 var(--f-display); font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] .dp-card > b { position: static; padding: 2px 14px 0; } /* 절취 홈 고리 = 이름 글자에 (홈 바탕 = 붉은 막 색) */
 [data-ui-theme="metro"] .dp-card > :is(.dp-desc, .dp-quip) { padding-inline: 14px; }
@@ -823,14 +819,13 @@
 /* ── 알림 · 의뢰 성공 = 디자인 시스템 확인 창 (Modal): 머리 = 종이 → 보라 그라디언트 띠 · 머리표(NOTICE / MISSION COMPLETE) · 큰 제목 / 경계 양옆 홈 / 몸통 = 글 · 이름 + 값 줄 · 단추.
    의뢰 성공은 머리 오른쪽에 VALID 도장 (전투 결과 도장과 같은 문법). 창의 노선 띠는 머리 띠가 대신한다 */
 [data-ui-theme="metro"] .modal:is(.notice, .victory) { --mhd: 20px; position: relative; padding: 0 var(--mhd) 20px; border: 0; background-image: none; box-shadow: inset 0 0 0 1.5px var(--mt-edge); } /* 테두리 = 안쪽 1.5px (홈 고리가 테두리 위를 덮고, 창 밖 반쪽은 창이 자른다) */
-[data-ui-theme="metro"] .modal:is(.notice, .victory)::before { content: 'NOTICE'; position: absolute; left: var(--mhd); top: 14px; z-index: 1; color: var(--mt-on); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
-[data-ui-theme="metro"] .modal.victory::before { content: 'MISSION COMPLETE'; }
+[data-ui-theme="metro"] .modal:is(.notice, .victory)::before { content: attr(data-k); position: absolute; left: var(--mhd); top: 14px; z-index: 1; color: var(--mt-on); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
 [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1 { position: relative; margin: 1.5px calc(1.5px - var(--mhd)) 4px; padding: 32.5px calc(var(--mhd) - 1.5px) 16px; border-radius: var(--mt-r-win-in) var(--mt-r-win-in) 0 0; color: var(--mt-on);
   background: var(--mt-head); }
 [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::before, [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::after { content: ''; position: absolute; bottom: -10px; z-index: 1; box-sizing: border-box; width: 20px; height: 20px;
   border: var(--mt-stroke) solid var(--mt-edge); border-radius: 50%; background: var(--mt-ink); } /* 경계 홈 + 테두리와 같은 고리: 창 밖 반쪽은 창이 자른다 */
 [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::before { left: -10.75px; } [data-ui-theme="metro"] .modal:is(.notice, .victory) > h1::after { right: -10.75px; }
-[data-ui-theme="metro"] .modal.victory::after { content: 'VALID'; position: absolute; right: 22px; top: 12px; z-index: 1; display: grid; place-items: center; width: 62px; height: 62px; border: 2.5px solid var(--mt-ink); border-radius: 50%;
+[data-ui-theme="metro"] .modal.victory::after { content: attr(data-stamp); position: absolute; right: 22px; top: 12px; z-index: 1; display: grid; place-items: center; width: 62px; height: 62px; border: 2.5px solid var(--mt-ink); border-radius: 50%;
   box-shadow: inset 0 0 0 3px var(--mt-a), inset 0 0 0 4.5px var(--mt-ink); color: var(--mt-ink); font: 700 var(--fs-xs)/1 var(--f-mono); letter-spacing: .12em; rotate: -12deg; }
 [data-ui-theme="metro"] .modal.notice > .btn.primary { justify-self: end; min-width: 120px; }
 /* ── 지도 기록 탭 = 정차역 목록: 세로 노선 선 · 역 점 (맨 위 = 지금 역, 선택색) · 앞말(무엇)은 굵게 */
@@ -846,7 +841,7 @@
 [data-ui-theme="metro"] .um-col > h3 { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
 [data-ui-theme="metro"] .um-col > h3::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); }
 [data-ui-theme="metro"] .um-art { position: relative; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(160deg, var(--mt-ink) 0 55%, color-mix(in srgb, var(--mt-ink) 55%, var(--mt-a)) 100%); }
-[data-ui-theme="metro"] .um-art::before { content: 'AGENT'; position: absolute; left: 10px; top: 9px; z-index: 1; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .um-art::before { content: attr(data-k); position: absolute; left: 10px; top: 9px; z-index: 1; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
 [data-ui-theme="metro"] .um-art::after { content: ''; position: absolute; inset: 55% 0 0; pointer-events: none; background: linear-gradient(transparent, color-mix(in srgb, var(--mt-a) 26%, transparent)); }
 [data-ui-theme="metro"] .um-sum :is(.us-k, .us-gk) { color: var(--mt-b); font: 700 var(--fs-xs)/1.6 var(--f-body); letter-spacing: .02em; }
 /* ── 메뉴 · 설정 (디자인 시스템 Tabs · Controls): 메뉴 / 설정 = 서류철 탭 (순번 01 · 02 모노 · 고른 탭 = 종이 면), 구획 제목 = 민트 네모,
@@ -880,7 +875,7 @@
 /* ── 지정 소집 = 펀치 (디자인 시스템 PUNCH): 고른 칸 줄 = PUNCH 머리표 + 고리 (빈 칸 = 뚫리지 않은 고리 · 고르면 시너지색으로 뚫린 구멍 + 이름),
    시너지 칸 = 각진 칸 · 누르는 것이라 작은 그림자, 고른 칸 = 오른쪽 위 펀치 구멍 · 선택색 그림자, 더 고를 수 없는 칸 = 빗금 (잠김) */
 [data-ui-theme="metro"] .ms-picks { align-items: center; gap: 8px; }
-[data-ui-theme="metro"] .ms-picks::before { content: 'PUNCH'; color: var(--c-text-2); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
+[data-ui-theme="metro"] .ms-picks::before { content: attr(data-k); color: var(--c-text-2); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .14em; }
 [data-ui-theme="metro"] .ms-pick:not(.on) { min-width: 0; width: 26px; height: 26px; padding: 0; border: 1.5px solid color-mix(in srgb, var(--mt-paper) 40%, var(--mt-edge)); border-radius: 50%; background: none; font: 600 var(--fs-2xs)/1 var(--f-mono); }
 [data-ui-theme="metro"] .ms-pick.on { height: 28px; padding: 0 10px 0 3px; border: var(--mt-stroke) solid var(--c); border-radius: var(--r-pill); background: var(--mt-ink); }
 [data-ui-theme="metro"] .ms-pick.on .syn-dia { width: 20px; height: 20px; transform: none; border: 0; border-radius: 50%; background: var(--c); color: var(--mt-on); }
@@ -986,7 +981,7 @@
 [data-ui-theme="metro"] .um .detail { --stroke: 1px; --edge: var(--line); --r-panel: var(--r-lg); } /* 기물 전체 상세 안의 판은 얇은 선 그대로 */
 [data-ui-theme="metro"] .detail:not(.um *) { border: var(--stroke) solid var(--edge); border-radius: var(--r-panel);
   background-image: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%); background-size: 100% 4px; background-repeat: no-repeat; }
-[data-ui-theme="metro"] .detail.pb .pb-head::before { content: 'THIS BATTLE'; flex-basis: 100%; color: var(--mt-on); font: 600 var(--fs-2xs)/1.4 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .detail.pb .pb-head::before { content: attr(data-k); flex-basis: 100%; color: var(--mt-on); font: 600 var(--fs-2xs)/1.4 var(--f-mono); letter-spacing: .16em; }
 /* 이번 전투 머리 = 종이 머리 (2026-11-06 일상 브루탈 시안 3 — 알림 창과 같은 종이 → 보라 띠, 판 위 노선 띠를 대신한다): 판 폭 끝까지, 잉크 글자 · 잉크 네모 표식 */
 [data-ui-theme="metro"] .detail.pb { background-image: none; }
 [data-ui-theme="metro"] .detail.pb .pb-head { margin: -12px -12px 12px; padding: 10px 12px 12px; border-radius: var(--mt-r-panel-in) var(--mt-r-panel-in) 0 0; color: var(--mt-on); background: var(--mt-head); }
@@ -1166,7 +1161,7 @@
 [data-ui-theme="metro"] .deal-box.flip > .gslot.gt-L > .gcard > .gc-scan { height: 4px; box-shadow: 0 0 10px var(--tc), 0 0 34px 6px color-mix(in srgb, var(--tc) 60%, transparent); }
 [data-ui-theme="metro"] .gc-scan::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 76px; background: linear-gradient(to top, color-mix(in srgb, var(--tc) 60%, transparent), transparent);
   -webkit-mask: radial-gradient(circle, var(--c-black) 1.3px, transparent 1.8px) 0 0 / 6px 6px; mask: radial-gradient(circle, var(--c-black) 1.3px, transparent 1.8px) 0 0 / 6px 6px; } /* 지나온 자리 = 등급색 망점 꼬리 */
-[data-ui-theme="metro"] .gc-scan::after { content: 'SCAN'; position: absolute; right: 10px; bottom: 7px; color: var(--tc); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .gc-scan::after { content: attr(data-k); position: absolute; right: 10px; bottom: 7px; color: var(--tc); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 /* '삑' = 크롬 테 (2026-11-07 사용자 결정 C5-1 — 반짝임은 순간에만): 테두리가 크롬 띠로 한 바퀴 돌며 번쩍이고 (.6초, 끝나면 평면 테두리 그대로) 오른쪽 위 모서리에 글린트가 튄다.
    크롬 = Y2K 크롬 (종이 하늘빛 · 보라 · 짙은 잉크 지평선 · 민트 반사) 에 등급색 띠 하나 — 바깥 테두리에서 안으로 3px 고리, 카드 맨 위 층이라 머리 · 몸통 고르게 */
 @property --ca { syntax: '<angle>'; inherits: false; initial-value: 0deg; }

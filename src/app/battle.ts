@@ -383,7 +383,7 @@ export function summaryModal(run: RunState) {
   return `<div class="modal-bg res-bg${s.won ? ' win' : ''}"><div class="modal result rs ${s.won ? 'win' : 'lose'}">
     <div class="rs-banner"><span class="rs-rays" aria-hidden="true"></span><span class="mt-stamp${s.won ? '' : ' void'}" data-label="${s.won ? 'VALID' : 'VOID'}" aria-hidden="true"><i></i></span><b>${head}</b><small>${s.won ? 'MISSION COMPLETE' : s.gameOver ? 'MISSION FAILED' : 'RETREAT'}</small></div>
     <div class="rs-grid">
-      ${d && mvp ? `<section class="rs-mvp" aria-label="MVP">
+      ${d && mvp ? `<section class="rs-mvp" aria-label="MVP" data-k="MVP FILE">
         <div class="rs-mvp-art">${standImg(d.id, 'stand', true) || sprite(d, 'spr big')}</div>
         <div class="rs-mvp-tag"><span class="rs-crown${s.won ? '' : ' ko'}">${s.won ? 'MVP' : '분투'}</span><em>${mvp.title}</em></div>
         <div class="rs-mvp-name"><b>${esc(d.name)}</b><small>${esc(d.title)}</small></div>
