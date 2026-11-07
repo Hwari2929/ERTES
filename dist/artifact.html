@@ -179,33 +179,33 @@
 [data-ui-theme="metro"] {
   /* 메트로 인피니티 패스 — 밝은 객실 · 어두운 창 (2026-11-07 사용자 결정 시안 B: 바탕 · 판 · 글씨 = 디자인 시스템 ADMIT ONE 라이트 값, 전투 화면 · 어두운 창 = 밤 값 --night-*, 26-metro.css 끝 '밝은 객실' 절.
      이전 어두운 메트로 = src/ui/css/legacy/Metro(legacy_dark).css, 빌드 제외). 원래 머리말: 심야 노선 남색 · 보라 · 민트 노선색 · 복숭아(선택 · 확정) · 탑승권 (인게임 전용 연출은 아래 '메트로' 구획) */
-  --bg: #e9e8e4;
-  --panel: #f2f1ed;
-  --panel-2: #e1e0dc;
-  --line: #b4b3ae;
-  --c-text: #15161a;
-  --c-text-2: #4f5054;
+  --day-bg: #e9e8e4; --bg: var(--day-bg);
+  --day-panel: #f2f1ed; --panel: var(--day-panel);
+  --day-panel-2: #e1e0dc; --panel-2: var(--day-panel-2);
+  --day-line: #b4b3ae; --line: var(--day-line);
+  --day-c-text: #15161a; --c-text: var(--day-c-text);
+  --day-c-text-2: #4f5054; --c-text-2: var(--day-c-text-2);
   --c-select: #ff9b6a;                 /* 복숭아 (강조색 시안 2, 2026-11-05 채도 올림): 보라 · 민트와 어울리고, 등급색(흰 · 초록 · 파랑 · 빨강 · 보라) · 신호 주황(--mt-d)과 겹치지 않는다 */
   --c-select-ink: #1c0f08;
-  --c-good: #0e914c;
-  --c-bad: #ea3c2d;
-  --c-info: #5975ef;
-  --c-chalk: #15161a;
-  --c-chalk-ink: #f2f1ed;
-  --c-ink: rgb(242 241 237);
-  --c-brand: #7d6af0;                  /* 보라 노선 */
-  --c-credit: #d75515;         /* 크레딧 = 강조색 복숭아와 같은 값 (2026-11-06 사용자 결정 — UI.md 13번 예외로 기록) */
+  --day-c-good: #0e914c; --c-good: var(--day-c-good);
+  --day-c-bad: #ea3c2d; --c-bad: var(--day-c-bad);
+  --day-c-info: #5975ef; --c-info: var(--day-c-info);
+  --day-c-chalk: #15161a; --c-chalk: var(--day-c-chalk);
+  --day-c-chalk-ink: #f2f1ed; --c-chalk-ink: var(--day-c-chalk-ink);
+  --day-c-ink: rgb(242 241 237); --c-ink: var(--day-c-ink);
+  --day-c-brand: #7d6af0; --c-brand: var(--day-c-brand);                  /* 보라 노선 */
+  --day-c-credit: #d75515; --c-credit: var(--day-c-credit);         /* 크레딧 = 강조색 복숭아와 같은 값 (2026-11-06 사용자 결정 — UI.md 13번 예외로 기록) */
   --cell-mine: #1c1d2c;
   --cell-foe: #261b21;
   --cell-mid: #17171f;
   --cell-zoc: rgb(154 140 240 / .10);
   --cell-zoc-line: rgb(154 140 240 / .32);
-  --overlay: rgba(21, 22, 26, 0.46);
-  --tint-1: rgb(21 22 26 / .04);
-  --tint-2: rgb(21 22 26 / .08);
-  --shade-1: rgb(21 22 26 / .12);
-  --shade-2: rgb(21 22 26 / .2);
-  --shade-3: rgb(21 22 26 / .32);
+  --day-overlay: rgba(21, 22, 26, 0.46); --overlay: var(--day-overlay);
+  --day-tint-1: rgb(21 22 26 / .04); --tint-1: var(--day-tint-1);
+  --day-tint-2: rgb(21 22 26 / .08); --tint-2: var(--day-tint-2);
+  --day-shade-1: rgb(21 22 26 / .12); --shade-1: var(--day-shade-1);
+  --day-shade-2: rgb(21 22 26 / .2); --shade-2: var(--day-shade-2);
+  --day-shade-3: rgb(21 22 26 / .32); --shade-3: var(--day-shade-3);
   color-scheme: light;
   /* 메트로 전용 재료 (메트로 선택자 안에서만 쓴다): 노선색 · 열차 몸체 · 안내판 종이 · 탑승권 치수 */
   --mt-a: #9a8cf0;                     /* 보라 노선 */
@@ -215,13 +215,13 @@
   --mt-ink: #0c0d12;                   /* 열차 몸체 · 탑승권 바탕 */
   --mt-paper: #ecebe7;                 /* 역 안내판 종이 */
   --mt-on: #111216;                    /* 노선색 · 종이 위 글씨 */
-  --mt-grid: rgb(21 22 26 / .06);   /* 바탕 모눈 */
+  --day-mt-grid: rgb(21 22 26 / .06); --mt-grid: var(--day-mt-grid);   /* 바탕 모눈 */
   --mt-r: 16px;                        /* 탑승권 모서리 */
   --mt-notch: 9px;                     /* 탑승권 절취 홈 반지름 */
   --mt-r-sm: 10px;                     /* 탭 · 알림 (디자인 시스템 radius-sm) */
   --mt-r-md: 12px;                     /* 고르는 카드 · 노드 표 · 사진 창 (radius-md) */
   --mt-deep: #05060a;                  /* 누를 수 있는 것의 아래 두께 (카드) */
-  --mt-edge: #15161a; /* 카드 · 창 외곽선 (--mt-stroke 2px) — 판 바탕 대비 3:1 (2026-11-06 일상 브루탈 시안 3, 이전 30% = 2.1:1) */
+  --day-mt-edge: #15161a; --mt-edge: var(--day-mt-edge); /* 카드 · 창 외곽선 (--mt-stroke 2px) — 판 바탕 대비 3:1 (2026-11-06 일상 브루탈 시안 3, 이전 30% = 2.1:1) */
   --mt-r-panel: 4px;                   /* 담는 판 (정보 패널 · 대기석 · 항로도 · 상점 설명) — 각지게 (2026-11-06 일상 브루탈 시안 3). 누를 것 · 표는 각자 둥글기 그대로 */
   --mt-r-win: 6px;                     /* 창 (덮는 창 · 기물 전체 상세) */
   --f-body: 'IBM Plex Sans KR', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; /* 본문 = IBM Plex Sans KR (2026-11-07 사용자 결정 글꼴 시안 3 — 디자인 시스템 ADMIT ONE 본문 글꼴) */
@@ -237,12 +237,12 @@
   --mt-barcode: repeating-linear-gradient(90deg, color-mix(in srgb, var(--mt-paper) 80%, transparent) 0 3px, transparent 3px 5px, color-mix(in srgb, var(--mt-paper) 80%, transparent) 5px 6px, transparent 6px 9px,
     color-mix(in srgb, var(--mt-paper) 80%, transparent) 9px 13px, transparent 13px 14px, color-mix(in srgb, var(--mt-paper) 80%, transparent) 14px 15px, transparent 15px 19px); /* 잉크 면 위 바코드 */
   --mt-barcode-ink: repeating-linear-gradient(90deg, var(--mt-on) 0 3px, transparent 3px 5px, var(--mt-on) 5px 6px, transparent 6px 9px, var(--mt-on) 9px 13px, transparent 13px 14px, var(--mt-on) 14px 15px, transparent 15px 19px); /* 종이 표 머리 바코드 (26-metro.css .mt-hd) */
-  --mt-hover: #4f5054; /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
-  --ch-gray-r: 21; --ch-gray-g: 22; --ch-gray-b: 26;   /* 그림자색 숫자 채널 (26-metro.css 누를 것 그림자색 = 오버레이 계산식): 일반 단추 = --mt-sh (밝은 객실 = 잉크) */
+  --day-mt-hover: #4f5054; --mt-hover: var(--day-mt-hover); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
+  --day-ch-gray-r: 21; --ch-gray-r: var(--day-ch-gray-r); --day-ch-gray-g: 22; --ch-gray-g: var(--day-ch-gray-g); --day-ch-gray-b: 26; --ch-gray-b: var(--day-ch-gray-b);   /* 그림자색 숫자 채널 (26-metro.css 누를 것 그림자색 = 오버레이 계산식): 일반 단추 = --mt-sh (밝은 객실 = 잉크) */
   --ch-sel-r: 255; --ch-sel-g: 155; --ch-sel-b: 106;          /* 선택색 --c-select #ff9b6a */
-  --ch-paper-r: 21; --ch-paper-g: 22; --ch-paper-b: 26;    /* 주 동작 그림자 = --mt-sh-prim (밝은 객실 = 잉크, 밤 = 종이) */
+  --day-ch-paper-r: 21; --ch-paper-r: var(--day-ch-paper-r); --day-ch-paper-g: 22; --ch-paper-g: var(--day-ch-paper-g); --day-ch-paper-b: 26; --ch-paper-b: var(--day-ch-paper-b);    /* 주 동작 그림자 = --mt-sh-prim (밝은 객실 = 잉크, 밤 = 종이) */
   --ch-on-r: 17; --ch-on-g: 18; --ch-on-b: 22;                /* 잉크 --mt-on #111216 — 색 토큰을 바꾸면 이 숫자도 같이 (tests/css_check 가 대조) */
-  --mt-sh: #15161a; /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
+  --day-mt-sh: #15161a; --mt-sh: var(--day-mt-sh); /* 누를 것 그림자 = 잿빛 (단추 · 고르는 카드, 2026-11-06 사용자 결정: 흰색은 과하고 보라는 구별이 안 된다) — 고른 것은 선택색 */
   --mt-sh-p: var(--c-select);          /* 주 동작 그림자 = 선택색(복숭아): 모양은 일반 단추와 같고 그림자 색 하나만 다르다 — 다음 행동 = 강조색 (2026-11-06 피드백: 전투 시작 · 맵으로가 계산값까지 같았다) */
   /* 별 하늘 (2026-11-06 피드백 '별이 부족하다' → '타일 무늬보다 불규칙하게'): 큰 타일 두 장(600×400 · 470×330)에 무작위로 흩뿌린 별 — 크기 · 색(종이 · 민트 · 보라) · 밝기가 제각각,
      네 갈래 반짝이 별 몇 개. 두 타일 크기가 맞물리지 않아 되풀이가 드러나지 않는다 (scripts/mt_sky.py 로 만든 고정 그림 — 실행 중 계산 없음). 잉크 면(급행 차창 · 게이트 막대 · 잉크 패널)에 깐다 */
@@ -269,15 +269,15 @@
   --mt-fade-v-sm: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='120' viewBox='0 0 10 120' fill='none' stroke='black' stroke-linecap='round'%3E%3Cpath stroke-width='6.6' d='M1 2.5h.01M7 2.5h.01M-2 5.5h.01M4 5.5h.01M10 5.5h.01'/%3E%3Cpath stroke-width='6.4' d='M1 8.5h.01M7 8.5h.01'/%3E%3Cpath stroke-width='6.2' d='M-2 11.5h.01M4 11.5h.01M10 11.5h.01'/%3E%3Cpath stroke-width='6' d='M1 14.5h.01M7 14.5h.01'/%3E%3Cpath stroke-width='5.8' d='M-2 17.5h.01M4 17.5h.01M10 17.5h.01'/%3E%3Cpath stroke-width='5.6' d='M1 20.5h.01M7 20.5h.01M-2 23.5h.01M4 23.5h.01M10 23.5h.01'/%3E%3Cpath stroke-width='5.4' d='M1 26.5h.01M7 26.5h.01'/%3E%3Cpath stroke-width='5.2' d='M-2 29.5h.01M4 29.5h.01M10 29.5h.01'/%3E%3Cpath stroke-width='5' d='M1 32.5h.01M7 32.5h.01'/%3E%3Cpath stroke-width='4.8' d='M-2 35.5h.01M4 35.5h.01M10 35.5h.01M1 38.5h.01M7 38.5h.01'/%3E%3Cpath stroke-width='4.6' d='M-2 41.5h.01M4 41.5h.01M10 41.5h.01'/%3E%3Cpath stroke-width='4.4' d='M1 44.5h.01M7 44.5h.01'/%3E%3Cpath stroke-width='4.2' d='M-2 47.5h.01M4 47.5h.01M10 47.5h.01'/%3E%3Cpath stroke-width='4' d='M1 50.5h.01M7 50.5h.01M-2 53.5h.01M4 53.5h.01M10 53.5h.01'/%3E%3Cpath stroke-width='3.8' d='M1 56.5h.01M7 56.5h.01'/%3E%3Cpath stroke-width='3.6' d='M-2 59.5h.01M4 59.5h.01M10 59.5h.01'/%3E%3Cpath stroke-width='3.4' d='M1 62.5h.01M7 62.5h.01'/%3E%3Cpath stroke-width='3.2' d='M-2 65.5h.01M4 65.5h.01M10 65.5h.01M1 68.5h.01M7 68.5h.01'/%3E%3Cpath stroke-width='3' d='M-2 71.5h.01M4 71.5h.01M10 71.5h.01'/%3E%3Cpath stroke-width='2.8' d='M1 74.5h.01M7 74.5h.01'/%3E%3Cpath stroke-width='2.6' d='M-2 77.5h.01M4 77.5h.01M10 77.5h.01'/%3E%3Cpath stroke-width='2.4' d='M1 80.5h.01M7 80.5h.01M-2 83.5h.01M4 83.5h.01M10 83.5h.01'/%3E%3Cpath stroke-width='2.2' d='M1 86.5h.01M7 86.5h.01'/%3E%3Cpath stroke-width='2' d='M-2 89.5h.01M4 89.5h.01M10 89.5h.01'/%3E%3Cpath stroke-width='1.8' d='M1 92.5h.01M7 92.5h.01'/%3E%3Cpath stroke-width='1.6' d='M-2 95.5h.01M4 95.5h.01M10 95.5h.01M1 98.5h.01M7 98.5h.01'/%3E%3Cpath stroke-width='1.4' d='M-2 101.5h.01M4 101.5h.01M10 101.5h.01'/%3E%3Cpath stroke-width='1.2' d='M1 104.5h.01M7 104.5h.01'/%3E%3Cpath stroke-width='1' d='M-2 107.5h.01M4 107.5h.01M10 107.5h.01'/%3E%3C/svg%3E"); /* 짧은 망점 띠 (팝오버 그림자 판 — --mt-fade-v 와 같은 점 배열, 길이 120px) */
   --mt-fade-h-sm: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='10' viewBox='0 0 120 10' fill='none' stroke='black' stroke-linecap='round'%3E%3Cpath stroke-width='6.8' d='M-2 2.5h.01M-2 8.5h.01M1 -0.5h.01M1 5.5h.01M1 11.5h.01'/%3E%3Cpath stroke-width='6.6' d='M4 2.5h.01M4 8.5h.01'/%3E%3Cpath stroke-width='6.4' d='M7 -0.5h.01M7 5.5h.01M7 11.5h.01'/%3E%3Cpath stroke-width='6.2' d='M10 2.5h.01M10 8.5h.01M13 -0.5h.01M13 5.5h.01M13 11.5h.01'/%3E%3Cpath stroke-width='6' d='M16 2.5h.01M16 8.5h.01'/%3E%3Cpath stroke-width='5.8' d='M19 -0.5h.01M19 5.5h.01M19 11.5h.01'/%3E%3Cpath stroke-width='5.6' d='M22 2.5h.01M22 8.5h.01'/%3E%3Cpath stroke-width='5.4' d='M25 -0.5h.01M25 5.5h.01M25 11.5h.01'/%3E%3Cpath stroke-width='5.2' d='M28 2.5h.01M28 8.5h.01M31 -0.5h.01M31 5.5h.01M31 11.5h.01'/%3E%3Cpath stroke-width='5' d='M34 2.5h.01M34 8.5h.01'/%3E%3Cpath stroke-width='4.8' d='M37 -0.5h.01M37 5.5h.01M37 11.5h.01'/%3E%3Cpath stroke-width='4.6' d='M40 2.5h.01M40 8.5h.01'/%3E%3Cpath stroke-width='4.4' d='M43 -0.5h.01M43 5.5h.01M43 11.5h.01M46 2.5h.01M46 8.5h.01'/%3E%3Cpath stroke-width='4.2' d='M49 -0.5h.01M49 5.5h.01M49 11.5h.01'/%3E%3Cpath stroke-width='4' d='M52 2.5h.01M52 8.5h.01'/%3E%3Cpath stroke-width='3.8' d='M55 -0.5h.01M55 5.5h.01M55 11.5h.01'/%3E%3Cpath stroke-width='3.6' d='M58 2.5h.01M58 8.5h.01M61 -0.5h.01M61 5.5h.01M61 11.5h.01'/%3E%3Cpath stroke-width='3.4' d='M64 2.5h.01M64 8.5h.01'/%3E%3Cpath stroke-width='3.2' d='M67 -0.5h.01M67 5.5h.01M67 11.5h.01'/%3E%3Cpath stroke-width='3' d='M70 2.5h.01M70 8.5h.01'/%3E%3Cpath stroke-width='2.8' d='M73 -0.5h.01M73 5.5h.01M73 11.5h.01M76 2.5h.01M76 8.5h.01'/%3E%3Cpath stroke-width='2.6' d='M79 -0.5h.01M79 5.5h.01M79 11.5h.01'/%3E%3Cpath stroke-width='2.4' d='M82 2.5h.01M82 8.5h.01'/%3E%3Cpath stroke-width='2.2' d='M85 -0.5h.01M85 5.5h.01M85 11.5h.01'/%3E%3Cpath stroke-width='2' d='M88 2.5h.01M88 8.5h.01M91 -0.5h.01M91 5.5h.01M91 11.5h.01'/%3E%3Cpath stroke-width='1.8' d='M94 2.5h.01M94 8.5h.01'/%3E%3Cpath stroke-width='1.6' d='M97 -0.5h.01M97 5.5h.01M97 11.5h.01'/%3E%3Cpath stroke-width='1.4' d='M100 2.5h.01M100 8.5h.01'/%3E%3Cpath stroke-width='1.2' d='M103 -0.5h.01M103 5.5h.01M103 11.5h.01M106 2.5h.01M106 8.5h.01'/%3E%3C/svg%3E");
   --mt-plate-sm: var(--mt-fade-v-sm) right bottom / 10px 120px no-repeat, var(--mt-fade-h-sm) right bottom / 120px 10px no-repeat, linear-gradient(var(--c-black), var(--c-black)) top / 100% calc(100% - 120px) no-repeat, linear-gradient(var(--c-black), var(--c-black)) left / calc(100% - 120px) 100% no-repeat; /* 공통 그림자 판 마스크 (짧은 띠 — 팝오버): 오른쪽 · 아래 가장자리가 우하단 끝 120px 에서 망점으로 옅어진다 */
-  --mt-planet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23d8fff2'/%3E%3Cstop offset='.5' stop-color='%237fd3bd'/%3E%3Cstop offset='1' stop-color='%239a8cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cellipse cx='14' cy='11' rx='13' ry='4' fill='none' stroke='%2315161a' stroke-width='1.6' transform='rotate%28-14 14 11%29'/%3E%3Ccircle cx='14' cy='10' r='7' fill='url%28%23g%29' stroke='%2315161a' stroke-width='1.6'/%3E%3Cpath d='M1.6 13.6Q14 9 26.4 8.4' fill='none' stroke='%2315161a' stroke-width='1.6' transform='rotate%28-14 14 11%29'/%3E%3C/svg%3E"); /* 구획 제목 표식 = 고리 행성 (2026-11-07 사용자 결정 Y2K 시안 3 — 민트 → 보라 행성 · 잉크 윤곽 · 기울어진 고리) */
+  --mt-planet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='.12' stop-color='%237fd3bd'/%3E%3Cstop offset='.88' stop-color='%239a8cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cellipse cx='14' cy='11' rx='13' ry='4' fill='none' stroke='%2315161a' stroke-width='1.6' transform='rotate%28-14 14 11%29'/%3E%3Ccircle cx='14' cy='10' r='7' fill='url%28%23g%29' stroke='%2315161a' stroke-width='1.6'/%3E%3Cpath d='M1.6 13.6Q14 9 26.4 8.4' fill='none' stroke='%2315161a' stroke-width='1.6' transform='rotate%28-14 14 11%29'/%3E%3C/svg%3E"); /* 구획 제목 표식 = 고리 행성 (2026-11-07 사용자 결정 Y2K 시안 3 — 민트 → 보라 그라디언트 행성(같은 날 민트 쪽으로 치우친 밝은 민트를 빼고 두 색을 고르게) · 잉크 윤곽 · 기울어진 고리) */
   /* 장비 · 소모품 · 성유물 토큰 채움색 (2026-11-07 사용자 결정 — 등급색 면 + 잉크 테두리, 26-metro.css '장비 토큰'): 밝은 객실 · 밤 구분 없이 고정 — 어느 창에서나 같은 토큰 */
   --it-C: #d9d7d0; --it-G: #63d297; --it-A: #6cb6ff; --it-L: #ff6b8b; --it-U: #d58cff; --it-S: #b3aeff; --it-T: #7fd0ee; --it-M: #c39bff; --it-R: #ffd34d; --it-edge: #15161a; --it-ink: #15161a;
   --it-sky: #8fd7ff; /* 고유 그라디언트 끝 (지금 색 → 하늘) */
   --it-dots: radial-gradient(circle, var(--c-black) 1.1px, transparent 1.55px) 0 0 / 4px 4px; /* 토큰 망점 마스크 (좌상단 흰 망점 · 우하단 밝은 망점) */
   --it-shine: linear-gradient(112deg, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / .92) 46%, rgb(160 232 255 / .75) 50%, rgb(255 180 232 / .65) 54%, rgb(255 255 255 / 0) 64%) 100% 0 / 300% 100% no-repeat; /* 전설 · 고유 홀로 반짝임 띠 */
   /* ── 밝은 객실 (2026-11-07 시안 B): 기본 테마의 등급 · 속성 · 상태색을 밝은 바탕에서 읽히게 — 강조색은 다크 쪽 색조 · 높은 채도로 바탕 대비 3.3:1 (사용자 요청 '조금 더 밝고 선명하게') */
-  --c-divine: #9f7904; --c-occult: #a159ef; --c-psi: #985eef; --c-ult: #1680e1; --c-steel: #698199; --fame: #e81bac; --staff: #927c44; --el-phys: #897c6e; --el-chem: #4a8e0e; --el-elec: #1288b2; --el-psy: #b24eed; --el-holy: #a07804; --el-true: #eb3939; --g-C: #9c9a93; --g-G: #0e914c; --g-A: #177fe5; --g-L: #eb3462; --g-U: #b34ded; --g-T: #1386bf; --g-S: #736df1; --st-buff: #1582d5; --st-buff-ink: #1581d9; --st-debuff: #eb3939; --st-debuff-ink: #eb3939; --c-down: #eb3b31; --c-res: #1288b5; --c-warn-ink: #ae7200; --c-ok-ink: #0e9151; --c-danger-ink: #eb3b31; --c-danger-line: #ea3c2e; --c-streak: #cc5e11; --c-lo: #eb374c; --cat-bio: #37910e; --cat-mech: #177fe4; --cat-struct: #8f7c54; --c-type: #3a3029; --st-chip: #f2f1ed; --c-danger-bg: #e7a79d; --data-mix: 60%; --op-lift: .15;
-  --mt-sh-prim: #15161a;               /* 주 동작 그림자색 (밝은 객실 = 잉크 · 밤 = 종이) — --ch-paper-* 숫자 채널과 같은 값 */
+  --day-c-divine: #9f7904; --c-divine: var(--day-c-divine); --day-c-occult: #a159ef; --c-occult: var(--day-c-occult); --day-c-psi: #985eef; --c-psi: var(--day-c-psi); --day-c-ult: #1680e1; --c-ult: var(--day-c-ult); --day-c-steel: #698199; --c-steel: var(--day-c-steel); --day-fame: #e81bac; --fame: var(--day-fame); --day-staff: #927c44; --staff: var(--day-staff); --day-el-phys: #897c6e; --el-phys: var(--day-el-phys); --day-el-chem: #4a8e0e; --el-chem: var(--day-el-chem); --day-el-elec: #1288b2; --el-elec: var(--day-el-elec); --day-el-psy: #b24eed; --el-psy: var(--day-el-psy); --day-el-holy: #a07804; --el-holy: var(--day-el-holy); --day-el-true: #eb3939; --el-true: var(--day-el-true); --g-C: #9c9a93; --g-G: #0e914c; --g-A: #177fe5; --g-L: #eb3462; --g-U: #b34ded; --g-T: #1386bf; --g-S: #736df1; --day-st-buff: #1582d5; --st-buff: var(--day-st-buff); --day-st-buff-ink: #1581d9; --st-buff-ink: var(--day-st-buff-ink); --day-st-debuff: #eb3939; --st-debuff: var(--day-st-debuff); --day-st-debuff-ink: #eb3939; --st-debuff-ink: var(--day-st-debuff-ink); --day-c-down: #eb3b31; --c-down: var(--day-c-down); --day-c-res: #1288b5; --c-res: var(--day-c-res); --day-c-warn-ink: #ae7200; --c-warn-ink: var(--day-c-warn-ink); --day-c-ok-ink: #0e9151; --c-ok-ink: var(--day-c-ok-ink); --day-c-danger-ink: #eb3b31; --c-danger-ink: var(--day-c-danger-ink); --day-c-danger-line: #ea3c2e; --c-danger-line: var(--day-c-danger-line); --day-c-streak: #cc5e11; --c-streak: var(--day-c-streak); --day-c-lo: #eb374c; --c-lo: var(--day-c-lo); --day-cat-bio: #37910e; --cat-bio: var(--day-cat-bio); --day-cat-mech: #177fe4; --cat-mech: var(--day-cat-mech); --day-cat-struct: #8f7c54; --cat-struct: var(--day-cat-struct); --day-c-type: #3a3029; --c-type: var(--day-c-type); --day-st-chip: #f2f1ed; --st-chip: var(--day-st-chip); --day-c-danger-bg: #e7a79d; --c-danger-bg: var(--day-c-danger-bg); --day-data-mix: 60%; --data-mix: var(--day-data-mix); --day-op-lift: .15; --op-lift: var(--day-op-lift);
+  --day-mt-sh-prim: #15161a; --mt-sh-prim: var(--day-mt-sh-prim);               /* 주 동작 그림자색 (밝은 객실 = 잉크 · 밤 = 종이) — --ch-paper-* 숫자 채널과 같은 값 */
   --k-ink: #15161a; --k-paper: #ecebe7; /* 극성 뒤집기 상수 (지금 칸 표 = 잉크 면 · 선택 탭) — 같은 요소에서 --mt-paper 와 --mt-on 을 서로 바꿀 때 순환 참조를 피한다 */
   /* ── 밤 값 (전투 화면 · 어두운 창, 26-metro.css '밝은 객실' 절이 표준 이름에 다시 건다): 이전 어두운 메트로 값 */
   --night-bg: #111218; --night-panel: #191a22; --night-panel-2: #22232e; --night-line: #333546; --night-c-text: #ecebe7; --night-c-text-2: #9897a8; --night-c-good: #63d297; --night-c-bad: #ff6b5e; --night-c-info: #8fa4ff; --night-c-chalk: #f0f2f6; --night-c-chalk-ink: #12151c; --night-c-ink: rgb(9 9 14); --night-c-brand: #9a8cf0; --night-c-credit: var(--c-select); --night-overlay: rgba(8, 8, 13, 0.8); --night-tint-1: rgb(255 255 255 / .03); --night-tint-2: rgb(255 255 255 / .06); --night-shade-1: rgb(0 0 0 / .35); --night-shade-2: rgb(0 0 0 / .55); --night-shade-3: rgb(0 0 0 / .8); --night-mt-grid: rgb(236 235 231 / .04); --night-mt-edge: color-mix(in srgb, #ecebe7 42%, #0c0d12); --night-mt-sh: #4f5052; --night-c-divine: #ffd34d; --night-c-occult: #c38cff; --night-c-psi: #b07cff; --night-c-ult: #4aa8ff; --night-c-steel: #a0b4c8; --night-fame: #ff9de2; --night-staff: #c9b37a; --night-el-phys: #eceae4; --night-el-chem: #9be15d; --night-el-elec: #62d6ff; --night-el-psy: #d48cff; --night-el-holy: #ffd866; --night-el-true: #ff7a7a; --night-g-C: #eef0f4; --night-g-G: #63d297; --night-g-A: #6cb6ff; --night-g-L: #ff4f7b; --night-g-U: #d58cff; --night-g-T: #9fd0e8; --night-g-S: #aaa6ff; --night-st-buff: #5ab8ff; --night-st-buff-ink: #9fd4ff; --night-st-debuff: #ff6a6a; --night-st-debuff-ink: #ff9a9a; --night-c-down: #ff7a7a; --night-c-res: #9ad0ff; --night-c-warn-ink: #ffcf7a; --night-c-ok-ink: #9fe0a0; --night-c-danger-ink: #ff8a8a; --night-c-danger-line: #ff6a6a; --night-c-streak: #ff8a3c; --night-c-lo: #ff8a9a; --night-cat-bio: #8fdc7a; --night-cat-mech: #8fc8ff; --night-cat-struct: #d8c9a8; --night-c-type: #cfcabe; --night-st-chip: #14161d; --night-c-danger-bg: #b03030; --night-data-mix: 100%; --night-op-lift: 0;
@@ -6730,13 +6730,14 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .rs-grid > section + section { border-left: var(--mt-stroke) solid var(--mt-edge); } /* 칸 구분 = 실선 (점선은 절취선만 — UI.md 36) */
 [data-ui-theme="metro"] .rs-grid h3 { color: var(--c-text-2); font: 700 var(--fs-sm)/1.4 var(--f-body); letter-spacing: .02em; }
 /* MVP = 플레이트 */
-[data-ui-theme="metro"] .rs-grid > .rs-mvp { margin: 14px 0 14px 14px; padding: 0 0 46px; overflow: hidden; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--mt-ink); }
+[data-ui-theme="metro"] .rs-grid > .rs-mvp { margin: 14px 0 14px 14px; padding: 0 0 46px; overflow: hidden; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); } /* 밝은 섬(결과 창 화이트톤): 종이 판 — 그림 창만 어둡고 아래로 종이에 스며든다 */
 [data-ui-theme="metro"] .rs-mvp::after { content: attr(data-k); position: absolute; left: 0; right: 0; bottom: 0; height: 36px; display: flex; align-items: center; padding-left: 74px; background: linear-gradient(100deg, var(--mt-b), var(--mt-a)); color: var(--mt-on);
   font: 400 var(--fs-md)/1 var(--f-display); letter-spacing: .08em; }
 [data-ui-theme="metro"] .rs.lose .rs-mvp::after { background: linear-gradient(100deg, var(--mt-c), var(--mt-d)); } /* 패배: MVP 파일 띠도 패배 색 */
 [data-ui-theme="metro"] .rs-mvp::before { content: ''; position: absolute; left: 14px; bottom: 10px; z-index: var(--z-raise); width: 48px; height: 16px; background: repeating-linear-gradient(90deg, var(--mt-on) 0 2px, transparent 2px 3px, var(--mt-on) 3px 4px, transparent 4px 7px, var(--mt-on) 7px 10px, transparent 10px 11px); }
 [data-ui-theme="metro"] .rs-mvp-art { margin: 10px 10px 0; border-radius: var(--mt-r-md); background: radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--mt-a) 45%, transparent) 0 30%, transparent 30.4%), color-mix(in srgb, var(--mt-a) 10%, var(--mt-ink)); }
-[data-ui-theme="metro"] .rs-mvp-art::after { background: linear-gradient(transparent, var(--mt-ink)); }
+[data-ui-theme="metro"] .rs-mvp-art::after { background: linear-gradient(transparent, var(--panel)); }
+[data-ui-theme="metro"] .rs-mvp-tag em { color: var(--mt-paper); } /* 그림 창(어두운 면) 위 칭호 = 종이색 */
 [data-ui-theme="metro"] .rs-mvp-tag { top: 20px; left: 20px; }
 [data-ui-theme="metro"] .rs-crown { background: var(--mt-paper); color: var(--mt-on); font-family: var(--f-mono); } [data-ui-theme="metro"] .rs-crown.ko { font-family: var(--f-body); letter-spacing: .02em; } /* 패배 = '분투' (한글은 본문 글꼴) */
 [data-ui-theme="metro"] .rs-mvp-name b { font-family: var(--f-display); font-weight: 400; }
@@ -7243,8 +7244,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .detail.pb .pb-head h3::before { background: var(--mt-on); }
 [data-ui-theme="metro"] .detail.pb .pb-head .muted { color: color-mix(in srgb, var(--mt-on) 72%, transparent); }
 [data-ui-theme="metro"] .detail.pb .pb-head .pb-kind { border-color: color-mix(in srgb, var(--mt-on) 55%, transparent); background: transparent; color: var(--mt-on); }
-[data-ui-theme="metro"] .pb-rows { gap: 0; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
-[data-ui-theme="metro"] .pb-row { padding: 6px 2px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); border-radius: 0; background: none; }
+[data-ui-theme="metro"] .pb-rows { gap: 0; border-top: 0; }
+[data-ui-theme="metro"] .pb-row { padding: 5px 2px; border: 0; border-radius: 0; background: none; } /* 줄 사이 구분선 없음 — 구획은 소제목이 나눈다 (2026-11-07 사용자 요청) */
 [data-ui-theme="metro"] .pb-ri { border: 1.5px solid color-mix(in srgb, var(--c, var(--mt-edge)) 55%, var(--mt-edge)); border-radius: var(--r-sm); background: var(--mt-ink); } /* 상성 · 공격 속성 아이콘 = 각진 칸 4px */
 [data-ui-theme="metro"] :is(.pb-foe, .pb-row) :is(.tchip, .rank) { border-width: 1.5px; border-radius: var(--r-sm); } /* 칩 = 태그 둥글기 4px (디자인 시스템 radius-xs) */
 /* 적 토큰 = 쿠폰 줄 (디자인 시스템 Stub — 값이 짝을 이루는 목록, 2026-11-06 사용자 결정 · 일상 브루탈 시안 A 4): [초상 | 가는 실선 | 이름 · 칩 | 세로 절취선 + 위아래 홈 | 뜯는 칸 = 인원].
@@ -7346,7 +7347,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
    + 제목 뒤 남은 폭을 흐르는 보라 → 민트 궤도선. 정보 화면 · 기물 전체 상세 · 메뉴 · 도감이 같은 부품 (위 네 곳의 네모 규칙을 한꺼번에 덮는다, 이번 전투 종이 머리 제외) */
 [data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3)) { font-size: var(--fs-xl); }
 [data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::before { width: 26px; height: 19px; background: var(--mt-planet) center / contain no-repeat; }
-[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::after { content: ''; flex: 1 1 24px; height: 1.5px; margin-left: 4px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--mt-a), var(--mt-b) 60%, transparent); }
+[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::after { content: ''; flex: 1 1 24px; height: 1.5px; margin-left: 4px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--mt-a), var(--mt-b)); } /* 궤도선 = 보라 → 민트, 오른쪽 끝까지 흐려지지 않는다 (2026-11-07 사용자 요청) */
 /* 툴팁 · 팝오버 = 디자인 시스템 Tip: 잉크 판 · 1.5px 윤곽 · 작은 둥글기, 번지는 그림자 · 글로우 없음 (같은 색 화면 위에서는 잉크 고리로 떼어 놓는다) */
 [data-ui-theme="metro"] :is(.kw-tip, .item-tip, .tl-pop, .stat-pop, .ask-pop) { border-width: 1.5px; border-radius: var(--mt-r-sm); background: var(--panel); box-shadow: none; } /* 흰 면 (2026-11-07 사용자 피드백 — 시너지 상세가 잉크 판에 잉크 글씨였다) */
 [data-ui-theme="metro"] .tl-pop { background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); } /* 칸 말풍선 = 어두운 창 (밤 글씨) */
@@ -7705,6 +7706,13 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   color-scheme: dark; }
 [data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) { color: var(--c-text); } /* 어두운 창 안 글씨 = 밤 글씨 (바탕이 밝은 객실 글씨를 물려주지 않게) */
 [data-ui-theme="metro"] .so-npc { background: var(--bg); }
+/* 밝은 섬: 전투 결과 창(전투 완료 보고서, app/battle.ts summaryModal) = 밝은 종이 (2026-11-07 사용자 결정 '화이트톤'). 전투 화면은 통째로 밤 값이라
+   이 창에만 밝은 값(01-themes.css --day-*)을 되돌려 걸고, 다른 토큰에서 계산되는 토큰도 다시 푼다 (밤 구역과 같은 이유) */
+[data-ui-theme="metro"] .modal.result.rs {
+  --bg: var(--day-bg); --panel: var(--day-panel); --panel-2: var(--day-panel-2); --line: var(--day-line); --c-text: var(--day-c-text); --c-text-2: var(--day-c-text-2); --c-good: var(--day-c-good); --c-bad: var(--day-c-bad); --c-info: var(--day-c-info); --c-chalk: var(--day-c-chalk); --c-chalk-ink: var(--day-c-chalk-ink); --c-ink: var(--day-c-ink); --c-brand: var(--day-c-brand); --c-credit: var(--day-c-credit); --overlay: var(--day-overlay); --tint-1: var(--day-tint-1); --tint-2: var(--day-tint-2); --shade-1: var(--day-shade-1); --shade-2: var(--day-shade-2); --shade-3: var(--day-shade-3); --mt-grid: var(--day-mt-grid); --mt-edge: var(--day-mt-edge); --mt-sh: var(--day-mt-sh); --c-divine: var(--day-c-divine); --c-occult: var(--day-c-occult); --c-psi: var(--day-c-psi); --c-ult: var(--day-c-ult); --c-steel: var(--day-c-steel); --fame: var(--day-fame); --staff: var(--day-staff); --el-phys: var(--day-el-phys); --el-chem: var(--day-el-chem); --el-elec: var(--day-el-elec); --el-psy: var(--day-el-psy); --el-holy: var(--day-el-holy); --el-true: var(--day-el-true); --st-buff: var(--day-st-buff); --st-buff-ink: var(--day-st-buff-ink); --st-debuff: var(--day-st-debuff); --st-debuff-ink: var(--day-st-debuff-ink); --c-down: var(--day-c-down); --c-res: var(--day-c-res); --c-warn-ink: var(--day-c-warn-ink); --c-ok-ink: var(--day-c-ok-ink); --c-danger-ink: var(--day-c-danger-ink); --c-danger-line: var(--day-c-danger-line); --c-streak: var(--day-c-streak); --c-lo: var(--day-c-lo); --cat-bio: var(--day-cat-bio); --cat-mech: var(--day-cat-mech); --cat-struct: var(--day-cat-struct); --c-type: var(--day-c-type); --st-chip: var(--day-st-chip); --c-danger-bg: var(--day-c-danger-bg); --data-mix: var(--day-data-mix); --op-lift: var(--day-op-lift); --mt-sh-prim: var(--day-mt-sh-prim); --ch-gray-r: var(--day-ch-gray-r); --ch-gray-g: var(--day-ch-gray-g); --ch-gray-b: var(--day-ch-gray-b); --ch-paper-r: var(--day-ch-paper-r); --ch-paper-g: var(--day-ch-paper-g); --ch-paper-b: var(--day-ch-paper-b); --mt-hover: var(--day-mt-hover);
+  --edge: var(--mt-edge); --sh-press: var(--mt-sh); --mt-sh-pass: var(--sh-press); --mt-d: var(--c-bad); --sh-bg: var(--panel);
+  --line-soft: color-mix(in srgb, var(--line) 65%, transparent); --shield: var(--c-text); --shadow-pop: 0 10px 26px var(--shade-2); --fg: var(--c-text); --dim: var(--c-text-2); --muted: var(--c-text-2);
+  color-scheme: light; color: var(--c-text); }
 [data-ui-theme="metro"]:not(:has(main.battle)) .board-wrap, [data-ui-theme="metro"]:not(:has(main.battle)) .board { background: var(--bg); border-radius: var(--r-panel); } /* 전투판은 창: 판 둘레의 흐린 칸이 종이 바탕을 비추지 않게 판 뒤를 어둡게 */
 /* 강조색 복숭아는 면에만 — 종이 위 글씨 · 숫자는 크레딧색(짙은 복숭아, 디자인 시스템 accent-text 와 같은 구분) */
 [data-ui-theme="metro"]:not(:has(main.battle)) :is(.boss-goal b, .top .stat-row .cr, .pk-v) { color: var(--c-credit); }
