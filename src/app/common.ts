@@ -175,7 +175,7 @@ export function topbar() {
     <div class="brand"><span class="brand-gx">ERRANTEs</span><span class="brand-mt"><span class="a">INFINITE</span><span class="b">METRO</span><span class="c">Express</span></span></div>
     <div class="top-chips">
     <div class="stat-row">
-      ${r.campaign ? `<span class="pill" title="장 · 노드"><b>${r.campaign.ch}</b>장 · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>` : `<span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>`}
+      ${r.campaign ? `<span class="pill ph" title="장 · 노드"><b>${r.campaign.ch}</b><span class="pk">장</span> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>` : `<span class="pill ph" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>`}
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <button class="pill cr" data-a="interest-info" title="${esc(`에너지 크레딧 ${r.credits}\n${it.tip}`)}">${CR}<b>${r.credits}</b>${r.over ? '' : `<span class="cr-int${it.i.interest ? '' : ' zero'}${it.i.raw >= it.i.cap ? ' max' : ''}">+${it.i.interest}<span class="cr-int-tx"> 이자</span></span>`}</button>
       ${CTR.contractPill(r)}${despairPill(r)}${OATH.oathPill(r)}${kingPill(r)}

@@ -1043,6 +1043,11 @@
 /* HUD · 메뉴 · 설정 */
 [data-ui-theme="metro"] .top .pill { font-variant-numeric: tabular-nums; }
 [data-ui-theme="metro"] :is(.top .pill, .board-head .pill, .sb-cost) { font-family: var(--f-num); } /* 값 숫자 = Archivo 좁은 폭 (한글은 본문 글꼴) */
+/* 숫자 칩 · 비용은 2단계 크게 (2026-11-07 사용자 피드백: 좁은 숫자 글꼴은 같은 크기의 본문 글자보다 좁고 작아 보인다 — 함대 확장 · 지정 소집 비용 등).
+   13px → 16 (페이즈 · 체력 · 출전) · 14px → 18 (크레딧 · 전술 위력 · 비용). 칩 안 한글 라벨(.pk · 이자)은 본문 크기 그대로 */
+[data-ui-theme="metro"] :is(.top .pill:is(.ph, .hp), .board-head .dep-pill) { font-size: var(--fs-lg); }
+[data-ui-theme="metro"] :is(.top .pill.cr, .board-head .pill.tac-pill, .sb-cost) { font-size: var(--fs-xl); }
+[data-ui-theme="metro"] :is(.top .pill, .board-head .pill, .sb-cost) :is(.pk, .cr-int-tx) { font-size: var(--fs-sm); }
 [data-ui-theme="metro"] .slot { border-radius: 0; background: none; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); padding-inline: 2px; }
 [data-ui-theme="metro"] .pref { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-sm); }
 [data-ui-theme="metro"] .modal input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; margin: 2px 0 0; cursor: pointer;

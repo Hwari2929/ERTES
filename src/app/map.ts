@@ -154,7 +154,7 @@ export function shipPanel(run: RunState, extra = '') {
     <button class="ship-btn" data-a="fleet" ${fc === null || run.credits < fc || busy ? 'disabled' : ''}${busy ? ` title="${esc(run.node ? '진행 중인 칸을 끝낸 뒤' : '진행 중인 선택을 먼저 끝내세요')}"` : ''}>
       <span class="sb-ic">${NODE_ICON.supply}</span><b>함대 확장</b>
       <span class="small muted">출전 인원 ${R.deployCap(run)} → ${fc === null ? '최대' : R.deployCap(run) + 1}명</span>
-      <span class="sb-cost">${fc === null ? '최대 규모' : `${CR}${fc}`}</span></button>
+      <span class="sb-cost">${fc === null ? '<span class="pk">최대 규모</span>' : `${CR}${fc}`}</span></button>
     <div class="ship-cell">${SHOP.adHtml(run)}<button class="ship-btn" data-a="muster-open" ${mBlock ? `disabled title="${esc(mBlock)}"` : ''}>
       <span class="sb-ic">${NODE_ICON.recruit}</span><b>지정 소집</b>
       <span class="small muted">${mSub}</span>

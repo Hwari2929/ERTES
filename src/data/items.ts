@@ -343,7 +343,7 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
   K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (셰프 ${SYN_BY_ID.CHEF?.tiers[CFG.chef.noStaleTier - 1] ?? ''}명 이상이 켜진 전투는 세지 않음). 셰프들이 남는 시간에 구워 둔 빵.`; } },
   // 캠페인 「회수 계약」 소모품 (캠페인 상점 · 전투 보상에만 나온다). 테이프는 캠페인 사건 전용
   K_cp_purge: { name: '정화 분무기', icon: '❉', target: 'run', price: 0, drop: true, desc: '바로 사용: 다음 전투 동안 아군 전원이 받는 화학 피해 -40%. 포자 안개를 걷어 내는 페트라 격리팀 표준 장비.' },
-  K_cp_note: { name: '선지급 어음', icon: '✎', target: 'run', price: 0, drop: true, desc: '바로 사용: 크레딧 +15. 이번 페이즈가 끝날 때 (캠페인은 장이 끝날 때) -20 (라르스 서명, 이자 포함).' },
+  K_cp_note: { name: '선지급 어음', icon: '✎', target: 'run', price: 0, drop: true, desc: '바로 사용: 크레딧 +15. 장이 끝날 때 -20 (라르스 서명, 이자 포함).' },
   K_cp_tape: { name: '격리 봉인 테이프', icon: '▤', target: 'run', price: 0, drop: true, desc: '격리 화물 사건에서 쓴다: 위험한 화물을 열어도 위험은 봉인하고 보상만 챙긴다. 직접 사용할 수는 없다.' },
   K_bread_stale: { name: '식은 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText(true)}). 갓 구운 빵이 전투 ${CFG.chef.staleAfter}회를 지나 식었다. 회복량 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}.`; } },
   // 편성 화면 배치 소모품 (data/devices.ts): 칸에 끌어다 놓거나 적 · 아군에게 지정하고, 전투가 시작되면 작동한다. 전투 전에는 탭해서 회수
