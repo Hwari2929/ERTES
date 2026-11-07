@@ -1189,12 +1189,10 @@
 [data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::after { background: linear-gradient(135deg, transparent 0, var(--hc, var(--it-C)) 58%), radial-gradient(circle, color-mix(in srgb, var(--c-white) 54%, transparent) 1.1px, transparent 1.55px) 0 0 / 4px 4px, var(--hc, var(--it-C)); }
 [data-ui-theme="metro"] .item.tM:not(.empty, .mn-hd .item, .u .item)::before { border: var(--mt-stroke) solid var(--it-edge); background: linear-gradient(90deg, transparent 0, var(--sc, var(--it-M)) 58%), radial-gradient(circle, color-mix(in srgb, var(--c-white) 54%, transparent) 1.1px, transparent 1.55px) 0 0 / 4px 4px, var(--sc, var(--it-M)); }
 [data-ui-theme="metro"] .item.tM.empty:not(.mn-hd .item, .u .item)::before { border-style: dashed; border-color: var(--line); background: transparent; }
-/* 크기: 개조부품 마름모 = 25% · 소모품 육각 = 15% 크게 — 칸(자리 · 간격)은 그대로 두고 모양 · 아이콘만 칸 밖으로 키운다 (2026-11-07 사용자 결정) */
+/* 크기: 개조부품 마름모 = 25% · 소모품 육각 = 15% 크게 — 칸(자리 · 간격)은 그대로 두고 모양만 칸 밖으로 키운다. 아이콘 크기 · 굵기는 그대로 (2026-11-07 사용자 결정) */
 [data-ui-theme="metro"] .item.tM:not(.mn-hd .item, .u .item)::before { inset: 5%; } /* 기본 14% → 대각선 1.25배 */
 [data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::before { inset: -7.5%; }
 [data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::after { inset: calc(-7.5% + 1.5px); }
-[data-ui-theme="metro"] .item.tM:not(.mn-hd .item, .u .item) > .ii { scale: 1.25; }
-[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item) > .ii { scale: 1.15; }
 /* 반짝임 (전설 · 고유) */
 [data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item)::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: var(--it-shine); animation: it-sweep 8s linear infinite; }
 [data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item)::before { animation: it-tl 8s linear infinite; }
