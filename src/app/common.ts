@@ -35,6 +35,16 @@ export function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
   return `<span class="chip" style="--c:${s.color}">${synIcon(id) || s.icon} ${esc(s.name)}</span>`;
 }
+/** 상점 진열 예상 (분기점 창 문구 · 지도 노드 표 '등장 상품' 칩 공용 — 같은 계산 하나): 이름 · 값 · 등급 칸 클래스 (g-* = 등급색, cons = 소모품). 수치는 CFG (engine/run.ts genShop 과 같은 설정값) */
+export function shopOdds(run: RunState): { k: string; v: string; cls: string }[] {
+  const D = CFG.drop, p1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
+  const out = [{ k: '재료', v: `${D.shopParts}개 확정`, cls: 'g-C' }];
+  if (run.phase >= CFG.shop.gearFrom) out.push({ k: '희귀 / 고급', v: '1개 이상 확정', cls: 'g-A' });
+  else out.push({ k: '희귀', v: p1(D.shopAdv2 + (1 - D.shopAdv2) * D.shopAdv), cls: 'g-A' }, { k: '고급', v: p1(D.shopGraded), cls: 'g-G' });
+  out.push({ k: '소모품', v: p1(CFG.shop.cons), cls: 'cons' }, { k: '문장', v: p1(CFG.shop.emblem), cls: 'g-S' });
+  if (run.phase >= D.shopLegendPhase) out.push({ k: '전설', v: p1(D.shopLegend), cls: 'g-L' });
+  return out;
+}
 /** 새로고침 (다시 뽑기) 단추 — 후보 · 진열을 새로 뽑는 단추는 모두 이 부품 하나다 (전역 증강 · 특권 · 절망 · 공명 증강 · 영입 · 계약 기물 후보 · 상점 진열.
  *  2026-11-07 사용자 피드백: 단추 하나를 고치면 같은 단추가 모두 따라가게, 화면마다 따로 만들지 않는다 — docs/UI.md 42번).
  *  메트로 = ↻ 아이콘 단추 (C6-1 — 글자는 숨기고 가리키면 title, 남은 수가 2 이상이면 오른쪽 아래 작은 수, 값이 있으면 같은 자리에 크레딧 값, 다 쓰면 비활성),

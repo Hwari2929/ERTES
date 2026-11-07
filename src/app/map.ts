@@ -28,7 +28,7 @@ import { NODE_DESC, SHOP_BRANCH_DESC } from '../data/nodes';
 import * as RM from '../ui/routemap';
 import * as SHOP from '../ui/shop';
 import { app, esc, jackpotTxt, pctTxt } from './state';
-import { NODE_ICON, itemIcon, rankPips, recommendedMajors, sprite, statPopHtml, synergyPanel, xpBar } from './common';
+import { NODE_ICON, itemIcon, rankPips, recommendedMajors, shopOdds, sprite, statPopHtml, synergyPanel, xpBar } from './common';
 import { despairEnv } from './title';
 import { dBar, enemyCategory } from './unitparts';
 import { invStrip, kingDetail } from './prep';
@@ -289,7 +289,14 @@ export function mapAhead(run: RunState, pick: NodeType | undefined, buttons: str
   // 예상 수입 (현재 칸만, 네모 칸 · 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
   const inc = (icon: string, val: string, title: string, cls = '') => `<span class="ah-in ${cls}" title="${esc(title)}">${icon}<b>${val}</b></span>`;
   const income = (o: NodeType) => {
-    if (!FIGHT_NODES.includes(o) || run.lab) return ''; // 훈련장: 보상이 없다
+    if (run.lab) return ''; // 훈련장: 보상이 없다
+    if (o === 'supply' && !run.tutorial) { // 보급 (2026-11-07 사용자 피드백 — 보급 · 상점 표에도 예상 수입 · 등장 상품): 장 수 · 합계 가치 · 첫 장 재료 확정 · 마지막 장 정비 소모품 확정 (engine/run.ts genSupply 항로 보급)
+      const S = CFG.supply;
+      return `<div class="ah-inc" aria-label="예상 수입"><span class="ah-sec">예상 수입</span>${inc(NODE_ICON.supply, `×${S.cards}`, `보급품 ${S.cards}장 — 모두 받는다`)}${inc(CR, `≈${Math.round(R.supplyBase(run))}`, `합계 가치 약 ${Math.round(R.supplyBase(run))} 크레딧어치 — 크레딧 · 공명도 · 장비 무작위 (대박 없음)`)}${inc(PART, '×1', '첫 장 = 장비 재료 확정', 'g-C')}${inc(CONS, '×1', '마지막 장 = 정비 소모품 확정 (분리 용제 · 재구성 회로)', 'cons')}</div>`;
+    }
+    if (o === 'shop' && run.links && !run.node && !run.tutorial) // 상점 (분기 항로 = 바로 상점): 진열 예상 — 분기점 창과 같은 계산 (common.ts shopOdds)
+      return `<div class="ah-inc" aria-label="등장 상품"><span class="ah-sec">등장 상품</span>${shopOdds(run).map((x) => inc(x.cls === 'cons' ? CONS : PART, `${x.k} ${x.v}`, `${x.k} — ${x.v}`, x.cls)).join('')}</div>`;
+    if (!FIGHT_NODES.includes(o)) return '';
     const t: NodeType = o === 'challenge' ? 'adversity' : o; // 도전은 보상 · 전리품을 역경 기준으로
     const r = R.battleRewardPreview(run, o);
     const out = [inc(RES, String(r.xp.win), '공명도 풀 (승리 시) — 출전 · 대기 기물에게 나눠 줌'), inc(CR, `+${r.credits.win}`, `크레딧 수입 (승리 시) — 승리 보상 · 연승 · 이자 +${r.credits.interest} 등`)];

@@ -1308,3 +1308,48 @@
 [data-ui-theme="metro"] .pil-card.k-alms .pil-ch::before { background: var(--mt-b); }
 [data-ui-theme="metro"] .pil-ch > * { position: relative; }
 [data-ui-theme="metro"] .pil-ch > :first-child { width: 52px; height: 52px; }
+
+/* ══ 밝은 객실 · 어두운 창 (2026-11-07 사용자 결정 — 시안 B. 이전 어두운 메트로 = src/ui/css/legacy/Metro(legacy_dark).css, 빌드 제외)
+   메트로 토큰(01-themes.css)의 기본은 밝은 값(디자인 시스템 ADMIT ONE 라이트). 밤 값(--night-*) = 전투 화면 전체(소등) · 어두운 창:
+   전투판 · 속도 · 계측 탭 · 바 · 계약 · 타이틀 · 사건 · 전장 카드 · 미니 카드 그림 칸 · 장비 칸(상세 장비란 제외) · 카드 뒷면 · 상인 칸 ·
+   환경 포스터 · 특권 바탕 · 배너 · 출전 · 전술 칩 · 적 분대 · 순례 카드 머리 · 알림 표 · 절망 증강 창 · 칸 말풍선 · 결과 보고서 머리 띠.
+   밤 구역에서는 다른 토큰에서 계산되는 토큰(구조선 · 그림자 · 가리킴 · 바닥 · 옛 별칭 · 그림자 바탕 · 숫자 채널)도 다시 푼다 (정의된 자리에서 값이 굳어 내려온다) */
+[data-ui-theme="metro"]:has(main.battle), [data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .item:not(.d-eq .item), .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) {
+  --bg: var(--night-bg); --panel: var(--night-panel); --panel-2: var(--night-panel-2); --line: var(--night-line); --c-text: var(--night-c-text); --c-text-2: var(--night-c-text-2); --c-good: var(--night-c-good); --c-bad: var(--night-c-bad); --c-info: var(--night-c-info); --c-chalk: var(--night-c-chalk); --c-chalk-ink: var(--night-c-chalk-ink); --c-ink: var(--night-c-ink); --c-brand: var(--night-c-brand); --c-credit: var(--night-c-credit); --overlay: var(--night-overlay); --tint-1: var(--night-tint-1); --tint-2: var(--night-tint-2); --shade-1: var(--night-shade-1); --shade-2: var(--night-shade-2); --shade-3: var(--night-shade-3); --mt-grid: var(--night-mt-grid); --mt-edge: var(--night-mt-edge); --mt-sh: var(--night-mt-sh); --c-divine: var(--night-c-divine); --c-occult: var(--night-c-occult); --c-psi: var(--night-c-psi); --c-ult: var(--night-c-ult); --c-steel: var(--night-c-steel); --fame: var(--night-fame); --staff: var(--night-staff); --el-phys: var(--night-el-phys); --el-chem: var(--night-el-chem); --el-elec: var(--night-el-elec); --el-psy: var(--night-el-psy); --el-holy: var(--night-el-holy); --el-true: var(--night-el-true); --g-C: var(--night-g-C); --g-G: var(--night-g-G); --g-A: var(--night-g-A); --g-L: var(--night-g-L); --g-U: var(--night-g-U); --g-T: var(--night-g-T); --g-S: var(--night-g-S); --st-buff: var(--night-st-buff); --st-buff-ink: var(--night-st-buff-ink); --st-debuff: var(--night-st-debuff); --st-debuff-ink: var(--night-st-debuff-ink); --c-down: var(--night-c-down); --c-res: var(--night-c-res); --c-warn-ink: var(--night-c-warn-ink); --c-ok-ink: var(--night-c-ok-ink); --c-danger-ink: var(--night-c-danger-ink); --c-danger-line: var(--night-c-danger-line); --c-streak: var(--night-c-streak); --c-lo: var(--night-c-lo); --cat-bio: var(--night-cat-bio); --cat-mech: var(--night-cat-mech); --cat-struct: var(--night-cat-struct); --c-type: var(--night-c-type); --st-chip: var(--night-st-chip); --c-danger-bg: var(--night-c-danger-bg); --data-mix: var(--night-data-mix); --op-lift: var(--night-op-lift);
+  --edge: var(--mt-edge); --sh-press: var(--mt-sh); --mt-sh-pass: var(--sh-press); --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); --mt-d: var(--c-bad);
+  --mt-sh-prim: var(--night-mt-sh-prim); --ch-gray-r: var(--night-ch-gray-r); --ch-gray-g: var(--night-ch-gray-g); --ch-gray-b: var(--night-ch-gray-b);
+  --ch-paper-r: var(--night-ch-paper-r); --ch-paper-g: var(--night-ch-paper-g); --ch-paper-b: var(--night-ch-paper-b); --sh-bg: var(--bg);
+  --line-soft: color-mix(in srgb, var(--line) 65%, transparent); --shield: var(--c-text); --shadow-pop: 0 10px 26px var(--shade-2); --fg: var(--c-text); --dim: var(--c-text-2); --muted: var(--c-text-2);
+  --mt-floor: radial-gradient(circle at 0 100%, color-mix(in srgb, var(--mt-a) 15%, transparent), transparent 46%) fixed, radial-gradient(circle at 100% 0, color-mix(in srgb, var(--mt-b) 11%, transparent), transparent 40%) fixed,
+    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, var(--bg);
+  color-scheme: dark; }
+[data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .item:not(.d-eq .item), .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) { color: var(--c-text); } /* 어두운 창 안 글씨 = 밤 글씨 (바탕이 밝은 객실 글씨를 물려주지 않게) */
+[data-ui-theme="metro"] .so-npc { background: var(--bg); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .board-wrap, [data-ui-theme="metro"]:not(:has(main.battle)) .board { background: var(--bg); border-radius: var(--r-panel); } /* 전투판은 창: 판 둘레의 흐린 칸이 종이 바탕을 비추지 않게 판 뒤를 어둡게 */
+/* 강조색 복숭아는 면에만 — 종이 위 글씨 · 숫자는 크레딧색(짙은 복숭아, 디자인 시스템 accent-text 와 같은 구분) */
+[data-ui-theme="metro"]:not(:has(main.battle)) :is(.boss-goal b, .top .stat-row .cr, .pk-v) { color: var(--c-credit); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .btn.on:not(:is(.bar, .ct, .title-screen, .adv) *) { color: var(--c-credit); } /* 켜진 단추 글씨 (상점 보관함 펼침 등) */
+/* 주인공 = 반대 극성: 밝은 객실에서 지금 칸 표는 잉크 면 (디자인 시스템 라이트 GameScreen 의 AGENT FILE 표 · 선택 탭). 그 안 단추 그림자도 뒤집는다 (일반 = 잿빛 · 주 동작 = 종이) */
+[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur { --mt-paper: var(--k-ink); --mt-on: var(--k-paper); --mt-ink: var(--k-paper);
+  --ch-gray-r: var(--night-ch-gray-r); --ch-gray-g: var(--night-ch-gray-g); --ch-gray-b: var(--night-ch-gray-b); --ch-on-r: var(--night-ch-paper-r); --ch-on-g: var(--night-ch-paper-g); --ch-on-b: var(--night-ch-paper-b); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur .ah-lead .ah-ic { border-color: var(--k-ink); color: var(--k-ink); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .st-tab[aria-selected="true"] { background: var(--k-ink); color: var(--k-paper); border-color: var(--k-ink); }
+/* 주인공이 아닌 표의 스텁은 종이 쪽 (반대 극성은 주인공 하나에만) */
+[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card:not(.cur) .ah-lead { background: color-mix(in srgb, var(--nc, var(--c-text-2)) 16%, var(--panel-2)); }
+/* 시너지 마름모: 짙은 시너지색 면 + 흰 아이콘 */
+[data-ui-theme="metro"]:not(:has(main.battle)) .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); border-color: transparent; color: var(--c-white); }
+[data-ui-theme="metro"]:not(:has(main.battle)) :is(.syn-tk.active, .syn-b:hover, .syn-b.peek) .syn-dia { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .syn-tk:is(.active, :not(.active)) .syn-lv { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); color: var(--c-white); box-shadow: 0 0 0 1.5px var(--bg); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); opacity: .62; }
+/* 밝은 바탕 위 글씨로 쓰는 노선색은 짙게 (면 · 선은 그대로) */
+[data-ui-theme="metro"]:not(:has(main.battle)) .card.mn.tN .mn-pr { color: color-mix(in srgb, var(--mt-a) 55%, var(--k-ink)); } /* 속보 값 */
+[data-ui-theme="metro"]:not(:has(main.battle)) .um-sum :is(.us-k, .us-gk) { color: color-mix(in srgb, var(--mt-b) 45%, var(--k-ink)); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .aar-n { border-color: color-mix(in srgb, var(--mt-b) 45%, var(--k-ink)); color: color-mix(in srgb, var(--mt-b) 45%, var(--k-ink)); }
+/* 흰색 면 (2026-11-07 사용자 결정 — 지정 소집 · 상세 장비란 · 편성 대기석 · 결과 보고서 MVP · 지표): 잉크 판 대신 밝은 판 + 잉크 윤곽 */
+[data-ui-theme="metro"]:not(:has(main.battle)) .ms-syn { background: var(--panel); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .ms-syn.on { background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .ms-syn.on::after { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--c); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .ms-syn:disabled { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--tint-2) 6px 7.5px), var(--panel-2); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .bench { background: var(--panel); }
+[data-ui-theme="metro"]:not(:has(main.battle)) .bench-label { background: var(--panel); } /* 대기석 이름표도 흰 판 (대기석과 같은 면) */
+[data-ui-theme="metro"]:not(:has(main.battle)) :is(.aar-kpi, .aar-mvp) { background: var(--panel); }

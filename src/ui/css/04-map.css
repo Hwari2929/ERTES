@@ -230,6 +230,9 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .ah-in b { font: 700 var(--fs-md) var(--f-mono); line-height: 1; }
 .ah-in.g-C .li { color: color-mix(in srgb, var(--g-C) var(--data-mix), var(--c-text)); } /* 장비 재료 (희귀도 색) */
 .ah-in.g-A .li { color: color-mix(in srgb, var(--g-A) var(--data-mix), var(--c-text)); } /* 희귀 장비 */
+.ah-in.g-G .li { color: color-mix(in srgb, var(--g-G) var(--data-mix), var(--c-text)); } /* 고급 장비 */
+.ah-in.g-L .li { color: color-mix(in srgb, var(--g-L) var(--data-mix), var(--c-text)); } /* 전설 장비 */
+.ah-in.g-S .li { color: color-mix(in srgb, var(--g-S) var(--data-mix), var(--c-text)); } /* 문장 (상점 등장 상품) */
 .ah-in.cons .li { color: var(--c-text-2); } /* 소모품 */
 /* 모디파이어 (둥근 칸 · 아이콘 + 값, 좋으면 초록 · 나쁘면 빨강) — 예상 수입(네모 칸)과 모양을 나눈다 */
 .ah-mods { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }

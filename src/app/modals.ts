@@ -26,7 +26,7 @@ import * as REPORT from '../ui/report';
 import { lineIcon, synIcon } from '../ui/synicons';
 import * as SHOP from '../ui/shop';
 import { FS_SVG, UI_FX, app, canFullscreen, esc, isFullscreen, pct1, pctTxt, root, themePicker, uiFx } from './state';
-import { NODE_ICON, TIER_NAME, augIcon, interestLines, itemIcon, itemTone, majorIcon, recommendedMajors, rerollBtn, sprite, statIc, synToken } from './common';
+import { NODE_ICON, TIER_NAME, augIcon, interestLines, itemIcon, itemTone, majorIcon, recommendedMajors, rerollBtn, shopOdds, sprite, statIc, synToken } from './common';
 import { despairNames, dpPlayed, matchupChips, matchupHtml, pvPlayed, setDpPlayed, setPvPlayed } from './title';
 import { CAN_HOVER, PSI_RANKS, detailToggle, ownedChip, pickCard, schoolOpt, sub, supplyHtml, teamCount } from './unitparts';
 import { CR, ic, musterModal, phaseBoss, rankLabel, rosterRow, supplyHint } from './map';
@@ -392,7 +392,7 @@ export function pendingModal(run: RunState): string {
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {
-      shop: `재료 ${CFG.drop.shopParts}개 확정 · ${run.phase >= CFG.shop.gearFrom ? '희귀 / 고급 1개 이상 확정' : `희귀 ${pct1(CFG.drop.shopAdv2 + (1 - CFG.drop.shopAdv2) * CFG.drop.shopAdv)} · 고급 ${pct1(CFG.drop.shopGraded)}`} · 소모품 ${pct1(CFG.shop.cons)} · 문장 ${pct1(CFG.shop.emblem)}${run.phase >= CFG.drop.shopLegendPhase ? ` · 전설 ${pct1(CFG.drop.shopLegend)}` : ''}`, supply: supplyHint(run),
+      shop: shopOdds(run).map((o) => `${o.k} ${o.v}`).join(' · '), supply: supplyHint(run),
       news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
       invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `제례 ${CFG.rite.choices} · 나눔 1 중 1장 무료 · 권능 ${run.power}으로 성유물 · 개종`,
     };

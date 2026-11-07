@@ -172,17 +172,18 @@ export function undefinedVars(decls: Decl[]) {
   return bad;
 }
 
-/** 메트로 그림자 숫자 채널(--ch-*-r/g/b, 01-themes.css)이 그 색 토큰과 같은 값인지 — 26-metro.css 누를 것 그림자색(오버레이 계산식)이 숫자로 읽는다 */
+/** 메트로 그림자 숫자 채널(--ch-*-r/g/b, 01-themes.css)이 그 색 토큰과 같은 값인지 — 26-metro.css 누를 것 그림자색(오버레이 계산식)이 숫자로 읽는다.
+ *  일반 단추 --ch-gray ↔ --mt-sh · 주 동작 --ch-paper ↔ --mt-sh-prim · 켜짐 --ch-sel ↔ --c-select · 종이 면 주 동작 --ch-on ↔ --mt-on, 밤 값(--night-*)도 같은 짝 */
 export function channelDrift(decls: Decl[]) {
   const mt: Record<string, string> = {};
   for (const d of decls) if (d.sel === '[data-ui-theme="metro"]') mt[d.prop] = d.value.trim();
   const hex = (v?: string) => { const m = /^#([0-9a-f]{6})$/i.exec(v || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
-  const p = hex(mt['--mt-paper']), k = hex(mt['--mt-ink']);
-  const want: Record<string, number[] | null> = { sel: hex(mt['--c-select']), paper: p, on: hex(mt['--mt-on']), gray: p && k ? p.map((v, i) => v * 0.3 + k[i] * 0.7) : null }; // 잿빛 = 종이 30% + 잉크 (--mt-sh)
+  const pairs: [string, string][] = [['ch-gray', '--mt-sh'], ['ch-paper', '--mt-sh-prim'], ['ch-sel', '--c-select'], ['ch-on', '--mt-on'], ['night-ch-gray', '--night-mt-sh'], ['night-ch-paper', '--night-mt-sh-prim']];
   const out: string[] = [];
-  for (const [n, rgb] of Object.entries(want)) {
-    const got = ['r', 'g', 'b'].map((c) => parseFloat(mt[`--ch-${n}-${c}`]));
-    if (!rgb || got.some((v, i) => !(Math.abs(v - rgb[i]) <= 0.15))) out.push(`--ch-${n}-r/g/b (${got.join(' ')}) ≠ 색 토큰 (${rgb ? rgb.map((v) => +v.toFixed(1)).join(' ') : '없음'})`);
+  for (const [ch, color] of pairs) {
+    const rgb = hex(mt[color]);
+    const got = ['r', 'g', 'b'].map((c) => parseFloat(mt[`--${ch}-${c}`]));
+    if (!rgb || got.some((v, i) => !(Math.abs(v - rgb[i]) <= 0.15))) out.push(`--${ch}-r/g/b (${got.join(' ')}) ≠ ${color} (${rgb ? rgb.join(' ') : mt[color] || '없음'})`);
   }
   return out;
 }

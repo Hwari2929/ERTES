@@ -27,7 +27,7 @@ const click = (s) => `document.querySelector(${JSON.stringify(s)})?.click()`;
 /** [화면, 상태 키(null = 타이틀), 불러온 뒤 실행할 js, 기다림 ms, 비교 제외] */
 const SCREENS = [
   ['title', 'map', null, 0, false, true],
-  ['map', 'map'], ['map_detail', 'map', click('[data-a=tl-pick]')], ['map_env', 'map', click('[data-a=map-tab][data-v="1"]')], ['map_log', 'map', click('[data-a=map-tab][data-v="2"]')], ['bossmap', 'bossmap'], ['shopmap', 'shopmap'], ['battlemap', 'battlemap'],
+  ['map', 'map'], ['map_detail', 'map', click('[data-a=tl-pick]')], ['map_env', 'map', click('[data-a=map-tab][data-v="1"]')], ['map_log', 'map', click('[data-a=map-tab][data-v="2"]')], ['bossmap', 'bossmap'], ['shopmap', 'shopmap'], ['shoppick', 'shopmap', click('[data-a=tl-pick][data-v="shop"]')], ['battlemap', 'battlemap'],
   ['prep', 'prep'], ['bossprep', 'bossprep'],
   ['prep_unit', 'prep', click('.board .u, .bench .u, [data-a=sel-unit]')],
   ['prep_menu', 'prep', click('[data-a=menu], .menu-btn, [aria-label*=메뉴]')],
