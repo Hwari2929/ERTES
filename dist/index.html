@@ -6579,6 +6579,12 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead .ah-ic { background: transparent; border-color: var(--mt-on); color: var(--mt-on); }
 [data-ui-theme="metro"] .ah-card.cur .ah-body :is(*):not(.btn, .btn *, svg, svg *) { color: var(--mt-on); }
 [data-ui-theme="metro"] .ah-card.cur::after { border-left-color: color-mix(in srgb, var(--mt-on) 40%, transparent); }
+/* 지금 칸의 예상 수입 · 조건 · 등급 칩 = 잉크 면 + 밝은 글자 (2026-11-07 사용자 결정 — 예상 수입 시안 2, 종이 표 위 스티커). 아이콘은 제 색 그대로 */
+[data-ui-theme="metro"] .ah-card.cur .ah-body :is(.ah-in, .ah-md, .tchip) { background: var(--mt-ink); border-color: var(--mt-ink); color: var(--mt-paper); }
+[data-ui-theme="metro"] .ah-card.cur .ah-body .ah-in :is(b, small) { color: var(--mt-paper); }
+[data-ui-theme="metro"] .ah-card.cur .ah-body .ah-in.cr b { color: var(--c-credit); }
+[data-ui-theme="metro"] .ah-card.cur .ah-body .ah-in.zero b { color: color-mix(in srgb, var(--mt-paper) 60%, transparent); }
+[data-ui-theme="metro"] .ah-card.cur .ah-body :is(.ah-md, .tchip) :is(b, span) { color: color-mix(in srgb, var(--tc, var(--mt-paper)) 55%, var(--mt-paper)); }
 [data-ui-theme="metro"] .ah-card.cur::before { content: ''; position: absolute; right: 0; bottom: 0; width: 240px; height: 100%; pointer-events: none; border-radius: inherit; background: var(--c-select); opacity: .55; rotate: 180deg;
   -webkit-mask: var(--mt-dot-tl) left top / 190px 190px no-repeat; mask: var(--mt-dot-tl) left top / 190px 190px no-repeat; }
 [data-ui-theme="metro"] .ah-card.cur > .ah-body { position: relative; } /* 망점 위로 글자 (진입 단추 .ah-act 는 이미 위치 지정) */
