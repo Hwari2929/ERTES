@@ -542,13 +542,14 @@
 [data-ui-theme="metro"] .rs-grid > section + section { border-left: var(--mt-stroke) solid var(--mt-edge); } /* 칸 구분 = 실선 (점선은 절취선만 — UI.md 36) */
 [data-ui-theme="metro"] .rs-grid h3 { color: var(--c-text-2); font: 700 var(--fs-sm)/1.4 var(--f-body); letter-spacing: .02em; }
 /* MVP = 플레이트 */
-[data-ui-theme="metro"] .rs-grid > .rs-mvp { margin: 14px 0 14px 14px; padding: 0 0 46px; overflow: hidden; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--mt-ink); }
+[data-ui-theme="metro"] .rs-grid > .rs-mvp { margin: 14px 0 14px 14px; padding: 0 0 46px; overflow: hidden; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); } /* 밝은 섬(결과 창 화이트톤): 종이 판 — 그림 창만 어둡고 아래로 종이에 스며든다 */
 [data-ui-theme="metro"] .rs-mvp::after { content: attr(data-k); position: absolute; left: 0; right: 0; bottom: 0; height: 36px; display: flex; align-items: center; padding-left: 74px; background: linear-gradient(100deg, var(--mt-b), var(--mt-a)); color: var(--mt-on);
   font: 400 var(--fs-md)/1 var(--f-display); letter-spacing: .08em; }
 [data-ui-theme="metro"] .rs.lose .rs-mvp::after { background: linear-gradient(100deg, var(--mt-c), var(--mt-d)); } /* 패배: MVP 파일 띠도 패배 색 */
 [data-ui-theme="metro"] .rs-mvp::before { content: ''; position: absolute; left: 14px; bottom: 10px; z-index: var(--z-raise); width: 48px; height: 16px; background: repeating-linear-gradient(90deg, var(--mt-on) 0 2px, transparent 2px 3px, var(--mt-on) 3px 4px, transparent 4px 7px, var(--mt-on) 7px 10px, transparent 10px 11px); }
 [data-ui-theme="metro"] .rs-mvp-art { margin: 10px 10px 0; border-radius: var(--mt-r-md); background: radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--mt-a) 45%, transparent) 0 30%, transparent 30.4%), color-mix(in srgb, var(--mt-a) 10%, var(--mt-ink)); }
-[data-ui-theme="metro"] .rs-mvp-art::after { background: linear-gradient(transparent, var(--mt-ink)); }
+[data-ui-theme="metro"] .rs-mvp-art::after { background: linear-gradient(transparent, var(--panel)); }
+[data-ui-theme="metro"] .rs-mvp-tag em { color: var(--mt-paper); } /* 그림 창(어두운 면) 위 칭호 = 종이색 */
 [data-ui-theme="metro"] .rs-mvp-tag { top: 20px; left: 20px; }
 [data-ui-theme="metro"] .rs-crown { background: var(--mt-paper); color: var(--mt-on); font-family: var(--f-mono); } [data-ui-theme="metro"] .rs-crown.ko { font-family: var(--f-body); letter-spacing: .02em; } /* 패배 = '분투' (한글은 본문 글꼴) */
 [data-ui-theme="metro"] .rs-mvp-name b { font-family: var(--f-display); font-weight: 400; }
@@ -1055,8 +1056,8 @@
 [data-ui-theme="metro"] .detail.pb .pb-head h3::before { background: var(--mt-on); }
 [data-ui-theme="metro"] .detail.pb .pb-head .muted { color: color-mix(in srgb, var(--mt-on) 72%, transparent); }
 [data-ui-theme="metro"] .detail.pb .pb-head .pb-kind { border-color: color-mix(in srgb, var(--mt-on) 55%, transparent); background: transparent; color: var(--mt-on); }
-[data-ui-theme="metro"] .pb-rows { gap: 0; border-top: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); }
-[data-ui-theme="metro"] .pb-row { padding: 6px 2px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--mt-edge) 55%, transparent); border-radius: 0; background: none; }
+[data-ui-theme="metro"] .pb-rows { gap: 0; border-top: 0; }
+[data-ui-theme="metro"] .pb-row { padding: 5px 2px; border: 0; border-radius: 0; background: none; } /* 줄 사이 구분선 없음 — 구획은 소제목이 나눈다 (2026-11-07 사용자 요청) */
 [data-ui-theme="metro"] .pb-ri { border: 1.5px solid color-mix(in srgb, var(--c, var(--mt-edge)) 55%, var(--mt-edge)); border-radius: var(--r-sm); background: var(--mt-ink); } /* 상성 · 공격 속성 아이콘 = 각진 칸 4px */
 [data-ui-theme="metro"] :is(.pb-foe, .pb-row) :is(.tchip, .rank) { border-width: 1.5px; border-radius: var(--r-sm); } /* 칩 = 태그 둥글기 4px (디자인 시스템 radius-xs) */
 /* 적 토큰 = 쿠폰 줄 (디자인 시스템 Stub — 값이 짝을 이루는 목록, 2026-11-06 사용자 결정 · 일상 브루탈 시안 A 4): [초상 | 가는 실선 | 이름 · 칩 | 세로 절취선 + 위아래 홈 | 뜯는 칸 = 인원].
@@ -1158,7 +1159,7 @@
    + 제목 뒤 남은 폭을 흐르는 보라 → 민트 궤도선. 정보 화면 · 기물 전체 상세 · 메뉴 · 도감이 같은 부품 (위 네 곳의 네모 규칙을 한꺼번에 덮는다, 이번 전투 종이 머리 제외) */
 [data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3)) { font-size: var(--fs-xl); }
 [data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::before { width: 26px; height: 19px; background: var(--mt-planet) center / contain no-repeat; }
-[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::after { content: ''; flex: 1 1 24px; height: 1.5px; margin-left: 4px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--mt-a), var(--mt-b) 60%, transparent); }
+[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::after { content: ''; flex: 1 1 24px; height: 1.5px; margin-left: 4px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--mt-a), var(--mt-b)); } /* 궤도선 = 보라 → 민트, 오른쪽 끝까지 흐려지지 않는다 (2026-11-07 사용자 요청) */
 /* 툴팁 · 팝오버 = 디자인 시스템 Tip: 잉크 판 · 1.5px 윤곽 · 작은 둥글기, 번지는 그림자 · 글로우 없음 (같은 색 화면 위에서는 잉크 고리로 떼어 놓는다) */
 [data-ui-theme="metro"] :is(.kw-tip, .item-tip, .tl-pop, .stat-pop, .ask-pop) { border-width: 1.5px; border-radius: var(--mt-r-sm); background: var(--panel); box-shadow: none; } /* 흰 면 (2026-11-07 사용자 피드백 — 시너지 상세가 잉크 판에 잉크 글씨였다) */
 [data-ui-theme="metro"] .tl-pop { background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); } /* 칸 말풍선 = 어두운 창 (밤 글씨) */
@@ -1517,6 +1518,13 @@
   color-scheme: dark; }
 [data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) { color: var(--c-text); } /* 어두운 창 안 글씨 = 밤 글씨 (바탕이 밝은 객실 글씨를 물려주지 않게) */
 [data-ui-theme="metro"] .so-npc { background: var(--bg); }
+/* 밝은 섬: 전투 결과 창(전투 완료 보고서, app/battle.ts summaryModal) = 밝은 종이 (2026-11-07 사용자 결정 '화이트톤'). 전투 화면은 통째로 밤 값이라
+   이 창에만 밝은 값(01-themes.css --day-*)을 되돌려 걸고, 다른 토큰에서 계산되는 토큰도 다시 푼다 (밤 구역과 같은 이유) */
+[data-ui-theme="metro"] .modal.result.rs {
+  --bg: var(--day-bg); --panel: var(--day-panel); --panel-2: var(--day-panel-2); --line: var(--day-line); --c-text: var(--day-c-text); --c-text-2: var(--day-c-text-2); --c-good: var(--day-c-good); --c-bad: var(--day-c-bad); --c-info: var(--day-c-info); --c-chalk: var(--day-c-chalk); --c-chalk-ink: var(--day-c-chalk-ink); --c-ink: var(--day-c-ink); --c-brand: var(--day-c-brand); --c-credit: var(--day-c-credit); --overlay: var(--day-overlay); --tint-1: var(--day-tint-1); --tint-2: var(--day-tint-2); --shade-1: var(--day-shade-1); --shade-2: var(--day-shade-2); --shade-3: var(--day-shade-3); --mt-grid: var(--day-mt-grid); --mt-edge: var(--day-mt-edge); --mt-sh: var(--day-mt-sh); --c-divine: var(--day-c-divine); --c-occult: var(--day-c-occult); --c-psi: var(--day-c-psi); --c-ult: var(--day-c-ult); --c-steel: var(--day-c-steel); --fame: var(--day-fame); --staff: var(--day-staff); --el-phys: var(--day-el-phys); --el-chem: var(--day-el-chem); --el-elec: var(--day-el-elec); --el-psy: var(--day-el-psy); --el-holy: var(--day-el-holy); --el-true: var(--day-el-true); --st-buff: var(--day-st-buff); --st-buff-ink: var(--day-st-buff-ink); --st-debuff: var(--day-st-debuff); --st-debuff-ink: var(--day-st-debuff-ink); --c-down: var(--day-c-down); --c-res: var(--day-c-res); --c-warn-ink: var(--day-c-warn-ink); --c-ok-ink: var(--day-c-ok-ink); --c-danger-ink: var(--day-c-danger-ink); --c-danger-line: var(--day-c-danger-line); --c-streak: var(--day-c-streak); --c-lo: var(--day-c-lo); --cat-bio: var(--day-cat-bio); --cat-mech: var(--day-cat-mech); --cat-struct: var(--day-cat-struct); --c-type: var(--day-c-type); --st-chip: var(--day-st-chip); --c-danger-bg: var(--day-c-danger-bg); --data-mix: var(--day-data-mix); --op-lift: var(--day-op-lift); --mt-sh-prim: var(--day-mt-sh-prim); --ch-gray-r: var(--day-ch-gray-r); --ch-gray-g: var(--day-ch-gray-g); --ch-gray-b: var(--day-ch-gray-b); --ch-paper-r: var(--day-ch-paper-r); --ch-paper-g: var(--day-ch-paper-g); --ch-paper-b: var(--day-ch-paper-b); --mt-hover: var(--day-mt-hover);
+  --edge: var(--mt-edge); --sh-press: var(--mt-sh); --mt-sh-pass: var(--sh-press); --mt-d: var(--c-bad); --sh-bg: var(--panel);
+  --line-soft: color-mix(in srgb, var(--line) 65%, transparent); --shield: var(--c-text); --shadow-pop: 0 10px 26px var(--shade-2); --fg: var(--c-text); --dim: var(--c-text-2); --muted: var(--c-text-2);
+  color-scheme: light; color: var(--c-text); }
 [data-ui-theme="metro"]:not(:has(main.battle)) .board-wrap, [data-ui-theme="metro"]:not(:has(main.battle)) .board { background: var(--bg); border-radius: var(--r-panel); } /* 전투판은 창: 판 둘레의 흐린 칸이 종이 바탕을 비추지 않게 판 뒤를 어둡게 */
 /* 강조색 복숭아는 면에만 — 종이 위 글씨 · 숫자는 크레딧색(짙은 복숭아, 디자인 시스템 accent-text 와 같은 구분) */
 [data-ui-theme="metro"]:not(:has(main.battle)) :is(.boss-goal b, .top .stat-row .cr, .pk-v) { color: var(--c-credit); }

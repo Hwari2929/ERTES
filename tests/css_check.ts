@@ -178,11 +178,12 @@ export function channelDrift(decls: Decl[]) {
   const mt: Record<string, string> = {};
   for (const d of decls) if (d.sel === '[data-ui-theme="metro"]') mt[d.prop] = d.value.trim();
   const hex = (v?: string) => { const m = /^#([0-9a-f]{6})$/i.exec(v || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
+  const val = (k: string) => { let v = mt[k]; for (let i = 0; i < 3 && v && /^var\((--[\w-]+)\)$/.test(v); i++) v = mt[/^var\((--[\w-]+)\)$/.exec(v)![1]]; return v; }; // 밝은 값 = --day-* 를 한 단계 거쳐 읽는다 (01-themes.css)
   const pairs: [string, string][] = [['ch-gray', '--mt-sh'], ['ch-paper', '--mt-sh-prim'], ['ch-sel', '--c-select'], ['ch-on', '--mt-on'], ['night-ch-gray', '--night-mt-sh'], ['night-ch-paper', '--night-mt-sh-prim']];
   const out: string[] = [];
   for (const [ch, color] of pairs) {
-    const rgb = hex(mt[color]);
-    const got = ['r', 'g', 'b'].map((c) => parseFloat(mt[`--${ch}-${c}`]));
+    const rgb = hex(val(color));
+    const got = ['r', 'g', 'b'].map((c) => parseFloat(val(`--${ch}-${c}`) || ''));
     if (!rgb || got.some((v, i) => !(Math.abs(v - rgb[i]) <= 0.15))) out.push(`--${ch}-r/g/b (${got.join(' ')}) ≠ ${color} (${rgb ? rgb.join(' ') : mt[color] || '없음'})`);
   }
   return out;
