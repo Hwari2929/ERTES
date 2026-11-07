@@ -32,7 +32,7 @@ for (const t of ['shop', 'news', 'invest', 'pilgrim', 'recruit'] as const) {
 { const run = fresh(11); run.pending = []; R.enterNode(run, 'council' as any); run.pending = run.pending.filter((p) => p.t === 'global'); out.council = run; }
 { const run = fresh(); run.pending = []; R.enterNode(run, 'battle' as any); run.pending = []; out.prep = run; }
 { const run = fresh(); run.pending = []; run.step = 12; R.enterNode(run, 'boss' as any); run.pending = []; out.bossprep = run; }
-for (const t of ['boss', 'shop'] as const) { // 지도에서 그 노드를 고를 수 있는 칸 (보스 급행 · 상점 전환 확인)
+for (const t of ['boss', 'shop', 'battle'] as const) { // 지도에서 그 노드를 고를 수 있는 칸 (보스 급행 · 상점 전환 · 전투 칸 예상 수입 확인)
   for (let seed = 7; seed < 60; seed++) {
     const run = fresh(seed); run.pending = [];
     const k = run.map.findIndex((row, i) => i > 0 && row.includes(t as any));
