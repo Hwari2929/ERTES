@@ -11,6 +11,7 @@
 4. 밸런스 측정 관례
 5. 집계 스크립트 (`tests/*.py`)
 6. 그 밖의 시뮬 · 측정 도구
+7. UI 촬영 · 지표 — `scripts/ui_shots.mjs` · `scripts/ui_metrics.py`
 
 ## 1. npm 스크립트
 
@@ -196,3 +197,15 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | `tests/analyze.ts` · `tests/probe2.ts` | 옛 계측 시뮬 (지금 측정은 `balance.ts`) |
 | `tests/turret_pick_check.ts` · `tests/augtext_check.ts` · `tests/scenes_check.ts` · `tests/syn_overlap.ts` | 수동 검사: 포탑 장비 고르기 · 증강 설명 숫자 · 사건 연출 · 시너지 구성 겹침 |
 | `tests/scenes_export.ts` | 사건 · 연출 JSON 내보내기 |
+
+## 7. UI 촬영 · 지표 (2026-11-07)
+
+화면 디자인을 고칠 때 전후를 숫자와 그림으로 비교한다 (메트로 피드백 보고서의 지표를 재현).
+
+| 파일 | 하는 일 · 실행 |
+|---|---|
+| `tests/ui_states.ts` | 촬영용 저장 상태 25종 (노드 화면 · 고르기 창 · 지도 · 편성 · 결과). `scripts/ui_shots.mjs` 가 없으면 만든다 (`dist/ui_states.json`) — 엔진 · 데이터가 바뀌면 지우고 다시 만든다 |
+| `scripts/ui_shots.mjs` | `npm run -s build` 뒤 `node scripts/ui_shots.mjs --out dist/ui_shots/<이름> [--themes metro,galaxy] [--sizes 1440x900,844x390] [--only map,shop] [--css 덧씌울.css]`. 화면 34종을 테마 × 크기별로 찍고 DOM 지표(13px 미만 한글 · 44px 미만 누를 것 · 둥글기 값 · 잘린 칸 · 문서 높이)를 `metrics.json` 에. Math.random 고정 · 연출 끔 · 촬영 때 애니메이션 정지라 같은 코드면 같은 그림 (전투 화면 2종은 비교 제외). 전체 약 12분 |
+| `scripts/ui_metrics.py` | `area <dir>` 밝은 면적(L* ≥ 70) · 유채색 면적 · 한글 · 누를 것 비율 표, `diff <전> <후>` 바뀐 픽셀(차이 그림 = `<후>/_diff/`, 바뀌면 종료 코드 1), `dom <dir> <테마/화면_폭>` 고칠 곳 목록 |
+
+관례: 화면이 바뀌면 안 되는 정리(토큰 이전 · 구조 정리)는 `diff` 가 '바뀐 그림 없음' 이어야 한다. 화면을 바꾸는 작업은 전후 `area` 표를 함께 보고한다.

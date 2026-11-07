@@ -20,3 +20,6 @@ tools/guests/pick/
 tools/guests/pick2/
 tools/guests/pick3/
 tools/guests/pick_*/
+dist/ui_shots/
+dist/ui_states.json
+dist/ui_shots*.log
