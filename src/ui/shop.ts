@@ -290,8 +290,16 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
   }
   return true;
 }
+/** 보관함 판: 바깥을 누르면 접는다 (main.ts pointerdown — 다시 그리지 않고 판만 걷어 누른 자리의 동작은 그대로 받는다) */
+export function shopInvClose() {
+  if (!SHOP.inv) return;
+  SHOP.inv = false;
+  document.querySelector('.so-invp')?.remove();
+  const b = document.querySelector<HTMLElement>('.so-inv'); b?.classList.remove('on'); b?.setAttribute('aria-expanded', 'false');
+}
 /** Esc: 교환 창 → 상세 순서로 닫는다. 닫은 것이 있으면 true */
 export function shopEscape(): boolean {
+  if (SHOP.inv) { shopInvClose(); return true; }
   if (SHOP.trade) { SHOP.trade = null; return true; }
   if (SHOP.sel !== null) { SHOP.sel = null; SHOP.err = null; return true; }
   return false;

@@ -24,7 +24,7 @@ import { augKey, lineIcon, synIcon } from '../ui/synicons';
 import { Sel, app, esc, persist, toast } from './state';
 import { despairPill } from './title';
 import { CR, rankLabel } from './map';
-import { previewAlly, statLines } from './prep';
+import { itemPopInner, previewAlly, statLines } from './prep';
 import { abilPopHtml, enemyAbilPop } from './abilities';
 import { act } from '../main';
 
@@ -100,6 +100,10 @@ export function xpBar(u: UnitState) {
 }
 /** 장비 · 물품 등급 이름 (tierKey 기준): 장비 팝업 머리 · 고르는 미니 카드 아래 표식 (app/modals.ts miniCard) */
 export const TIER_NAME: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', U: '고유', S: '합성 재료', K: '소모품', T: '포탑 장비' };
+/** 장비 종류 이름 (팝오버 머리 · 등급 이름): 전설급 소모품은 '전설 소모품' */
+export const itemKind = (id: string) => (isLegendConsumable(id) ? '전설 소모품' : TIER_NAME[tierKey(id)] || '');
+/** 장비 팝오버 색 (--c — 등급색 망점 · 등급 이름): 장비 = 등급색, 소모품 · 문장 · 신비 부품 = 그 물품 색 (itemTone) */
+export const itemPopColor = (id: string) => itemTone(id) || `var(--g-${tierKey(id)}, var(--g-C))`;
 export function itemIcon(id: string | null, attrs = '', note = '', count = 1) { // note: 툴팁 덧붙임 (갓 구운 빵의 남은 전투 등) · count: 보관함에 겹친 같은 소모품 수
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
@@ -322,12 +326,11 @@ export function itemTip(el: HTMLElement, key: string) {
   const u = app.run?.units.find((x) => x.uid === uid);
   const id = u ? (+slot < 0 ? u.mod : u.items[+slot]) : null;
   if (!id) return;
-  const it = itemInfo(id);
   const tier = tierKey(id);
   const tip = document.createElement('div');
   tip.className = `item-tip tip-${tier}`;
-  tip.innerHTML = `<span class="tip-tier">${TIER_NAME[tier] || ''}</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>
-    <div class="tip-foot"><small>길게 눌러 다른 기물에게 옮기기${app.run && R.solventNeed(app.run, uid, +slot) ? ` (${esc(CONSUMABLES.K_strip.name)} 1개)` : ''}</small>${isLocked(id) ? '' : '<button class="btn tiny" type="button">해제</button>'}</div>`;
+  tip.style.setProperty('--c', itemPopColor(id));
+  tip.innerHTML = itemPopInner(id, itemKind(id), { foot: `<span class="muted small">길게 눌러 다른 기물에게 옮기기${app.run && R.solventNeed(app.run, uid, +slot) ? ` (${esc(CONSUMABLES.K_strip.name)} 1개)` : ''}</span>${isLocked(id) ? '' : '<button class="btn tiny" type="button">해제</button>'}` }); // 보관함 팝오버와 같은 안쪽 구조</div>`;
   tip.querySelector('button')?.addEventListener('click', () => { tip.remove(); act('unequip', key); });
   tip.addEventListener('pointerdown', (e) => e.stopPropagation());
   document.body.appendChild(tip);

@@ -70,7 +70,7 @@ import * as RM from './ui/routemap';
 import * as LAB from './ui/lab';
 import * as SHOP from './ui/shop';
 import { CAMP_SLOT, Screen, TUT_SLOT, app, applyFxPrefs, applyTheme, canFullscreen, enterFullscreen, esc, isFullscreen, loadPrefs, openContract, persist, root, savePref, toast, toggleFullscreen } from './app/state';
-import { banner, consColor, interestLines, itemIcon, itemTip, itemTone, rerollBtn, statIc, topbar } from './app/common';
+import { banner, consColor, interestLines, itemIcon, itemKind, itemTip, itemTone, rerollBtn, statIc, topbar } from './app/common';
 import { fieldBrief, foeModal, newRunScreen, releaseModal, titleScreen } from './app/title';
 import { CAN_HOVER, relicTok } from './app/unitparts';
 import { pilgrimAct } from './app/pilgrim';
@@ -764,6 +764,13 @@ document.addEventListener('mouseover', (e) => { // 미니 카드 상세 팝오�
   if (c) mnTip(c); else if (document.querySelector('.mn-tip')) mnHide();
 });
 document.addEventListener('pointerdown', (e) => { if (document.querySelector('.mn-tip') && !(e.target as HTMLElement).closest('.mn-tip, .card.mn')) mnHide(); }, true);
+document.addEventListener('mouseover', (e) => { // 보관함 줄 물품 (마우스): 가리키면 설명 말풍선, 떠나면 닫는다 (누른 것은 고정)
+  if (!CAN_HOVER) return;
+  const it = (e.target as HTMLElement).closest<HTMLElement>('[data-a="inv-tip"]'), tip = document.querySelector<HTMLElement>('.item-tip');
+  if (it) { const id = app.run?.inventory[+(it.dataset.v || -1)]; if (id && (!tip || tip.dataset.k !== it.dataset.v || !tip.isConnected)) foeItemTip(it, id, itemKind(id), true); }
+  else if (tip?.dataset.hover && !(e.target as HTMLElement).closest('.item-tip')) tip.remove();
+});
+document.addEventListener('pointerdown', (e) => { if (document.querySelector('.so-invp') && !(e.target as HTMLElement).closest('.so-invw, .item-tip')) SHOP.shopInvClose(); }, true); // 상점 보관함 판: 바깥을 누르면 접힌다
 addEventListener('scroll', () => { if (document.querySelector('.mn-tip')) mnHide(); }, { passive: true, capture: true });
 document.addEventListener('mouseover', (e) => {
   if (!CAN_HOVER || kwPinned) return;
@@ -870,6 +877,7 @@ root.addEventListener('click', (ev) => {
   if (el.dataset.a === 'ip-more') { const p = el.closest('.inv-pop'); el.setAttribute('aria-expanded', String(!!p?.classList.toggle('more'))); layoutPanels(); return; } // 좁은 화면 배치 중: 소모품 성질 펼치기
   if (el.dataset.a === 'ask-info') { el.closest('.ask-pop')?.classList.toggle('info'); layoutPanels(); return; } // 조합 결과 아이콘: 능력치 · 효과 펼치기
   if (el.dataset.a === 'foe-item') { foeItemTip(el, el.dataset.v || ''); return; }
+  if (el.dataset.a === 'inv-tip') { const id = app.run?.inventory[+(el.dataset.v || -1)]; if (id) foeItemTip(el, id, itemKind(id)); return; } // 보관함 줄 물품: 설명 말풍선 (고정 · 바깥을 누르면 닫힘)
   if (el.dataset.a === 'syn-peek') {
     const on = !el.classList.contains('peek');
     root.querySelectorAll('.syn-b.peek').forEach((x) => x.classList.remove('peek'));

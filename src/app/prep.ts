@@ -21,7 +21,7 @@ import { hasPortrait } from '../ui/portraits';
 import * as SND from '../ui/sound';
 import { lineIcon, typeIcon } from '../ui/synicons';
 import { app, esc, loadPrefs, pctTxt, root } from './state';
-import { POT_PIP, RF_GEM, SPECIAL_GLYPH, breadNote, hero, itemIcon, majorIcon, sprite, statIc, statPopHtml, synergyPanel } from './common';
+import { POT_PIP, RF_GEM, SPECIAL_GLYPH, breadNote, hero, itemIcon, itemKind, itemPopColor, majorIcon, sprite, statIc, statPopHtml, synergyPanel } from './common';
 import { enemyCategory, relicTok, traitGroup } from './unitparts';
 import { detailPanel, powRow, skillCard, ultCard, weaponCard } from './abilities';
 import { boardTitle, craneLayer, craneOn, heroHead, tendOf, tendText, terrainCell, terrainIcons, terrainLayer, tierKo } from './battle';
@@ -705,8 +705,9 @@ export function invGroups(run: RunState): { i: number; all: number[] }[] {
   return out;
 }
 /** 보관함 줄 (보기 전용): 지도 파티 탭 · 상점 바닥 줄 [보관함] 판이 같은 부품을 쓴다 (같은 소모품은 겹치고 개수) */
+/** 보관함 줄 (상점 보관함 판 · 지도 파티 탭): 누르거나 가리키면 그 물품의 설명 말풍선 (main.ts inv-tip — 브라우저 title 대신) */
 export function invStrip(run: RunState) {
-  return run.inventory.length ? `<div class="inv-strip">${invGroups(run).map(({ i, all }) => itemIcon(run.inventory[i], '', '', all.length)).join('')}</div>` : '<p class="muted small">보관 중인 물품이 없습니다.</p>';
+  return run.inventory.length ? `<div class="inv-strip">${invGroups(run).map(({ i, all }) => itemIcon(run.inventory[i], `data-a="inv-tip" data-v="${i}" role="button" tabindex="0" aria-label="${esc(itemInfo(run.inventory[i]).name)}"`, '', all.length).replace(/ title="[^"]*"/, '')).join('')}</div>` : '<p class="muted small">보관 중인 물품이 없습니다.</p>';
 }
 export function invTokens(run: RunState, selIdx: number) {
   return invGroups(run).map(({ i, all }) => {
@@ -731,7 +732,7 @@ export function invDetail(run: RunState) {
   const xBtn = placing ? '<button class="btn tiny ip-x" data-a="pop-off" title="팝업 닫기 — 놓기는 계속 (취소는 Esc)" aria-label="팝업 닫기 (놓기는 계속)">×</button>'
     : '<button class="btn tiny ip-x" data-a="sel-clear" aria-label="닫기">×</button>';
   const pop = (icon: string, kind: string, name: string, stats: string, eff: string, foot: string) =>
-    `<div class="inv-pop" role="dialog" aria-label="${esc(name)}"><div class="ip-head">${icon}<div><span class="ip-kind">${kind}</span><b>${esc(name)}</b></div>${xBtn}</div>${stats}${eff ? `<p class="ip-eff">${eff}</p>` : ''}${foot ? `<div class="ip-foot">${foot}</div>` : ''}</div>`;
+    `<div class="inv-pop" role="dialog" aria-label="${esc(name)}" style="--c:var(--it-R, var(--c-divine))"><i class="ip-dots" aria-hidden="true"></i><div class="ip-head">${icon}<div><span class="ip-kind">${kind}</span><b>${esc(name)}</b></div>${xBtn}</div>${stats}${eff ? `<p class="ip-eff">${eff}</p>` : ''}${foot ? `<div class="ip-foot">${foot}</div>` : ''}</div>`;
   if (app.sel?.k === 'relic') {
     const r = RELIC_BY_ID[app.sel.id];
     if (!r) return '';
@@ -742,11 +743,7 @@ export function invDetail(run: RunState) {
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
   if (!sel) return '';
   if (app.ask) return ''; // 확인 팝업이 같은 자리(보관함 오른쪽)를 쓴다
-  const it = itemInfo(sel);
-  const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', S: '합성 재료', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
-  const { stats: stats0, eff: eff1 } = itemBrief(sel);
-  const stats = isPlaceable(sel) ? stats0 + devicePop(run, sel) : stats0; // 배치형: 성질 줄 (망원경은 모드 · 범위 · 횟수 도식)
-  const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
+  const note = breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '';
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
   // 놓는 중: 바닥 줄 = [판매] · [자세히] · [취소] 한 줄 + 조작 안내 한 줄 (ip-hint)
   const hint = ct === 'place' ? `${run.node?.enc ? '<button class="btn tiny ip-more" data-a="ip-more" aria-expanded="false">자세히</button>' : ''}${placing ? '<button class="btn small ip-cancel" data-a="sel-clear" title="놓기 취소 (Esc)">취소</button>' : ''}<span class="muted small${placing ? ' ip-hint' : ''}">${run.node?.enc ? (sel === 'K_barricade' ? '칸 누르기 · 끌어다 놓기 · 몸통 끌기 = 옮기기 · 화살표 끌기 = 늘리기 · 누르면 회수' : '칸 누르기 · 끌어다 놓기 · 놓은 뒤 누르면 회수') : '전투 편성 화면에서 사용'}</span>`
@@ -755,10 +752,18 @@ export function invDetail(run: RunState) {
     : ct ? `<span class="muted small">${CONSUMABLES[sel].alsoItem ? '기물 · 장비' : ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].alsoItem ? '기물 · 장비를' : ct === 'unit' ? '기물을' : '장비를'} 누르면 사용</span>`
     : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
   // 판매는 소모품만 (장비 · 개조부품은 팔 수 없다)
-  const html = pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `${ct && sel !== 'K_scope' ? `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>` : ''}${hint}`);
+  const foot = `${ct && sel !== 'K_scope' ? `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>` : ''}${hint}`;
+  const html = `<div class="inv-pop" role="dialog" aria-label="${esc(itemInfo(sel).name)}" style="--c:${itemPopColor(sel)}">${itemPopInner(sel, itemKind(sel), { x: xBtn, stats: isPlaceable(sel) ? devicePop(run, sel) : '', note, foot })}</div>`; // 배치형: 성질 줄 (망원경은 모드 · 범위 · 횟수 도식)
   return ct === 'place' && run.node?.enc ? html.replace('class="inv-pop"', 'class="inv-pop ip-placing"') : html; // 놓는 중: 좁은 화면 하단 시트는 머리 · 바닥 줄만 (보드를 덜 가리게)
 }
 /** 물품 요약: 주요 능력치 줄 + 효과 문장 (설명에서 능력치 접두어를 뗀 것). 보관함 정보 팝업 · 조합 확인 팝업 공용 */
+/** 장비 팝오버 안쪽 (2026-11-07 사용자 결정 '같은 토큰'): 편성 보관함 팝오버(.inv-pop) · 장비 설명 말풍선(.item-tip — 상세 창 장비 · 보관함 줄 · 적 장비)이 같은 구조 —
+ *  머리(아이콘 · 종류 · 이름 · 닫기) · 능력치 · 잠재능력 줄 · 효과 · 바닥 줄. kind = 종류 이름 (itemKind · '적 장비' 등) */
+export function itemPopInner(id: string, kind: string, o: { x?: string; stats?: string; note?: string; foot?: string } = {}) {
+  const { stats, eff } = itemBrief(id);
+  const e = eff + (o.note || '');
+  return `<i class="ip-dots" aria-hidden="true"></i><div class="ip-head">${itemIcon(id)}<div><span class="ip-kind">${esc(kind)}</span><b>${esc(itemInfo(id).name)}</b></div>${o.x || ''}</div>${stats}${o.stats || ''}${e ? `<p class="ip-eff">${statIc(esc(e))}</p>` : ''}${o.foot ? `<div class="ip-foot">${o.foot}</div>` : ''}`;
+}
 export function itemBrief(id: string) {
   const it = itemInfo(id);
   const ms = Object.entries(it.majors || {}) as [Major, number][];

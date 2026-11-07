@@ -166,7 +166,8 @@
 [data-ui-theme="metro"] .top { --sh-bg: var(--mt-paper); }
 [data-ui-theme="metro"] .mt-hd { --sh-bg: color-mix(in srgb, var(--mt-paper) 40%, var(--hdc, var(--mt-a))); } /* 표 머리 도구 = 띠 오른쪽 (종이 → 노드색 그라디언트 76% 근처) */
 [data-ui-theme="metro"] .ah-card.cur { --sh-bg: var(--mt-paper); }
-[data-ui-theme="metro"] .pcard { --sh-bg: var(--mt-ink); }
+[data-ui-theme="metro"] .pcard { --sh-bg: var(--panel); }
+[data-ui-theme="metro"] .pcard .pc-full { --sh-bg: var(--mt-ink); } /* 확대 단추는 사진 창(잉크) 위 */
 [data-ui-theme="metro"] :is(.btn, .ship-btn, .pb-sq, .ms-syn, .field-btn) { --shr: var(--ch-gray-r); --shg: var(--ch-gray-g); --shb: var(--ch-gray-b); --sha: 1; --sh: rgb(var(--shr) var(--shg) var(--shb) / var(--sha)); }
 @supports (color: rgb(from red r g b)) {
   [data-ui-theme="metro"] :is(.btn, .ship-btn, .pb-sq, .ms-syn, .field-btn) { --sh: rgb(from color-mix(in srgb, rgb(from var(--sh-bg) calc(2 * r * var(--shr) / 255 + clamp(0, (r - 127.5) * 1000, 1) * (255 - 2 * (255 - r) * (255 - var(--shr)) / 255 - 2 * r * var(--shr) / 255)) calc(2 * g * var(--shg) / 255 + clamp(0, (g - 127.5) * 1000, 1) * (255 - 2 * (255 - g) * (255 - var(--shg)) / 255 - 2 * g * var(--shg) / 255)) calc(2 * b * var(--shb) / 255 + clamp(0, (b - 127.5) * 1000, 1) * (255 - 2 * (255 - b) * (255 - var(--shb)) / 255 - 2 * b * var(--shb) / 255))) 80%, var(--sh-bg)) r g b / var(--sha)); }
@@ -291,7 +292,7 @@
   -webkit-mask-composite: source-in, source-in, source-over, source-over, source-over, source-over; mask-composite: intersect, intersect, add, add, add, add; }
 [data-ui-theme="metro"] .rc-track { gap: 26px; padding-inline: 16px 8px; }
 [data-ui-theme="metro"] .car-track { gap: 26px; }
-[data-ui-theme="metro"] .pcard { --stub: 40px; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--mt-ink);
+[data-ui-theme="metro"] .pcard { --stub: 40px; --pa-x: 9px; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel);
   -webkit-mask: radial-gradient(circle at 0 calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) left / 51% 100% no-repeat,
     radial-gradient(circle at 100% calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) right / 51% 100% no-repeat;
   mask: radial-gradient(circle at 0 calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) left / 51% 100% no-repeat,
@@ -300,7 +301,7 @@
 [data-ui-theme="metro"] .pcard .btn.pc-pick.primary::after { display: none; }
 [data-ui-theme="metro"] .pcard .btn.pc-pick.primary:hover:not(:disabled) { border-color: var(--mt-hover); background: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); }
 [data-ui-theme="metro"] .pcard.sel { border-color: var(--c-select); box-shadow: inset 0 0 0 1.5px var(--c-select); }
-[data-ui-theme="metro"] .mt-pass { display: block; position: absolute; inset: 0; z-index: var(--z-raise); pointer-events: none; color: var(--mt-paper); }
+[data-ui-theme="metro"] .mt-pass { display: block; position: absolute; inset: 0; z-index: var(--z-raise); pointer-events: none; color: var(--c-text); }
 [data-ui-theme="metro"] .mt-pass > b { position: absolute; left: 14px; top: 9px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .mt-pass > i { display: none; position: absolute; right: 14px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--mt-a); }
 [data-ui-theme="metro"] .mt-pass-stub { position: absolute; left: 0; right: 0; bottom: 0; height: var(--stub); display: flex; align-items: center; gap: 10px; padding: 0 14px; background: linear-gradient(100deg, var(--ps-a), var(--ps-b)); color: var(--mt-on);
@@ -313,7 +314,7 @@
   background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 3px, currentColor 3px 4px, transparent 4px 7px, currentColor 7px 10px, transparent 10px 11px, currentColor 11px 12px, transparent 12px 14px); }
 [data-ui-theme="metro"] .mt-pass-stub b { font: 400 var(--fs-md)/1 var(--f-display); letter-spacing: .1em; white-space: nowrap; }
 [data-ui-theme="metro"] .mt-pass-stub em { margin-left: auto; font: 400 var(--fs-xl)/1 var(--f-display); font-style: normal; }
-[data-ui-theme="metro"] .pcard .pc-art { inset: 28px 9px calc(var(--stub) + 2px); isolation: isolate; border-radius: var(--r-lg); background: color-mix(in srgb, var(--mt-a) 9%, var(--mt-ink)); }
+[data-ui-theme="metro"] .pcard .pc-art { inset: 28px var(--pa-x) calc(var(--stub) + 2px); isolation: isolate; border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--r-lg); background: color-mix(in srgb, var(--mt-a) 9%, var(--mt-ink)); }
 [data-ui-theme="metro"] .pcard .pc-art::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: linear-gradient(150deg, color-mix(in srgb, var(--mt-a) 26%, transparent), transparent 55%); } /* 좌측 상단에서 옅어지는 보라 그라디언트 (사진 창 바탕 위 · 선 무늬 · 그림 아래) */
 [data-ui-theme="metro"] .pcard.sel .pc-art::after { background: linear-gradient(150deg, color-mix(in srgb, var(--c-select) 24%, transparent), transparent 55%); }
@@ -326,9 +327,22 @@
   linear-gradient(color-mix(in srgb, var(--c-black) 35%, transparent) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, color-mix(in srgb, var(--c-black) 35%, transparent) 1px, transparent 1px) 0 0 / 20px 20px; } /* 전문가: 설계 모눈 · 궤도 (원 · 점선 원 · 위성 · 축) */
 [data-ui-theme="metro"] .pcard[data-ct="CMD"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600' fill='none' stroke='black' stroke-width='1.5'%3E%3Ccircle cx='300' cy='300' r='28'/%3E%3Ccircle cx='300' cy='300' r='38'/%3E%3Cpath d='M352.0 300.0 630.0 300.0 M350.2 313.5 618.8 385.4 M345.0 326.0 585.8 465.0 M336.8 336.8 533.3 533.3 M326.0 345.0 465.0 585.8 M313.5 350.2 385.4 618.8 M300.0 352.0 300.0 630.0 M286.5 350.2 214.6 618.8 M274.0 345.0 135.0 585.8 M263.2 336.8 66.7 533.3 M255.0 326.0 14.2 465.0 M249.8 313.5 -18.8 385.4 M248.0 300.0 -30.0 300.0 M249.8 286.5 -18.8 214.6 M255.0 274.0 14.2 135.0 M263.2 263.2 66.7 66.7 M274.0 255.0 135.0 14.2 M286.5 249.8 214.6 -18.8 M300.0 248.0 300.0 -30.0 M313.5 249.8 385.4 -18.8 M326.0 255.0 465.0 14.2 M336.8 263.2 533.3 66.7 M345.0 274.0 585.8 135.0 M350.2 286.5 618.8 214.6'/%3E%3C/svg%3E") center top -180px / 600px 600px no-repeat; } /* 지휘관: 방사선 · 이중 고리 */
 [data-ui-theme="metro"] .pcard .pc-panel { inset: 28px 0 var(--stub); }
-[data-ui-theme="metro"] .pcard .pc-top { padding-inline: 16px; }
-[data-ui-theme="metro"] .pcard .pc-syn { top: 38px; left: 18px; }
-[data-ui-theme="metro"] .pcard .pc-full { top: 36px; right: 16px; }
+/* 보딩 카드 (2026-11-07 사용자 결정 기물 카드 시안 2 — 회색 흐림 대신): 카드 = 흰 종이, 사진 창 = 잉크 테, 글 = 종이 위 인쇄 글씨.
+   그림은 크기 · 자리를 그대로 두고 글 칸(.pc-top)의 종이가 아래를 덮어 흐림이 있던 자리 직전에서 잘린다 — 창 아랫변 · 둥근 아래 모서리는 글 칸 위 띠(::after)가
+   그려서 글 높이(유형 줄 · 설명 줄 수 · 터치 '상세 보기')가 달라도 창이 글 바로 위에서 끝난다. 펼치면(가리킴 · 상세 보기) 종이가 걷혀 이전처럼 반투명 판 */
+[data-ui-theme="metro"] .pcard .pc-top { --pw-r: var(--r-lg); padding-inline: 16px; padding-top: 16px; background-color: var(--panel); transition: padding .4s cubic-bezier(.45, 0, .55, 1), background-color .4s cubic-bezier(.45, 0, .55, 1); }
+[data-ui-theme="metro"] .pcard .pc-top::after { content: ''; position: absolute; left: var(--pa-x); right: var(--pa-x); bottom: 100%; height: var(--pw-r); pointer-events: none; transition: opacity .4s cubic-bezier(.45, 0, .55, 1);
+  background: linear-gradient(var(--mt-edge), var(--mt-edge)) center bottom / calc(100% - 2 * var(--pw-r)) var(--mt-stroke) no-repeat,
+    radial-gradient(circle at 100% 0, transparent calc(var(--pw-r) - var(--mt-stroke)), var(--mt-edge) calc(var(--pw-r) - var(--mt-stroke)) var(--pw-r), var(--panel) var(--pw-r)) left bottom / var(--pw-r) var(--pw-r) no-repeat,
+    radial-gradient(circle at 0 0, transparent calc(var(--pw-r) - var(--mt-stroke)), var(--mt-edge) calc(var(--pw-r) - var(--mt-stroke)) var(--pw-r), var(--panel) var(--pw-r)) right bottom / var(--pw-r) var(--pw-r) no-repeat; } /* 창 아랫변 + 둥근 아래 모서리 (모서리 밖 = 종이) */
+[data-ui-theme="metro"] .pcard.open .pc-top { background-color: transparent; }
+[data-ui-theme="metro"] .pcard.open .pc-top::after { opacity: 0; }
+@media (hover: hover) {
+  [data-ui-theme="metro"] .pcard:hover:not(:has(.pc-syn:hover)) .pc-top { background-color: transparent; }
+  [data-ui-theme="metro"] .pcard:hover:not(:has(.pc-syn:hover)) .pc-top::after { opacity: 0; }
+}
+[data-ui-theme="metro"] .pcard .pc-syn { top: 40px; left: 19px; }
+[data-ui-theme="metro"] .pcard .pc-full { top: 38px; right: 19px; }
 /* 고른 표시 = 머리 줄 우상단 모서리 칩 (사진 창을 가리지 않는다): 모서리 둥글기 = 카드, 안쪽 모서리 = --r-md, 체크는 굵은 선 그림 */
 [data-ui-theme="metro"] .pcard .pc-check, [data-ui-theme="metro"] .pcard .pc-full ~ .pc-check { top: 0; right: 0; z-index: var(--z-sticky); display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 11px 0 9px;
   border-radius: 0 var(--mt-r) 0 var(--r-md); background: var(--c-select); color: var(--c-select-ink); font: 700 var(--fs-sm)/1 var(--f-mono); }
@@ -351,10 +365,11 @@
   [data-ui-theme="metro"] .mt-pass-stub { gap: 6px; padding: 0 10px; }
   [data-ui-theme="metro"] .mt-pass-stub b { font-size: var(--fs-xs); }
   [data-ui-theme="metro"] .mt-pass-stub em { font-size: var(--fs-md); }
-  [data-ui-theme="metro"] .pcard .pc-art { inset: 24px 6px calc(var(--stub) + 2px); }
+  [data-ui-theme="metro"] .pcard { --pa-x: 6px; }
+  [data-ui-theme="metro"] .pcard .pc-art { inset: 24px var(--pa-x) calc(var(--stub) + 2px); }
   [data-ui-theme="metro"] .pcard .pc-panel { inset: 24px 0 var(--stub); }
-  [data-ui-theme="metro"] .pcard .pc-syn { top: 32px; left: 12px; }
-  [data-ui-theme="metro"] .pcard .pc-full { top: 30px; right: 10px; }
+  [data-ui-theme="metro"] .pcard .pc-syn { top: 34px; left: 14px; }
+  [data-ui-theme="metro"] .pcard .pc-full { top: 32px; right: 14px; }
   [data-ui-theme="metro"] .mt-pass > b { left: 10px; top: 7px; }
   [data-ui-theme="metro"] .mt-pass > i { right: 10px; top: 7px; }
 }
@@ -368,12 +383,17 @@
   [data-ui-theme="metro"] .mt-pass-stub { gap: 6px; padding: 0 10px; }
   [data-ui-theme="metro"] .mt-pass-stub b { font-size: var(--fs-xs); }
   [data-ui-theme="metro"] .mt-pass-stub em { font-size: var(--fs-md); }
-  [data-ui-theme="metro"] .pcard .pc-art { inset: 6px 6px calc(var(--stub) + 2px); }
+  [data-ui-theme="metro"] .pcard { --pa-x: 6px; }
+  [data-ui-theme="metro"] .pcard .pc-art { inset: 6px var(--pa-x) calc(var(--stub) + 2px); }
   [data-ui-theme="metro"] .pcard .pc-panel { inset: 0 0 var(--stub); }
-  [data-ui-theme="metro"] .pcard .pc-syn { top: 8px; left: 8px; }
-  [data-ui-theme="metro"] .pcard .pc-panel { justify-content: flex-start; padding-top: 36px; } /* 이름 = 시너지 마름모 줄(위 8 ~ 36px) 아래부터 — 아래 정렬이면 짧은 카드에서 글이 차올라 이름이 마름모에 겹친다 */
+  [data-ui-theme="metro"] .pcard .pc-syn { top: 10px; left: 10px; }
+  [data-ui-theme="metro"] .pcard .pc-top { padding-top: 8px; }
+  [data-ui-theme="metro"] .pcard:not(.open) .pc-blurb { display: none; } /* 짧은 카드: 접힌 동안 설명 줄을 빼 사진 창 자리를 남긴다 (펼치면 보인다) */
   [data-ui-theme="metro"] .pcard .pc-role { gap: 2px 8px; } /* 유형 둘을 한 줄에 */
-  [data-ui-theme="metro"] .pcard .pc-full { top: 32px; right: 8px; } /* 우상단 모서리는 고른 표시 칩 자리 */
+  [data-ui-theme="metro"] .pcard .pc-full { top: 22px; right: 10px; } /* 우상단 모서리는 고른 표시 칩 자리 · 사진 창 안 */
+}
+@media (orientation: landscape) and (max-height: 560px) and (hover: hover) {
+  [data-ui-theme="metro"] .pcard:hover:not(:has(.pc-syn:hover)) .pc-blurb { display: -webkit-box; } /* 마우스로 펼칠 때는 설명 줄도 */
 }
 
 /* ── 특권 증강 (런 출발) 막 = 승강장 행선 안내판 (2026-11-06 사용자 결정 배경 시안 2 — 스크린도어 대신): 문 없이 잉크 승강장,
@@ -1106,13 +1126,58 @@
 [data-ui-theme="metro"] .codex :is(main > h2, .cx-h, .cx-d h3, .cx-d h4, .cx2-c > h3) { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 400; letter-spacing: .03em; }
 [data-ui-theme="metro"] .codex .cx-h .cx-hn { font-family: var(--f-mono); letter-spacing: .04em; }
 [data-ui-theme="metro"] .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3)::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--mt-b); } /* 구획 제목 = 노선색 네모 표식 (정보 화면과 같다) */
+/* ══ 구획 제목 = 궤도 행성 (2026-11-07 사용자 결정 Y2K 시안 3 — 이전 8px 민트 네모는 본문보다 작아 강조가 없었다): 고리 행성 표식(--mt-planet) + 제목 글꼴 18px
+   + 제목 뒤 남은 폭을 흐르는 보라 → 민트 궤도선. 정보 화면 · 기물 전체 상세 · 메뉴 · 도감이 같은 부품 (위 네 곳의 네모 규칙을 한꺼번에 덮는다, 이번 전투 종이 머리 제외) */
+[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3)) { font-size: var(--fs-xl); }
+[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::before { width: 26px; height: 19px; background: var(--mt-planet) center / contain no-repeat; }
+[data-ui-theme="metro"] :is(.um-col > h3, .modal:has(> .menu-tabs) > h3, .side > h2, .ship > h2, .ahead > h2, .detail.pb h3:not(.pb-head h3), .codex :is(main > h2, .cx-h, .cx-d h3, .cx2-c > h3))::after { content: ''; flex: 1 1 24px; height: 1.5px; margin-left: 4px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--mt-a), var(--mt-b) 60%, transparent); }
 /* 툴팁 · 팝오버 = 디자인 시스템 Tip: 잉크 판 · 1.5px 윤곽 · 작은 둥글기, 번지는 그림자 · 글로우 없음 (같은 색 화면 위에서는 잉크 고리로 떼어 놓는다) */
-[data-ui-theme="metro"] :is(.kw-tip, .item-tip, .tl-pop, .stat-pop, .ask-pop) { border-width: 1.5px; border-radius: var(--mt-r-sm); background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); }
+[data-ui-theme="metro"] :is(.kw-tip, .item-tip, .tl-pop, .stat-pop, .ask-pop) { border-width: 1.5px; border-radius: var(--mt-r-sm); background: var(--panel); box-shadow: none; } /* 흰 면 (2026-11-07 사용자 피드백 — 시너지 상세가 잉크 판에 잉크 글씨였다) */
+[data-ui-theme="metro"] .tl-pop { background: var(--mt-ink); box-shadow: 0 0 0 1.5px var(--mt-ink); } /* 칸 말풍선 = 어두운 창 (밤 글씨) */
 [data-ui-theme="metro"] :is(.kw-tip, .tl-pop, .stat-pop) { border-color: var(--mt-edge); }
 [data-ui-theme="metro"] .tl-pop { border-top: 3px solid var(--nc); } /* 노드 종류색 머리 띠 */
 [data-ui-theme="metro"] .item-tip { border-left-width: 4px; }
-[data-ui-theme="metro"] :is(.tl-pop small, .item-tip small) { font-family: var(--f-mono); letter-spacing: .06em; }
+[data-ui-theme="metro"] .tl-pop small { font-family: var(--f-mono); letter-spacing: .06em; }
 [data-ui-theme="metro"] .stat-pop.sheet { box-shadow: 0 0 0 1.5px var(--mt-ink); }
+/* ══ 장비 팝오버 = 한 토큰 (2026-11-07 사용자 결정): 편성 보관함 팝오버(.inv-pop) · 장비 설명 말풍선(.item-tip — 상세 창 장비 · 보관함 줄 · 적 장비)이 같은 모양 · 같은 안쪽 구조 (app/prep.ts itemPopInner).
+   종이 판 + 1.5px 잉크 윤곽 + 공통 그림자 판 (잉크, 오른쪽 아래 7px · 우하단 끝으로 망점이 옅어진다 — 탑승권 · 회원증 판과 같은 문법, 짧은 띠 --mt-plate-sm, 흐린 그림자 대신)
+   + 장비 색 망점 (.ip-dots — 오른쪽 아래 구석, --c = 등급색 · 소모품 · 문장 색, app/common.ts itemPopColor). 확인 창(.ask-pop)도 같은 판 · 그림자 (윤곽만 선택색).
+   팝오버는 쌓임 층이라 그림자 판을 판 밑에 깔려면 바탕도 가상 요소다: ::before = 종이 판 · ::after = 그림자 판 (z -2) · 망점은 그 사이 (z -1, 바탕 다음 차례) */
+[data-ui-theme="metro"] :is(.inv-pop, .item-tip, .ask-pop) { border: var(--mt-stroke) solid var(--mt-edge); border-radius: var(--mt-r-sm); background: transparent; box-shadow: none; }
+[data-ui-theme="metro"] .ask-pop { border-color: var(--c-select); }
+[data-ui-theme="metro"] .item-tip { gap: 8px; width: 260px; max-width: calc(100vw - 16px); padding: 10px 12px; font-size: var(--fs-base); }
+[data-ui-theme="metro"] .item-tip b { color: inherit; } /* 이름 · 값 = 보관함 팝오버처럼 잉크 (등급은 종류 이름 · 망점이 말한다) */
+[data-ui-theme="metro"] :is(.inv-pop, .item-tip, .ask-pop)::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--panel); pointer-events: none; }
+[data-ui-theme="metro"] :is(.inv-pop, .item-tip, .ask-pop)::after { content: ''; position: absolute; inset: 7px -7px -7px 7px; z-index: -2; border-radius: inherit; background: var(--k-ink); pointer-events: none; -webkit-mask: var(--mt-plate-sm); mask: var(--mt-plate-sm); }
+[data-ui-theme="metro"] .ip-dots { display: block; position: absolute; right: 0; bottom: 0; z-index: -1; width: min(300px, 100%); height: 86px; border-radius: 0 0 var(--mt-r-sm) 0; background: var(--c, var(--g-C)); opacity: .4; pointer-events: none;
+  -webkit-mask: var(--mt-dot-tr) center / 100% 100% no-repeat; mask: var(--mt-dot-tr) center / 100% 100% no-repeat; scale: 1 -1; } /* 장비 색 망점: 우하단 구석이 짙고 위 · 왼쪽으로 옅다 (보급 앞면과 같은 토큰을 뒤집어) */
+[data-ui-theme="metro"] :is(.inv-pop, .ask-pop).dock-top { background: var(--panel); } /* 태블릿 세로 머리 자리: 안에서 스크롤하는 판이라 가상 요소 판 · 그림자 대신 */
+[data-ui-theme="metro"] :is(.inv-pop, .ask-pop).dock-top::before, [data-ui-theme="metro"] :is(.inv-pop, .ask-pop).dock-top::after { display: none; }
+/* ══ 장비 · 소모품 · 성유물 토큰 (2026-11-07 사용자 결정 — 잉크 면 + 등급색 테두리 → 등급색 면 + 잉크 테두리, 상세 좁은 창 · 넓은 창이 같은 토큰):
+   편성 보관함 · 상세 장비란 · 전체 상세 빌드 줄 · 상점 보관함 · 팝오버 머리 · 보급 카드가 같은 모양. 채움색 --it-* 는 밝은 객실 · 밤 구분 없이 고정 (01-themes.css).
+   모양은 그대로 (장비 = 둥근 네모 · 소모품 = 육각 · 개조부품 = 마름모 · 포탑 = 이중 틀 · 성유물 = 원), 아이콘 = 잉크, 전설 · 고유의 번지는 빛 없음.
+   제외: 미니 카드 머리 그림 칸(그 칸의 그림 문법) · 보드 위 기물 토큰의 장비 칸(전투판 · 편성판 = 갤럭시와 같은 표현, 2026-11-06 결정) */
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) { --itf: var(--it-C); border: var(--mt-stroke) solid var(--it-edge); background: var(--itf); color: var(--it-ink); box-shadow: none; }
+[data-ui-theme="metro"] .item.tG:not(.mn-hd .item, .u .item) { --itf: var(--it-G); }
+[data-ui-theme="metro"] .item.tA:not(.mn-hd .item, .u .item) { --itf: var(--it-A); }
+[data-ui-theme="metro"] .item.tL:not(.mn-hd .item, .u .item) { --itf: var(--it-L); }
+[data-ui-theme="metro"] .item.tU:not(.mn-hd .item, .u .item) { --itf: var(--it-U); }
+[data-ui-theme="metro"] .item.tS:not(.mn-hd .item, .u .item) { --itf: var(--it-S); }
+[data-ui-theme="metro"] .item.tT:not(.mn-hd .item, .u .item) { --itf: var(--it-T); border: 3.5px double var(--it-edge); }
+[data-ui-theme="metro"] .item.empty:not(.mn-hd .item, .u .item) { --itf: transparent; border: var(--mt-stroke) dashed var(--line); }
+[data-ui-theme="metro"] :is(.item.tM, .item.hex):not(.mn-hd .item, .u .item) { background: transparent; color: var(--it-ink); }
+[data-ui-theme="metro"] .item.tM:not(.mn-hd .item, .u .item)::before { border: var(--mt-stroke) solid var(--it-edge); background: var(--sc, var(--it-M)); }
+[data-ui-theme="metro"] .item.tM.empty:not(.mn-hd .item, .u .item)::before { border-style: dashed; border-color: var(--line); background: transparent; }
+[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::before { background: var(--it-edge); }
+[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::after { background: var(--hc, var(--it-C)); }
+[data-ui-theme="metro"] .relic-tok { border: var(--mt-stroke) solid var(--it-edge); background: var(--it-R); color: var(--it-ink); }
+[data-ui-theme="metro"] .relic-tok.empty { border: var(--mt-stroke) dashed var(--line); background: transparent; color: var(--c-text-2); }
+/* 스티커 그림자 (2026-11-07 사용자 결정 색 시안 8 — 잉크 2.5px, 이 위에 얹을 장식은 발전 시안 8-1 ~ 8-5 고르기 대기): 네모 · 원 = box-shadow, 육각 · 마름모 = drop-shadow (고른 것은 선택색 윤곽 + 그림자) */
+[data-ui-theme="metro"] .item:not(.hex, .tM, .empty, .mn-hd .item, .u .item) { box-shadow: 2.5px 2.5px 0 var(--it-edge); }
+[data-ui-theme="metro"] :is(.item.hex, .item.tM):not(.empty, .mn-hd .item, .u .item) { filter: drop-shadow(2.5px 2.5px 0 var(--it-edge)); }
+[data-ui-theme="metro"] :is(.item.hex, .item.tM):is(.sel, .dragging):not(.mn-hd .item, .u .item) { filter: drop-shadow(1.5px 0 0 var(--c-select)) drop-shadow(-1.5px 0 0 var(--c-select)) drop-shadow(0 1.5px 0 var(--c-select)) drop-shadow(0 -1.5px 0 var(--c-select)) drop-shadow(2.5px 2.5px 0 var(--it-edge)); }
+[data-ui-theme="metro"] .relic-tok:not(.empty) { box-shadow: 2.5px 2.5px 0 var(--it-edge); }
+[data-ui-theme="metro"] .relic-tok.on:not(.empty) { box-shadow: 0 0 0 2px var(--c-select), 2.5px 2.5px 0 var(--it-edge); }
 /* 튜토리얼 말풍선 = 디자인 시스템 Dialogue: 이름표 = 탑승권 머리 (잉크 → 보라 띠 · 절취선 · 양옆 홈), 몸통 = 대사. 가리키는 고리 = 선택색 실선 (번지는 빛 대신 바깥 고리가 퍼지며 사라진다) */
 [data-ui-theme="metro"] .co-bub { gap: 10px; padding: 0 0 12px; overflow: hidden; border: 0; border-radius: var(--mt-r); background: var(--panel); box-shadow: inset 0 0 0 1.5px var(--mt-edge), 0 0 0 1.5px var(--mt-ink); }
 [data-ui-theme="metro"] .co-head { position: relative; margin: 1.5px 1.5px 0; padding: 10px 12.5px; border-radius: var(--mt-r) var(--mt-r) 0 0; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
@@ -1314,7 +1379,7 @@
    전투판 · 속도 · 계측 탭 · 바 · 계약 · 타이틀 · 사건 · 전장 카드 · 미니 카드 그림 칸 · 장비 칸(상세 장비란 제외) · 카드 뒷면 · 상인 칸 ·
    환경 포스터 · 특권 바탕 · 배너 · 출전 · 전술 칩 · 적 분대 · 순례 카드 머리 · 알림 표 · 절망 증강 창 · 칸 말풍선 · 결과 보고서 머리 띠.
    밤 구역에서는 다른 토큰에서 계산되는 토큰(구조선 · 그림자 · 가리킴 · 바닥 · 옛 별칭 · 그림자 바탕 · 숫자 채널)도 다시 푼다 (정의된 자리에서 값이 굳어 내려온다) */
-[data-ui-theme="metro"]:has(main.battle), [data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .item:not(.d-eq .item), .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) {
+[data-ui-theme="metro"]:has(main.battle), [data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) {
   --bg: var(--night-bg); --panel: var(--night-panel); --panel-2: var(--night-panel-2); --line: var(--night-line); --c-text: var(--night-c-text); --c-text-2: var(--night-c-text-2); --c-good: var(--night-c-good); --c-bad: var(--night-c-bad); --c-info: var(--night-c-info); --c-chalk: var(--night-c-chalk); --c-chalk-ink: var(--night-c-chalk-ink); --c-ink: var(--night-c-ink); --c-brand: var(--night-c-brand); --c-credit: var(--night-c-credit); --overlay: var(--night-overlay); --tint-1: var(--night-tint-1); --tint-2: var(--night-tint-2); --shade-1: var(--night-shade-1); --shade-2: var(--night-shade-2); --shade-3: var(--night-shade-3); --mt-grid: var(--night-mt-grid); --mt-edge: var(--night-mt-edge); --mt-sh: var(--night-mt-sh); --c-divine: var(--night-c-divine); --c-occult: var(--night-c-occult); --c-psi: var(--night-c-psi); --c-ult: var(--night-c-ult); --c-steel: var(--night-c-steel); --fame: var(--night-fame); --staff: var(--night-staff); --el-phys: var(--night-el-phys); --el-chem: var(--night-el-chem); --el-elec: var(--night-el-elec); --el-psy: var(--night-el-psy); --el-holy: var(--night-el-holy); --el-true: var(--night-el-true); --g-C: var(--night-g-C); --g-G: var(--night-g-G); --g-A: var(--night-g-A); --g-L: var(--night-g-L); --g-U: var(--night-g-U); --g-T: var(--night-g-T); --g-S: var(--night-g-S); --st-buff: var(--night-st-buff); --st-buff-ink: var(--night-st-buff-ink); --st-debuff: var(--night-st-debuff); --st-debuff-ink: var(--night-st-debuff-ink); --c-down: var(--night-c-down); --c-res: var(--night-c-res); --c-warn-ink: var(--night-c-warn-ink); --c-ok-ink: var(--night-c-ok-ink); --c-danger-ink: var(--night-c-danger-ink); --c-danger-line: var(--night-c-danger-line); --c-streak: var(--night-c-streak); --c-lo: var(--night-c-lo); --cat-bio: var(--night-cat-bio); --cat-mech: var(--night-cat-mech); --cat-struct: var(--night-cat-struct); --c-type: var(--night-c-type); --st-chip: var(--night-st-chip); --c-danger-bg: var(--night-c-danger-bg); --data-mix: var(--night-data-mix); --op-lift: var(--night-op-lift);
   --edge: var(--mt-edge); --sh-press: var(--mt-sh); --mt-sh-pass: var(--sh-press); --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); --mt-d: var(--c-bad);
   --mt-sh-prim: var(--night-mt-sh-prim); --ch-gray-r: var(--night-ch-gray-r); --ch-gray-g: var(--night-ch-gray-g); --ch-gray-b: var(--night-ch-gray-b);
@@ -1323,7 +1388,7 @@
   --mt-floor: radial-gradient(circle at 0 100%, color-mix(in srgb, var(--mt-a) 15%, transparent), transparent 46%) fixed, radial-gradient(circle at 100% 0, color-mix(in srgb, var(--mt-b) 11%, transparent), transparent 40%) fixed,
     linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, var(--bg);
   color-scheme: dark; }
-[data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .item:not(.d-eq .item), .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) { color: var(--c-text); } /* 어두운 창 안 글씨 = 밤 글씨 (바탕이 밝은 객실 글씨를 물려주지 않게) */
+[data-ui-theme="metro"] :is(.board-wrap, .board, .speed, .meter-tabs, .bar, .ct, .title-screen, .adv, .field-card, .mn-hd, .cback, .so-npc, .envp, .pv-bg, .banner, .dep-pill, .tac-pill, .pb-foe, .pil-ch, .nt-rows, .modal.despair, .tl-pop, .aar-head) { color: var(--c-text); } /* 어두운 창 안 글씨 = 밤 글씨 (바탕이 밝은 객실 글씨를 물려주지 않게) */
 [data-ui-theme="metro"] .so-npc { background: var(--bg); }
 [data-ui-theme="metro"]:not(:has(main.battle)) .board-wrap, [data-ui-theme="metro"]:not(:has(main.battle)) .board { background: var(--bg); border-radius: var(--r-panel); } /* 전투판은 창: 판 둘레의 흐린 칸이 종이 바탕을 비추지 않게 판 뒤를 어둡게 */
 /* 강조색 복숭아는 면에만 — 종이 위 글씨 · 숫자는 크레딧색(짙은 복숭아, 디자인 시스템 accent-text 와 같은 구분) */
@@ -1333,6 +1398,10 @@
 [data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur { --mt-paper: var(--k-ink); --mt-on: var(--k-paper); --mt-ink: var(--k-paper);
   --ch-gray-r: var(--night-ch-gray-r); --ch-gray-g: var(--night-ch-gray-g); --ch-gray-b: var(--night-ch-gray-b); --ch-on-r: var(--night-ch-paper-r); --ch-on-g: var(--night-ch-paper-g); --ch-on-b: var(--night-ch-paper-b); }
 [data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur .ah-lead .ah-ic { border-color: var(--k-ink); color: var(--k-ink); }
+/* 지금 칸 표 안 주 동작 = 다른 주 동작과 같은 모양 (2026-11-07 사용자 피드백 — 흰 망점 · 잉크 테두리 · 잉크 그림자): 표의 극성 뒤집기를 단추에서 되돌린다 */
+[data-ui-theme="metro"]:not(:has(main.battle)) .ah-card.cur .btn.primary { --mt-paper: var(--k-paper); --mt-on: var(--k-ink); --mt-ink: var(--k-ink); --ch-on-r: var(--ch-paper-r); --ch-on-g: var(--ch-paper-g); --ch-on-b: var(--ch-paper-b); }
+/* 상점 = 원래 피치 (2026-11-07 사용자 요청 '짙은 주황을 피치로 시험'): 상점 덮개 안 크레딧색(머리 띠 · 가격 · 켜진 보관함 단추 · 새로고침 값)을 강조색으로 */
+[data-ui-theme="metro"]:not(:has(main.battle)) .shop-ov { --c-credit: var(--c-select); }
 [data-ui-theme="metro"]:not(:has(main.battle)) .st-tab[aria-selected="true"] { background: var(--k-ink); color: var(--k-paper); border-color: var(--k-ink); }
 /* 주인공이 아닌 표의 스텁은 종이 쪽 (반대 극성은 주인공 하나에만) */
 [data-ui-theme="metro"]:not(:has(main.battle)) .ah-card:not(.cur) .ah-lead { background: color-mix(in srgb, var(--nc, var(--c-text-2)) 16%, var(--panel-2)); }

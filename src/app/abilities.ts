@@ -29,11 +29,11 @@ import { DEFAULT_RELIC, offerMul, offerStage, RELIC_BY_ID } from '../data/relics
 import { ABIL_ICONS } from '../ui/abilicons.gen';
 import { lineIcon, typeIcon } from '../ui/synicons';
 import { app, esc, root } from './state';
-import { NODE_ICON, augIcon, hero, itemIcon, majorIcon, sprite, statIc, synToken, xpBar } from './common';
+import { NODE_ICON, augIcon, hero, itemIcon, itemPopColor, majorIcon, sprite, statIc, synToken, xpBar } from './common';
 import { diffAddChip, matchupHtml, muRow, muTag, muTags, releaseBlock } from './title';
 import { AB_KIND, CTYPE_ICON, TTYPE_ICON, TTYPE_RULE, WPOS, awakened, blessBtn, consBtn, cSchool, categoryTag, ctypeRuleHtml, dBar, detailHtml, detailToggle, dorosReady, enemyCategory, faithAbil, focusBtn, relicPicker, relicTok, skillText, sub, traitGroup, traitText, ttSection, unitCategory } from './unitparts';
 import { foeRank, rankChip, rankLabel, unitRank } from './map';
-import { hpLabel, kingDetail, previewAlly, startChips, statLines, turretDetail } from './prep';
+import { hpLabel, itemPopInner, kingDetail, previewAlly, startChips, statLines, turretDetail } from './prep';
 import { battleMajors, encName, foeAmp, foeHead, magBtn, majorsHtml, tendOf, terrainDetail, tierKo } from './battle';
 
 // ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
@@ -646,14 +646,17 @@ export function foeGear(e: EnemyDef, s: { items?: string[]; mod?: string; stripp
 export function tchip(icon: string, txt: string, cls = '', title = '', st = '') {
   return `<span class="tchip ${cls}"${title ? ` title="${esc(title)}"` : ''}${st ? ` style="${st}"` : ''}>${icon}${txt}</span>`;
 }
-/** 적 장비 설명 (편성 적 구성 · 보드 · 적 상세): 누르면 이름 · 설명 (마우스는 title 로도 보인다) */
-export function foeItemTip(el: HTMLElement, id: string) {
+/** 장비 설명 말풍선 (id 로): 적 장비 (편성 적 구성 · 보드 · 적 상세) · 보관함 줄 (상점 보관함 판 · 지도 파티 탭 — label = 등급 이름).
+ *  누르면 고정, 마우스로 가리키면 hover = true 로 잠깐 (떠나면 닫힌다 — main.ts), 다음 누르기에 닫힌다 */
+export function foeItemTip(el: HTMLElement, id: string, label = '적 장비', hover = false) {
   document.querySelector('.item-tip')?.remove();
   if (!id) return;
-  const it = itemInfo(id);
   const tip = document.createElement('div');
   tip.className = `item-tip tip-${tierKey(id)}`;
-  tip.innerHTML = `<span class="tip-tier">적 장비</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>`;
+  tip.style.setProperty('--c', itemPopColor(id));
+  if (hover) tip.dataset.hover = '1';
+  tip.dataset.k = el.dataset.v || '';
+  tip.innerHTML = itemPopInner(id, label); // 보관함 팝오버와 같은 안쪽 구조 (prep.ts)
   tip.addEventListener('pointerdown', (e) => e.stopPropagation());
   document.body.appendChild(tip);
   const r = el.getBoundingClientRect(), tr = tip.getBoundingClientRect();

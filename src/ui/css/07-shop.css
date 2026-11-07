@@ -191,6 +191,7 @@
 .tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
 .item-tip .mi { width: 1.05em; height: 1.05em; }
 /* 보관 물품 정보 팝업 (스킬 상세처럼: 아이콘 · 능력치 · 효과) */
+.ip-dots { display: none; } /* 장비 색 망점 = 메트로 (26-metro.css) */
 .inv-pop { position: fixed; z-index: var(--z-pop); width: 260px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 24px color-mix(in srgb, var(--c-black) 45%, transparent); font-size: var(--fs-base); }
 .inv-pop.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; } /* JS 가 넣은 인라인 left · top 을 이긴다 (하단 시트) */
 /* 태블릿 세로 (보관함 세로 줄 · 오른쪽 자리 없음, app/popups.ts railTopDock): 보드 위 머리 자리 (상단 바 · 보드 머리줄)에 겹쳐 — 보드 칸을 가리지 않는다. 높이는 JS (max-height), 넘치면 안에서 스크롤.
