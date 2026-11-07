@@ -23,4 +23,5 @@ tools/guests/pick_*/
 dist/ui_shots/
 dist/ui_states.json
 dist/ui_shots*.log
+dist/*.log
 dist/base_*.html

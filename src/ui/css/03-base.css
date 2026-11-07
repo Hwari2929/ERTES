@@ -1,5 +1,6 @@
 /* ── 버튼 */
 .btn { background: var(--panel-2); border: var(--stroke) solid var(--edge); border-radius: var(--r-press); padding: 8px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+.rf .rf-ic, .rf .rf-n { display: none; } /* 새로고침 단추 (app/common.ts rerollBtn): 갤럭시 = 글자, 메트로 = 아이콘 · 남은 수 (26-metro.css) */
 .btn:hover:not(:disabled) { border-color: var(--c-select); }
 .btn:disabled { opacity: calc(.45 + var(--op-lift)); cursor: not-allowed; }
 .btn.primary { background: var(--c-select); color: var(--c-select-ink); border-color: var(--c-select); font-weight: 800; }

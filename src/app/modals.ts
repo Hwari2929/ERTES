@@ -26,7 +26,7 @@ import * as REPORT from '../ui/report';
 import { lineIcon, synIcon } from '../ui/synicons';
 import * as SHOP from '../ui/shop';
 import { FS_SVG, UI_FX, app, canFullscreen, esc, isFullscreen, pct1, pctTxt, root, themePicker, uiFx } from './state';
-import { NODE_ICON, TIER_NAME, augIcon, interestLines, itemIcon, itemTone, majorIcon, recommendedMajors, sprite, statIc, synToken } from './common';
+import { NODE_ICON, TIER_NAME, augIcon, interestLines, itemIcon, itemTone, majorIcon, recommendedMajors, rerollBtn, sprite, statIc, synToken } from './common';
 import { despairNames, dpPlayed, matchupChips, matchupHtml, pvPlayed, setDpPlayed, setPvPlayed } from './title';
 import { CAN_HOVER, PSI_RANKS, detailToggle, ownedChip, pickCard, schoolOpt, sub, supplyHtml, teamCount } from './unitparts';
 import { CR, ic, musterModal, phaseBoss, rankLabel, rosterRow, supplyHint } from './map';
@@ -293,7 +293,7 @@ export function pendingModal(run: RunState): string {
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span>${passHead(i, '전역', GLOBALS.indexOf(g) + 1, [['등급', `${GLOBAL_TIER_NAME[g.tier || 'N']}${g.unique ? ' · 고유' : ''}`], ['유효', '런 종료까지']])}<b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
-      ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
+      ${p.rerolls !== undefined ? `<div class="row-btns">${rerollBtn('reroll-global', p.rerolls, `새로고침 (${p.rerolls}회)`)}</div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
@@ -311,7 +311,7 @@ export function pendingModal(run: RunState): string {
       <div class="pv-row">${p.options.map((o, i) => { const desc = R.privilegeDesc(o); return `<span class="tslot gslot gt-P" style="--i:${i}"><button class="gcard pv-card gt-P" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${desc.length > 70 ? ` title="${esc(desc)}"` : ''}>
         <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
         <span class="gc-kind">특권</span>${passHead(i, '특권', PRIVILEGES.findIndex((d) => d.id === o.id) + 1, [['종류', '특권'], ['유효', '이번 런']])}<b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
-      <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
+      <div class="row-btns">${rerollBtn('reroll-privilege', p.rerolls, `새로고침 (${p.rerolls}회)`)}</div></div>`;
   } else if (p.t === 'despair') {
     // 절망 증강: 어둡게 가라앉는 카드 (특권 · 등급 공개 연출과 따로, 소리는 낮은 음 하나 — sound.ts despair)
     mcls = 'despair';
@@ -320,7 +320,7 @@ export function pendingModal(run: RunState): string {
     body = `<div class="dp-body"><span class="dp-kicker">${p.phase ? `${p.phase}페이즈 · 깊어지는 절망` : `${esc(diffName(run.diff) || '고난')}의 대가`}</span><h1>절망 증강</h1><p class="small dp-sub">${p.phase ? `절망이 하나 더 쌓입니다. 의뢰가 끝날 때까지 이미 짊어진 절망과 함께 걸립니다. 고르지 않고는 나아갈 수 없습니다.` : '이번 의뢰 내내 짊어질 절망을 하나 고르세요. 고르지 않고는 출격할 수 없습니다.'}</p>
       ${held.length ? `<p class="dp-held"><span>짊어진 절망</span>${held.map((d) => `<b title="${esc(d.desc())}">${lineIcon(d.icon, 'li')}${esc(d.name)}</b>`).join('')}</p>` : ''}
       <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<span class="dp-slot" style="--i:${i}"><button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"${d.brief ? ` title="${esc(d.desc())}"` : ''}><span class="dp-sigil" aria-hidden="true">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc((d.brief || d.desc)()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button></span>`; }).join('')}</div>
-      <div class="row-btns"><button class="btn" data-a="reroll-despair" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
+      <div class="row-btns">${rerollBtn('reroll-despair', p.rerolls, `새로고침 (${p.rerolls}회)`)}</div></div>`;
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
@@ -353,7 +353,7 @@ export function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="RANK UP · AUGMENT">${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
-          ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
+          ${rerollBtn('reroll', p.rerolls, p.rerolls > 0 ? `새로고침 ${p.rerolls}` : '새로고침 없음', 'small ru-reroll')}</div>
         ${p.kind === 'school' ? matchupChips(run.field) : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
@@ -380,7 +380,7 @@ export function pendingModal(run: RunState): string {
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head mt-hd hd-row" style="--hdc:var(--mt-b)"><h1 data-k="${p.syns ? 'MUSTER' : 'RECRUIT'} · BOARDING">${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div class="rc-mu" title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div><span class="rc-tools">${p.syns ? '' : `<button class="btn" data-a="reroll-recruit" ${rr > 0 ? '' : 'disabled'}>새로고침 (${rr}회)</button>`}<button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
+    body = `<div class="rc-head mt-hd hd-row" style="--hdc:var(--mt-b)"><h1 data-k="${p.syns ? 'MUSTER' : 'RECRUIT'} · BOARDING">${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div class="rc-mu" title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div><span class="rc-tools">${p.syns ? '' : `${rerollBtn('reroll-recruit', rr, `새로고침 (${rr}회)`)}`}<button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
       <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조

@@ -24,7 +24,7 @@ import { fmt } from '../ui/battleview';
 import { bgURL } from '../ui/portraits';
 import * as OATH from '../ui/oath';
 import { lineIcon, synIcon, typeIcon } from '../ui/synicons';
-import { NODE_DESC } from '../data/nodes';
+import { NODE_DESC, SHOP_BRANCH_DESC } from '../data/nodes';
 import * as RM from '../ui/routemap';
 import * as SHOP from '../ui/shop';
 import { app, esc, jackpotTxt, pctTxt } from './state';
@@ -314,7 +314,7 @@ export function mapAhead(run: RunState, pick: NodeType | undefined, buttons: str
   };
   const desc = (t: string) => `<span class="ah-desc">${lines(t).map((x) => `<span>${ic(esc(x))}</span>`).join('')}</span>`;
   // 현재 칸 카드의 이름 밑 설명 한 줄: 이 노드가 무엇인지 (노드 유형 설명, 수치 없음 — 수치는 아래 예상 수입 · 모디파이어 섹션)
-  const about = (o: NodeType) => `<span class="ah-desc ah-about">${ic(esc(NODE_DESC[o]))}</span>`;
+  const about = (o: NodeType) => `<span class="ah-desc ah-about">${ic(esc(o === 'shop' && !run.links ? SHOP_BRANCH_DESC : NODE_DESC[o]))}</span>`; // 한 줄 항로의 상점 칸 = 갈림길
   // 현재 칸 단추: 카드 오른쪽 위에 고정 (내용 길이와 무관)
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   // 현재 칸 카드: 이름 → 노드 설명 한 줄 → (보스는 특징 칩) → 예상 수입 → 모디파이어. 다음 칸 카드: 이름 → nodeHint 여러 줄 (보스는 특징 칩)

@@ -36,6 +36,11 @@ export function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
   return `<span class="chip" style="--c:${s.color}">${synIcon(id) || s.icon} ${esc(s.name)}</span>`;
 }
+/** 새로고침 (다시 뽑기) 단추: 메트로 = ↻ 아이콘 단추 (2026-11-07 사용자 결정 C6-1 — 글자는 숨기고 가리키면 title, 남은 수가 2 이상이면 작은 수, 다 쓰면 비활성),
+ *  갤럭시 = 글자 단추 그대로 (.rf-t). 자리는 테마 CSS 가 정한다 (메트로 큰 머리 = 바코드 왼쪽 · 바코드와 가운데 맞춤, 한 줄 머리 = 도구 줄 맨 앞) */
+export function rerollBtn(a: string, left: number, label: string, cls = '') {
+  return `<button class="btn rf${cls ? ` ${cls}` : ''}" data-a="${a}" ${left > 0 ? '' : 'disabled'} title="${esc(label)}" aria-label="${esc(label)}">${lineIcon('a.reload', 'li rf-ic')}<span class="rf-t">${esc(label)}</span>${left > 1 ? `<b class="rf-n" aria-hidden="true">${left}</b>` : ''}</button>`;
+}
 export function sprite(defOrUnit: Parameters<typeof iconURL>[0], cls = 'spr') {
   return `<img class="${cls}${hasPortrait(defOrUnit) ? ' pt' : ''}" alt="" src="${iconURL(defOrUnit)}">`;
 }
