@@ -211,12 +211,13 @@ export function kingPill(r: RunState) {
   const st = causalStage(r.causal || 0), lf = causalLeft(r.causal || 0);
   return `<button class="pill king-pill" data-a="king-info" title="${esc(`공왕 무휼 · 누적 인과율 ${r.causal || 0}\n이긴 전투마다 (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 청라 단계 배율`)}">${lineIcon('a.power', 'li')}<span class="kp-tx">인과</span><b>${st}단계</b><span class="kp-next">${lf ? ` · 다음까지 ${lf}` : ' · 최고'}</span></button>`;
 }
-/** 시너지 토큰: 마름모 아이콘(누르면 상세) + 활성 단계 원 + 이름 · 구성 단계 (+ note: 목록의 보조 줄) */
+/** 시너지 토큰: 마름모 아이콘(누르면 상세) + 활성 단계 원 + 이름 · 구성 단계 (+ note: 목록의 보조 줄).
+ *  data-tier = 지금 단계(0 = 꺼짐) · data-tiers = 단계 수 — 메트로 시너지 판의 단계색(1 흰 · 2 파랑 · 3 빨강 · 4+ 고유, 26-metro.css) */
 export function synToken(id: string, c: number, extra = '', note = '') {
   const sd = SYN_BY_ID[id as SynergyId];
   const t = tierOf(sd.id, c);
   const steps = sd.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
-  return `<div class="syn-tk${t ? ' active' : ''}${extra}" style="--c:${sd.color}">
+  return `<div class="syn-tk${t ? ' active' : ''}${extra}" style="--c:${sd.color}" data-tier="${t}" data-tiers="${sd.tiers.length}">
     <button class="syn-b" type="button" data-syn="${sd.id}" aria-label="${esc(sd.name)} 상세"><span class="syn-dia">${synIcon(sd.id) || sd.icon}</span><span class="syn-lv" title="출전 ${c}명">${c}</span></button>
     <span class="syn-tx"><b>${esc(sd.name)}</b><span class="syn-steps">${steps}</span>${note}</span></div>`;
 }
