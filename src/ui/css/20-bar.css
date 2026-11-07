@@ -354,6 +354,7 @@ html:not(.dk-ready) .bar .dk { visibility: hidden; } /* 잔 그림을 다 받기
 .item .rf-gem i { display: block; width: 100%; aspect-ratio: 1; background: currentColor; rotate: 45deg; }
 .item .rf-gem i + i { margin-top: 85%; }
 .item:has(.rf-gem) { position: relative; }
+.item .rf-gem b, .item > .it-fx { display: none; } /* 제련 숫자 · 반짝임 뒤 망점 층 = 메트로 (26-metro.css 장비 토큰) */
 /* 잠재능력 (희귀 · 전설, 백수정 조각): 아이콘 아래 가운데 네 모서리 별 — 열린 잠재능력만 (빈 칸은 그리지 않는다) */
 .item .pot-st { position: absolute; left: -2px; right: -2px; bottom: -3px; display: flex; justify-content: center; gap: 0; pointer-events: none; line-height: 0; }
 .item .pot-st svg { width: min(10px, 30%); height: auto; aspect-ratio: 1; flex: none; fill: currentColor; stroke: var(--panel); stroke-width: 1.1px; paint-order: stroke; overflow: visible; }

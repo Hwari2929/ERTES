@@ -1153,31 +1153,62 @@
   -webkit-mask: var(--mt-dot-tr) center / 100% 100% no-repeat; mask: var(--mt-dot-tr) center / 100% 100% no-repeat; scale: 1 -1; } /* 장비 색 망점: 우하단 구석이 짙고 위 · 왼쪽으로 옅다 (보급 앞면과 같은 토큰을 뒤집어) */
 [data-ui-theme="metro"] :is(.inv-pop, .ask-pop).dock-top { background: var(--panel); } /* 태블릿 세로 머리 자리: 안에서 스크롤하는 판이라 가상 요소 판 · 그림자 대신 */
 [data-ui-theme="metro"] :is(.inv-pop, .ask-pop).dock-top::before, [data-ui-theme="metro"] :is(.inv-pop, .ask-pop).dock-top::after { display: none; }
-/* ══ 장비 · 소모품 · 성유물 토큰 (2026-11-07 사용자 결정 — 잉크 면 + 등급색 테두리 → 등급색 면 + 잉크 테두리, 상세 좁은 창 · 넓은 창이 같은 토큰):
+/* ══ 장비 · 소모품 · 성유물 토큰 (2026-11-07 사용자 결정 — 색 시안 8-5-D: 다이컷 스티커 + 좌상단 흰 망점 + 전설 · 고유 그라디언트 · 반짝임, 상세 좁은 창 · 넓은 창이 같은 토큰):
    편성 보관함 · 상세 장비란 · 전체 상세 빌드 줄 · 상점 보관함 · 팝오버 머리 · 보급 카드가 같은 모양. 채움색 --it-* 는 밝은 객실 · 밤 구분 없이 고정 (01-themes.css).
-   모양은 그대로 (장비 = 둥근 네모 · 소모품 = 육각 · 개조부품 = 마름모 · 포탑 = 이중 틀 · 성유물 = 원), 아이콘 = 잉크, 전설 · 고유의 번지는 빛 없음.
-   제외: 미니 카드 머리 그림 칸(그 칸의 그림 문법) · 보드 위 기물 토큰의 장비 칸(전투판 · 편성판 = 갤럭시와 같은 표현, 2026-11-06 결정) */
-[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) { --itf: var(--it-C); border: var(--mt-stroke) solid var(--it-edge); background: var(--itf); color: var(--it-ink); box-shadow: none; }
+   모양은 그대로 (장비 = 둥근 네모 · 소모품 = 육각 · 개조부품 = 마름모 · 포탑 = 이중 틀 · 성유물 = 원), 아이콘 = 잉크.
+   다이컷 = 흰 여백 2.5px + 잉크 윤곽 + 잉크 그림자 (전설 · 고유 · 성유물은 그림자가 길다), 고른 것 = 흰 여백 대신 선택색.
+   망점 = 좌상단 흰 망점 (평소 60%). 전설 = 지금 색 → 피치 · 고유 = 지금 색 → 하늘.
+   반짝임 (전설 · 고유, 2026-11-07 사용자 결정 — UI.md 10번 반복 움직임의 예외): 8초마다 0.45초 홀로 띠가 스친다 (처음 · 끝 아주 느리고 가운데 아주 빠름). 스치는 동안 좌상단 망점이 사라지고
+   우하단 밝은 망점(i.it-fx, app/common.ts itemIcon)이 나타났다가 0.75초에 사라지고, 좌상단은 0.3초 쉬었다가 0.75초에 돌아온다 (둘 다 ease-in-out). 고유는 .25초 뒤. 효과 줄이기 · 끄기 · 움직임 줄이기 = 멈춤.
+   표식 = 귀퉁이 배지: 제련 = 우상단 잉크 알약 +N (흰 테), 보유 개수 · 남은 사용 횟수 = 우하단 같은 알약, 잠재능력 = 아래 가장자리 흰 별 (잉크 2px 테).
+   제외: 미니 카드 머리 그림 칸(그 칸의 그림 문법) · 보드 위 기물 토큰의 장비 칸 (편성 보드 기물 카드는 시너지 표현과 함께 다시 그린다 — 2026-11-07 사용자) */
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) { --itf: var(--it-C); position: relative; border: var(--mt-stroke) solid var(--it-edge); background: var(--itf); color: var(--it-ink); box-shadow: none; }
 [data-ui-theme="metro"] .item.tG:not(.mn-hd .item, .u .item) { --itf: var(--it-G); }
 [data-ui-theme="metro"] .item.tA:not(.mn-hd .item, .u .item) { --itf: var(--it-A); }
-[data-ui-theme="metro"] .item.tL:not(.mn-hd .item, .u .item) { --itf: var(--it-L); }
-[data-ui-theme="metro"] .item.tU:not(.mn-hd .item, .u .item) { --itf: var(--it-U); }
+[data-ui-theme="metro"] .item.tL:not(.mn-hd .item, .u .item) { --itf: linear-gradient(135deg, var(--it-L) 22%, var(--c-select)); --itb: var(--it-L); }
+[data-ui-theme="metro"] .item.tU:not(.mn-hd .item, .u .item) { --itf: linear-gradient(135deg, var(--it-U) 22%, var(--it-sky)); --itb: var(--it-U); }
 [data-ui-theme="metro"] .item.tS:not(.mn-hd .item, .u .item) { --itf: var(--it-S); }
 [data-ui-theme="metro"] .item.tT:not(.mn-hd .item, .u .item) { --itf: var(--it-T); border: 3.5px double var(--it-edge); }
 [data-ui-theme="metro"] .item.empty:not(.mn-hd .item, .u .item) { --itf: transparent; border: var(--mt-stroke) dashed var(--line); }
 [data-ui-theme="metro"] :is(.item.tM, .item.hex):not(.mn-hd .item, .u .item) { background: transparent; color: var(--it-ink); }
-[data-ui-theme="metro"] .item.tM:not(.mn-hd .item, .u .item)::before { border: var(--mt-stroke) solid var(--it-edge); background: var(--sc, var(--it-M)); }
-[data-ui-theme="metro"] .item.tM.empty:not(.mn-hd .item, .u .item)::before { border-style: dashed; border-color: var(--line); background: transparent; }
-[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::before { background: var(--it-edge); }
-[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::after { background: var(--hc, var(--it-C)); }
-[data-ui-theme="metro"] .relic-tok { border: var(--mt-stroke) solid var(--it-edge); background: var(--it-R); color: var(--it-ink); }
+[data-ui-theme="metro"] .item:not(.hex, .tM, .empty, .mn-hd .item, .u .item) > :not(.rf-gem, .pot-st, .use-n, .it-fx), [data-ui-theme="metro"] .relic-tok > * { position: relative; z-index: 1; } /* 아이콘 = 망점 · 반짝임 위 */
+[data-ui-theme="metro"] .relic-tok { position: relative; border: var(--mt-stroke) solid var(--it-edge); background: var(--it-R); color: var(--it-ink); }
 [data-ui-theme="metro"] .relic-tok.empty { border: var(--mt-stroke) dashed var(--line); background: transparent; color: var(--c-text-2); }
-/* 스티커 그림자 (2026-11-07 사용자 결정 색 시안 8 — 잉크 2.5px, 이 위에 얹을 장식은 발전 시안 8-1 ~ 8-5 고르기 대기): 네모 · 원 = box-shadow, 육각 · 마름모 = drop-shadow (고른 것은 선택색 윤곽 + 그림자) */
-[data-ui-theme="metro"] .item:not(.hex, .tM, .empty, .mn-hd .item, .u .item) { box-shadow: 2.5px 2.5px 0 var(--it-edge); }
-[data-ui-theme="metro"] :is(.item.hex, .item.tM):not(.empty, .mn-hd .item, .u .item) { filter: drop-shadow(2.5px 2.5px 0 var(--it-edge)); }
-[data-ui-theme="metro"] :is(.item.hex, .item.tM):is(.sel, .dragging):not(.mn-hd .item, .u .item) { filter: drop-shadow(1.5px 0 0 var(--c-select)) drop-shadow(-1.5px 0 0 var(--c-select)) drop-shadow(0 1.5px 0 var(--c-select)) drop-shadow(0 -1.5px 0 var(--c-select)) drop-shadow(2.5px 2.5px 0 var(--it-edge)); }
-[data-ui-theme="metro"] .relic-tok:not(.empty) { box-shadow: 2.5px 2.5px 0 var(--it-edge); }
-[data-ui-theme="metro"] .relic-tok.on:not(.empty) { box-shadow: 0 0 0 2px var(--c-select), 2.5px 2.5px 0 var(--it-edge); }
+/* 다이컷 (흰 여백 + 잉크 윤곽 + 잉크 그림자) */
+[data-ui-theme="metro"] .item:not(.hex, .tM, .empty, .mn-hd .item, .u .item), [data-ui-theme="metro"] .relic-tok:not(.empty) { box-shadow: 0 0 0 2.5px var(--k-paper), 0 0 0 4px var(--it-edge), 3px 3px 0 4px var(--it-edge); }
+[data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item), [data-ui-theme="metro"] .relic-tok:not(.empty) { box-shadow: 0 0 0 2.5px var(--k-paper), 0 0 0 4px var(--it-edge), 5px 5px 0 4px var(--it-edge); }
+[data-ui-theme="metro"] .item.sel:not(.hex, .tM, .mn-hd .item, .u .item) { outline: 0; box-shadow: 0 0 0 2.5px var(--c-select), 0 0 0 4px var(--it-edge), 3px 3px 0 4px var(--it-edge); }
+[data-ui-theme="metro"] .relic-tok.on:not(.empty) { box-shadow: 0 0 0 2.5px var(--c-select), 0 0 0 4px var(--it-edge), 5px 5px 0 4px var(--it-edge); }
+[data-ui-theme="metro"] :is(.item.hex, .item.tM):not(.empty, .mn-hd .item, .u .item) { filter: drop-shadow(2px 0 0 var(--k-paper)) drop-shadow(-2px 0 0 var(--k-paper)) drop-shadow(0 2px 0 var(--k-paper)) drop-shadow(0 -2px 0 var(--k-paper)) drop-shadow(1.2px 0 0 var(--it-edge)) drop-shadow(-1.2px 0 0 var(--it-edge)) drop-shadow(0 1.2px 0 var(--it-edge)) drop-shadow(0 -1.2px 0 var(--it-edge)) drop-shadow(2.5px 2.5px 0 var(--it-edge)); }
+[data-ui-theme="metro"] :is(.item.hex, .item.tM):is(.sel, .dragging):not(.mn-hd .item, .u .item) { filter: drop-shadow(2px 0 0 var(--c-select)) drop-shadow(-2px 0 0 var(--c-select)) drop-shadow(0 2px 0 var(--c-select)) drop-shadow(0 -2px 0 var(--c-select)) drop-shadow(1.2px 0 0 var(--it-edge)) drop-shadow(-1.2px 0 0 var(--it-edge)) drop-shadow(0 1.2px 0 var(--it-edge)) drop-shadow(0 -1.2px 0 var(--it-edge)) drop-shadow(2.5px 2.5px 0 var(--it-edge)); }
+/* 좌상단 흰 망점 (평소 60%): 네모 · 원 = ::before, 육각 · 마름모 = 모양 층 바탕 */
+[data-ui-theme="metro"] .item:not(.hex, .tM, .empty, .mn-hd .item, .u .item)::before, [data-ui-theme="metro"] .relic-tok:not(.empty)::before { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: var(--c-white); opacity: .54;
+  -webkit-mask: var(--it-dots), linear-gradient(135deg, var(--c-black) 0, transparent 58%); -webkit-mask-composite: source-in; mask: var(--it-dots), linear-gradient(135deg, var(--c-black) 0, transparent 58%); mask-composite: intersect; }
+[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::before { background: var(--it-edge); }
+[data-ui-theme="metro"] .item.hex:not(.mn-hd .item, .u .item)::after { background: linear-gradient(135deg, transparent 0, var(--hc, var(--it-C)) 58%), radial-gradient(circle, color-mix(in srgb, var(--c-white) 54%, transparent) 1.1px, transparent 1.55px) 0 0 / 4px 4px, var(--hc, var(--it-C)); }
+[data-ui-theme="metro"] .item.tM:not(.empty, .mn-hd .item, .u .item)::before { border: var(--mt-stroke) solid var(--it-edge); background: linear-gradient(90deg, transparent 0, var(--sc, var(--it-M)) 58%), radial-gradient(circle, color-mix(in srgb, var(--c-white) 54%, transparent) 1.1px, transparent 1.55px) 0 0 / 4px 4px, var(--sc, var(--it-M)); }
+[data-ui-theme="metro"] .item.tM.empty:not(.mn-hd .item, .u .item)::before { border-style: dashed; border-color: var(--line); background: transparent; }
+/* 반짝임 (전설 · 고유) */
+[data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item)::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: var(--it-shine); animation: it-sweep 8s linear infinite; }
+[data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item)::before { animation: it-tl 8s linear infinite; }
+[data-ui-theme="metro"] .item > .it-fx { display: none; }
+[data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item) > .it-fx { display: block; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, var(--itb) 28%, var(--c-white)); opacity: 0; animation: it-br 8s linear infinite;
+  -webkit-mask: var(--it-dots), linear-gradient(135deg, transparent 30%, var(--c-black) 60%); -webkit-mask-composite: source-in; mask: var(--it-dots), linear-gradient(135deg, transparent 30%, var(--c-black) 60%); mask-composite: intersect; }
+[data-ui-theme="metro"] .item.tU:not(.mn-hd .item, .u .item)::after, [data-ui-theme="metro"] .item.tU:not(.mn-hd .item, .u .item)::before, [data-ui-theme="metro"] .item.tU:not(.mn-hd .item, .u .item) > .it-fx { animation-delay: .25s; }
+[data-ui-theme="metro"]:is([data-tfx="low"], [data-tfx="off"]) :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item):is(::before, ::after), [data-ui-theme="metro"]:is([data-tfx="low"], [data-tfx="off"]) :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item) > .it-fx { animation: none; }
+@media (prefers-reduced-motion: reduce) { [data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item):is(::before, ::after), [data-ui-theme="metro"] :is(.item.tL, .item.tU):not(.mn-hd .item, .u .item) > .it-fx { animation: none; } }
+@keyframes it-sweep { 0% { background-position: 100% 0; animation-timing-function: cubic-bezier(.9, 0, .1, 1); } 5.625%, 100% { background-position: 0% 0; } }
+@keyframes it-tl { 0% { opacity: .54; animation-timing-function: cubic-bezier(.9, 0, .1, 1); } 5.625%, 9.375% { opacity: 0; animation-timing-function: ease-in-out; } 18.75%, 100% { opacity: .54; } }
+@keyframes it-br { 0% { opacity: 0; animation-timing-function: cubic-bezier(.9, 0, .1, 1); } 5.625% { opacity: 1; animation-timing-function: ease-in-out; } 15%, 100% { opacity: 0; } }
+/* 표식 = 귀퉁이 배지: 제련 = 우상단 잉크 알약 +N · 보유 개수 · 남은 사용 횟수 = 우하단 같은 알약 · 잠재능력 = 아래 흰 별 */
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) :is(.rf-gem, .use-n) { position: absolute; z-index: var(--z-raise); width: auto; min-width: 0; height: 15px; padding: 0 5px; box-sizing: border-box; display: inline-flex; align-items: center; border: 1.5px solid var(--k-paper); outline: 1.5px solid var(--it-edge); border-radius: var(--r-pill);
+  background: var(--it-edge); color: var(--k-paper); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .02em; pointer-events: none; }
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .rf-gem { top: -8px; right: -9px; bottom: auto; left: auto; flex-direction: row; }
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .use-n { top: auto; right: -9px; bottom: -8px; left: auto; }
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .rf-gem i { display: none; }
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .rf-gem b { display: inline; font: inherit; color: inherit; } /* 알약 안 글씨 = 알약 색 (빌드 줄 · 머리 등 굵은 글씨 색 규칙이 덮지 않게) */
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .pot-st { bottom: -8px; z-index: var(--z-raise); gap: 1px; }
+[data-ui-theme="metro"] .item:not(.mn-hd .item, .u .item) .pot-st svg { width: 12px; fill: var(--k-paper); stroke: var(--it-edge); stroke-width: 2px; stroke-linejoin: round; paint-order: stroke; }
 /* 튜토리얼 말풍선 = 디자인 시스템 Dialogue: 이름표 = 탑승권 머리 (잉크 → 보라 띠 · 절취선 · 양옆 홈), 몸통 = 대사. 가리키는 고리 = 선택색 실선 (번지는 빛 대신 바깥 고리가 퍼지며 사라진다) */
 [data-ui-theme="metro"] .co-bub { gap: 10px; padding: 0 0 12px; overflow: hidden; border: 0; border-radius: var(--mt-r); background: var(--panel); box-shadow: inset 0 0 0 1.5px var(--mt-edge), 0 0 0 1.5px var(--mt-ink); }
 [data-ui-theme="metro"] .co-head { position: relative; margin: 1.5px 1.5px 0; padding: 10px 12.5px; border-radius: var(--mt-r) var(--mt-r) 0 0; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);

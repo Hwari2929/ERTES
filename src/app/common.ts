@@ -111,10 +111,11 @@ export function itemIcon(id: string | null, attrs = '', note = '', count = 1) { 
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
   const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : count > 1 ? `<b class="use-n" title="보유 개수">${count}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수 · 겹친 소모품: 같은 자리에 개수
   const rf = refineLv(id);
-  const refine = rf ? `<span class="rf-gem" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${'<i></i>'.repeat(rf)}</span>` : ''; // 제련 단계: 칸 안 우측 상단부터 아래로 마름모 n개
+  const refine = rf ? `<span class="rf-gem" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${'<i></i>'.repeat(rf)}<b>+${rf}</b></span>` : ''; // 제련 단계: 칸 안 우측 상단부터 아래로 마름모 n개
   const np = potsOf(id).length, ns = potSlots(id);
   const potPips = np ? `<span class="pot-st" title="잠재능력 ${np}/${ns}" aria-label="잠재능력 ${np}/${ns}">${POT_STAR.repeat(np)}</span>` : ''; // 잠재능력: 하나라도 열렸을 때만, 아이콘 위 가운데
-  return `<span class="item t${tierKey(id)}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}${potPips}</span>`;
+  const tk = tierKey(id), fx = tk === 'L' || tk === 'U' ? '<i class="it-fx" aria-hidden="true"></i>' : ''; // 전설 · 고유: 반짝임 뒤 우하단 망점 층 (메트로)
+  return `<span class="item t${tk}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}${potPips}${fx}</span>`;
 }
 /** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명 이상이 켜져 있으면 덧붙임) */
 export function breadNote(run: RunState, i: number) {
@@ -138,7 +139,7 @@ export const SPECIAL_GLYPH: Record<string, string> = {
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
 /** 잠재능력 별 (아이콘 아래 가운데, 열린 잠재능력마다 1개 · 빈 칸은 그리지 않는다) */
-export const POT_PIP = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .3l1.3 3.4L9.7 5 6.3 6.3 5 9.7 3.7 6.3.3 5l3.4-1.3z"/></svg>'; // 잠재능력 줄 (팝업): 네 모서리 별
+export const POT_PIP = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .45L6.6 3.4 9.55 5 6.6 6.6 5 9.55 3.4 6.6 .45 5 3.4 3.4z"/></svg>'; // 2026-11-07: 몸통을 조금 넓힌 네 모서리 별 (이전보다 덜 뾰족하게) // 잠재능력 줄 (팝업): 네 모서리 별
 export const POT_STAR = POT_PIP;
 /** 제련 단계 칩 (팝업): 마름모 */
 export const RF_GEM = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1l4 4-4 4-4-4z"/></svg>';
