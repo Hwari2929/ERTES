@@ -19,7 +19,7 @@
 @keyframes bn-line { 0% { transform: scaleX(0); } 25% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
 @keyframes bn-boss { 0% { opacity: 0; transform: scale(1.8); filter: blur(6px); } 18% { opacity: 1; transform: scale(1); filter: none; } 24% { transform: translateX(-4px); } 28% { transform: translateX(4px); } 32% { transform: none; } 82% { opacity: 1; } 100% { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot, .deal-box > .pslot > .pcard, .deal-box > .pslot > .pcard::after, .deal-box > .gslot, .deal-box > .gslot > .gcard, .deal-box > .gslot > .gcard::after, .pv-row > .gslot, .pv-row > .gslot > .gcard, .pv-row > .gslot > .gcard::after, .gc-scan, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot, .deal-box > .pslot > .pcard, .deal-box > .pslot > .pcard::after, .deal-box > .gslot, .deal-box > .gslot > .gcard, .deal-box > .gslot > .gcard::after, .pv-row > .gslot, .pv-row > .gslot > .gcard, .pv-row > .gslot > .gcard::after, .gc-scan, .gc-glint, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 .more-list li span { display: inline-flex; align-items: center; gap: 4px; }
@@ -138,6 +138,7 @@
 .modal.global { width: min(980px, 100%); }
 .gc-scan { display: none; } /* 메트로 등장 스캔 줄 (26-metro.css) */
 .gc-pass { display: none; } /* 메트로 회원증 머리 (순번 · 번호 · 등급 · 유효 칸, app/modals.ts passHead — 26-metro.css) */
+.gc-glint { display: none; } /* 메트로 회원증 공개 '삑' 순간 글린트 (26-metro.css) */
 .gc-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 12px; }
 .gcard { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 250px; padding: 22px 16px 18px; text-align: center; color: var(--c-text); cursor: pointer;
   --gc: var(--g-C); border: 1px solid color-mix(in srgb, var(--gc) 45%, var(--line)); border-radius: var(--r-lg);

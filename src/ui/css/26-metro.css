@@ -1145,8 +1145,8 @@
 [data-ui-theme="metro"] .nt-rows dd { font-family: var(--f-mono); }
 /* 전역 증강 등장 (메트로 전용, deal-box · flip = app/carousel.ts revealCards): 개찰 스캔 (2026-11-06 사용자 결정 — 시안 3 세로 · 곡선 강).
    ① 뒷면(교통카드)이 아래에서 솟고 (칸이 맡아 그림자 판이 카드와 함께) ② 일러스트를 기다린 뒤 등급색 스캔 줄(.gc-scan)이 위 → 아래로 훑고, 지나간 자리가 앞면이 된다
-   — 곡선 = 처음 · 끝은 느리고 가운데서 급히 빨라진다 (일반 .56 · 희귀 .6 · 전설 .76초, 카드마다 .15초 차례) ③ 다 훑으면 '삑': 테두리 전체가 등급색으로 번쩍
-   (카드 맨 위 층 고리 ::after — 머리 잉크 칸에 가리지 않게 + 카드 테두리색 → 홈 고리도 함께). 전설 = 굵은 빨간 줄 + 쿵.
+   — 곡선 = 처음 · 끝은 느리고 가운데서 급히 빨라진다 (일반 .56 · 희귀 .6 · 전설 .76초, 카드마다 .15초 차례) ③ 다 훑으면 '삑': 테두리가 크롬 띠로 한 바퀴 + 모서리 글린트
+   (카드 맨 위 층 고리 ::after — 머리 잉크 칸에 가리지 않게 + 카드 테두리색이 등급색에서 돌아온다). 전설 = 굵은 빨간 줄 + 쿵.
    머리 등급 망점은 앞면의 일부라 처음부터 있다. 움직임 줄이기 = 0.01초 (12-banner-mobile.css) */
 [data-ui-theme="metro"] .gslot { --sd: .56s; --t0: calc(var(--i, 0) * .15s); --ez: cubic-bezier(.86, 0, .14, 1); }
 [data-ui-theme="metro"] .gslot.gt-R { --sd: .6s; } [data-ui-theme="metro"] .gslot.gt-L { --sd: .76s; }
@@ -1162,9 +1162,19 @@
 [data-ui-theme="metro"] .gc-scan::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 76px; background: linear-gradient(to top, color-mix(in srgb, var(--tc) 60%, transparent), transparent);
   -webkit-mask: radial-gradient(circle, var(--c-black) 1.3px, transparent 1.8px) 0 0 / 6px 6px; mask: radial-gradient(circle, var(--c-black) 1.3px, transparent 1.8px) 0 0 / 6px 6px; } /* 지나온 자리 = 등급색 망점 꼬리 */
 [data-ui-theme="metro"] .gc-scan::after { content: 'SCAN'; position: absolute; right: 10px; bottom: 7px; color: var(--tc); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
-[data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard::after { content: ''; position: absolute; inset: -1.5px; z-index: var(--z-card-fx); border-radius: inherit; pointer-events: none; background: none; opacity: 0;
-  box-shadow: inset 0 0 0 3px var(--tc), inset 0 0 40px color-mix(in srgb, var(--tc) 45%, transparent);
-  animation: mt-gc-flash .55s ease-out; animation-delay: calc(var(--t0) + var(--sd)); } /* '삑' 고리 = 바깥 테두리에서 안으로 3px + 안쪽 번짐, 카드 맨 위 층이라 머리 · 몸통 고르게 */
+/* '삑' = 크롬 테 (2026-11-07 사용자 결정 C5-1 — 반짝임은 순간에만): 테두리가 크롬 띠로 한 바퀴 돌며 번쩍이고 (.6초, 끝나면 평면 테두리 그대로) 오른쪽 위 모서리에 글린트가 튄다.
+   크롬 = Y2K 크롬 (종이 하늘빛 · 보라 · 짙은 잉크 지평선 · 민트 반사) 에 등급색 띠 하나 — 바깥 테두리에서 안으로 3px 고리, 카드 맨 위 층이라 머리 · 몸통 고르게 */
+@property --ca { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+[data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard::after { content: ''; position: absolute; inset: -1.5px; z-index: var(--z-card-fx); box-sizing: border-box; padding: 3px; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: conic-gradient(from var(--ca), var(--mt-paper), color-mix(in srgb, var(--mt-a) 55%, var(--mt-paper)) 10%, var(--mt-ink) 17%, color-mix(in srgb, var(--tc) 60%, var(--mt-paper)) 25%, var(--mt-paper) 36%,
+    color-mix(in srgb, var(--mt-b) 50%, var(--mt-paper)) 52%, var(--mt-ink) 60%, color-mix(in srgb, var(--mt-a) 40%, var(--mt-paper)) 70%, var(--mt-paper) 84%);
+  -webkit-mask: linear-gradient(var(--c-black) 0 0) content-box, linear-gradient(var(--c-black) 0 0); -webkit-mask-composite: xor; mask: linear-gradient(var(--c-black) 0 0) content-box, linear-gradient(var(--c-black) 0 0); mask-composite: exclude;
+  animation: mt-gc-chrome .6s cubic-bezier(.3, 0, .2, 1); animation-delay: calc(var(--t0) + var(--sd)); }
+[data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard > .gc-glint { display: block; position: absolute; right: -14px; top: -16px; z-index: var(--z-card-fx); width: 40px; height: 40px; pointer-events: none; opacity: 0;
+  background: var(--mt-paper); -webkit-mask: var(--mt-glint2) center / contain no-repeat; mask: var(--mt-glint2) center / contain no-repeat;
+  animation: mt-gc-glint .5s cubic-bezier(.3, 1.5, .5, 1); animation-delay: calc(var(--t0) + var(--sd) + .08s); } /* 글린트 = 디자인 시스템 glint (런 출발 끝 반짝과 같은 네 갈래 별) */
+@keyframes mt-gc-chrome { 0% { opacity: 1; --ca: 0deg; } 70% { opacity: 1; } 100% { opacity: 0; --ca: 360deg; } }
+@keyframes mt-gc-glint { 0% { opacity: 0; transform: scale(.2) rotate(-30deg); } 45% { opacity: 1; transform: scale(1.1) rotate(0deg); } 100% { opacity: 0; transform: scale(.9) rotate(12deg); } }
 @keyframes mt-gc-deal { from { opacity: 0; transform: translateY(36px); } to { opacity: 1; transform: none; } }
 @keyframes mt-gc-live { from { pointer-events: none; } to { pointer-events: auto; } }
 @keyframes mt-gc-slam { from { transform: scale(1.06); } to { transform: none; } }
@@ -1173,8 +1183,6 @@
 @keyframes mt-gc-scanfade { 0% { opacity: 0; } 5% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes mt-gc-flash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes mt-gc-beep { from { border-color: var(--tc); } } /* 카드 테두리 → 홈 고리(border-color: inherit)도 함께 */
-[data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard > b::before, [data-ui-theme="metro"] :is(.deal-box.flip, .pv-row) > .gslot > .gcard > b::after { animation: mt-gc-ringflash .55s ease-out; animation-delay: calc(var(--t0) + var(--sd)); }
-@keyframes mt-gc-ringflash { from { border-color: var(--tc); box-shadow: 0 0 0 1.5px var(--tc), 0 0 14px 3px color-mix(in srgb, var(--tc) 45%, transparent); } }
 /* 특권 공개 (메트로, 2026-11-06 사용자 결정 — 전역 증강과 같은 개찰 스캔): 막(행선 안내판)이 넘어가고 머리 글씨가 놓인 뒤(--pv0) 칸이 아래에서 솟고 → 보라 스캔 줄 → '삑'.
    deal-box 를 쓰지 않고 처음부터 지연으로 잡는다 — 런 출발 게이트가 덮는 동안 themefx holdUnder 가 이 연출을 통째로 멈춰 두었다가 걷힐 때 잇는다. 다시 그릴 때(.played)는 바로 */
 [data-ui-theme="metro"] .pv-row { --pv0: 1.05s; }

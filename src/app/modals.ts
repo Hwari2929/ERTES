@@ -10,7 +10,7 @@ import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME, GLOBALS, PRIVILEGES } f
 import { combine, CONSUMABLES, isConsumable, isLegendConsumable, DUST, SHARD, itemInfo, tierKey, TURRET_GEAR } from '../data/items';
 import { ENG_TUR, OCCULT_SYNTH, SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, type UnitDef } from '../data/units';
-import { GROUPS, UNIT_GROUP, augMark, isLegendAug } from '../data/schools';
+import { augMark, isLegendAug } from '../data/schools';
 import { deployed, synergyCounts, totalMajors, unitEffects } from '../engine/build';
 import * as R from '../engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from '../data/scene';
@@ -291,7 +291,7 @@ export function pendingModal(run: RunState): string {
     mcls = 'global';
     body = `<h1 class="mt-hd" data-k="GLOBAL · COUNCIL" style="--hdc:var(--mt-a)">${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; return `<span class="tslot gslot${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}"><button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i}" data-a="pick-global" data-v="${id}"${g.desc.length > 70 ? ` title="${esc(g.desc)}"` : ''}>
-        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
+        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${lineIcon(g.id, 'gc-ic') || (g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦')}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span>${passHead(i, '전역', GLOBALS.indexOf(g) + 1, [['등급', `${GLOBAL_TIER_NAME[g.tier || 'N']}${g.unique ? ' · 고유' : ''}`], ['유효', '런 종료까지']])}<b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button></span>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
@@ -309,7 +309,7 @@ export function pendingModal(run: RunState): string {
     mcls = 'privilege';
     body = `<div class="pv-body"><span class="pv-flap" aria-hidden="true">${[...'PRIVILEGE'].map((c, i) => `<i style="--n:${i}">${c}</i>`).join('')}</span><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
       <div class="pv-row">${p.options.map((o, i) => { const desc = R.privilegeDesc(o); return `<span class="tslot gslot gt-P" style="--i:${i}"><button class="gcard pv-card gt-P" style="--i:${i}" data-a="pick-privilege" data-v="${i}"${desc.length > 70 ? ` title="${esc(desc)}"` : ''}>
-        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
+        <i class="cback" aria-hidden="true"></i><i class="gc-scan" aria-hidden="true"></i><i class="gc-glint" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${pvIcon(o)}</span>
         <span class="gc-kind">특권</span>${passHead(i, '특권', PRIVILEGES.findIndex((d) => d.id === o.id) + 1, [['종류', '특권'], ['유효', '이번 런']])}<b>${esc(R.privilegeName(o))}</b><span class="gc-desc">${ic(esc(desc))}</span></button></span>`; }).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'despair') {
@@ -353,7 +353,6 @@ export function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head mt-hd" style="--hdc:var(--mt-a)"><h1 data-k="RANK UP · AUGMENT">${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
-          ${p.kind === 'school' ? `<span class="muted small">${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙습니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}</span>` : ''}
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? matchupChips(run.field) : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
