@@ -7419,11 +7419,11 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] main.syn-focus .u.syn-hl .tk-card { --tkc-ring: var(--c); border-color: var(--k-ink); box-shadow: 0 0 0 2px var(--tkc-ring), 0 0 0 3px var(--k-ink), 3px 3px 0 3px var(--tkc-plate); } /* 시너지 가리킴 = 흰 여백이 시너지 색 (번지는 빛 대신 — 시너지 표현은 다시 그릴 예정) */
 [data-ui-theme="metro"] .u.duo-b.tk .tk-card { box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--night-c-bad) 70%, transparent), 0 0 0 2px var(--tkc-ring), 0 0 0 3px var(--k-ink), 3px 3px 0 3px var(--tkc-plate); }
 [data-ui-theme="metro"] .bench-u.u.tk .tk-card { width: calc(100% - 9px); } /* 대기석: 흰 여백 3px + 색 판 6px 가 옆 카드에 닿지 않게 */
-[data-ui-theme="metro"] .u.tk .tk-art img.pt { border-radius: var(--r-sm); }
+[data-ui-theme="metro"] .u.tk .tk-art img.pt { position: relative; z-index: 1; border-radius: var(--r-sm); background: transparent; } /* 그림이 망점 위 — 망점은 그림 뒤 초상화 배경에만 보인다 */
 [data-ui-theme="metro"] .u.tk .tk-art::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: var(--r-sm); background: var(--c-white); opacity: .55; pointer-events: none;
   -webkit-mask: radial-gradient(circle, var(--c-black) .9px, transparent 1.3px) 0 0 / 3px 3px, linear-gradient(135deg, var(--c-black) 0, transparent 45%); -webkit-mask-composite: source-in;
-  mask: radial-gradient(circle, var(--c-black) .9px, transparent 1.3px) 0 0 / 3px 3px, linear-gradient(135deg, var(--c-black) 0, transparent 45%); mask-composite: intersect; } /* 그림 좌상단 흰 망점 (장비 토큰과 같은 문법) */
-[data-ui-theme="metro"] .u.tk .tk-mod { z-index: 1; } /* 개조부품 표식은 망점 위 */
+  mask: radial-gradient(circle, var(--c-black) .9px, transparent 1.3px) 0 0 / 3px 3px, linear-gradient(135deg, var(--c-black) 0, transparent 45%); mask-composite: intersect; } /* 초상화 배경 좌상단 흰 망점 (장비 토큰과 같은 문법) — 그림 아래 층, 같은 날 사용자 요청 */
+[data-ui-theme="metro"] .u.tk .tk-mod { z-index: 1; } /* 개조부품 표식은 그림 위 (그림 다음 순서) */
 [data-ui-theme="metro"] .u.tk .tk-side > * { background: var(--k-paper); color: var(--k-ink); border-radius: var(--r-sm); }
 [data-ui-theme="metro"] .u.tk .tk-side > .tk-rank { background: var(--k-ink); color: var(--k-paper); border: 1px solid var(--k-paper); font-weight: 800; }
 [data-ui-theme="metro"] .u.tk .tk-side > .tk-rank:is(.tier-boss, .tier-elite) { background: var(--night-c-bad); color: var(--k-ink); }
