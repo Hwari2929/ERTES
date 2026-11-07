@@ -14,6 +14,7 @@
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: var(--z-top); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .brand { font-family: var(--f-display); font-size: var(--fs-2xl); color: var(--c-brand); letter-spacing: .04em; }
+.brand-mt { display: none; } /* 메트로 로고 INFINITE METRO Express (26-metro.css) */
 .stat-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
 /* 런 리본의 칩 줄: 높이를 고정하고 한 줄만 쓴다. 칩이 늘어나도 (절망 서약 · 절망 증강 · 영수 증서 · 인과) 리본이 두꺼워지지 않고 옆으로 밀어 본다 */
 /* 칩 묶음: 남는 폭을 차지하고, 그 안에서 칩 줄은 내용 폭만큼 · 기타 칩은 바로 뒤 (이자 칩 옆). 칩이 넘치면 칩 줄만 줄어 옆으로 밀어 본다 */

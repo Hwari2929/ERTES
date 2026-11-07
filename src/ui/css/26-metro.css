@@ -203,6 +203,14 @@
 [data-ui-theme="metro"] .toast { background: var(--panel); color: var(--c-text); border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); box-shadow: inset 0 3px 0 var(--mt-b); }
 /* 상단 바 = HUD: 굵은 아래 선 + 노선 띠, 칩은 각진 표식 */
 [data-ui-theme="metro"] .top { border-bottom: 1.5px solid var(--mt-edge); }
+/* 상단 바 로고 = INFINITE METRO Express (2026-11-07 사용자 결정 로고 시안 1): INFINITE = 모노 · 민트 · 넓은 자간 / METRO = Archivo Black 종이색 /
+   Express = 필기체(Pinyon Script) 복숭아, METRO 오른쪽 아래에 비스듬히 겹친다. 갤럭시는 ERRANTEs 그대로 */
+[data-ui-theme="metro"] .brand-gx { display: none; }
+[data-ui-theme="metro"] .brand-mt { position: relative; display: grid; padding-right: 30px; color: var(--mt-paper); line-height: 1; letter-spacing: 0; white-space: nowrap; }
+[data-ui-theme="metro"] .brand-mt > span { display: block; }
+[data-ui-theme="metro"] .brand-mt .a { margin-bottom: 2px; color: var(--mt-b); font: 700 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .42em; }
+[data-ui-theme="metro"] .brand-mt .b { font: 400 var(--fs-3xl)/.9 var(--f-logo); letter-spacing: .02em; }
+[data-ui-theme="metro"] .brand-mt .c { position: absolute; right: -4px; bottom: -3px; color: var(--mt-c); font: 400 var(--fs-2xl)/1 var(--f-sign); rotate: -8deg; }
 [data-ui-theme="metro"] .top::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 4px; pointer-events: none; background: linear-gradient(var(--mt-a) 0 2px, transparent 2px 3px, var(--mt-b) 3px 4px); }
 [data-ui-theme="metro"] .top .pill { border: 1.5px solid var(--mt-edge); border-radius: var(--r-sm); }
 /* 탭: 폴더 머리 (고른 탭 = 종이 면) */

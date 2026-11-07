@@ -167,7 +167,7 @@ export function topbar() {
   const syns = synList(r).filter((s) => (counts[s.id] || 0) > 0).sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   const it = interestLines(r);
   return `<header class="top">
-    <div class="brand">ERRANTEs</div>
+    <div class="brand"><span class="brand-gx">ERRANTEs</span><span class="brand-mt"><span class="a">INFINITE</span><span class="b">METRO</span><span class="c">Express</span></span></div>
     <div class="top-chips">
     <div class="stat-row">
       ${r.campaign ? `<span class="pill" title="장 · 노드"><b>${r.campaign.ch}</b>장 · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>` : `<span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>`}
